@@ -85,3 +85,4 @@ export async function GET() {
 | Date | Changes |
 |------|---------|
 | Initial | Template created with base setup |
+| 2024-03-01 | Built complete device management system (Phần mềm quản lý thiết bị) with modern UI for LabHouse medical laboratory |
