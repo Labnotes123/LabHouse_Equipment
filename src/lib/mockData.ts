@@ -7,44 +7,52 @@ export type DeviceStatus =
   | "Ngừng sử dụng"
   | "Chờ hiệu chuẩn";
 
-export type ProposalStatus = "Chờ duyệt" | "Đã duyệt" | "Từ chối";
+export type ProposalStatus = "Bản nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối";
 
-export interface Device {
+export interface DeviceRequirement {
   id: string;
-  code: string;
-  name: string;
-  model: string;
+  deviceName: string;
   manufacturer: string;
-  serial: string;
-  purchaseDate: string;
-  warrantyExpiry: string;
-  location: string;
-  department: string;
-  status: DeviceStatus;
-  lastCalibration?: string;
-  nextCalibration?: string;
-  lastMaintenance?: string;
-  nextMaintenance?: string;
-  imageUrl?: string;
-  description?: string;
-  responsiblePerson: string;
-  price?: number;
+  yearOfManufacture: string;
+  distributor: string;
+  quantity: number;
+  technicalSpecs: string;
+  attachments: AttachedFile[];
+}
+
+export interface AttachedFile {
+  id: string;
+  name: string;
+  type: "pdf" | "image" | "doc";
+  url: string; // base64 or object URL
+  size: number;
+}
+
+export interface ProposalApprover {
+  userId: string;
+  fullName: string;
+  role: string;
+  isApprover: boolean; // true = can approve, false = related person only
 }
 
 export interface NewDeviceProposal {
   id: string;
   proposalCode: string;
-  deviceName: string;
-  quantity: number;
-  purpose: string;
-  estimatedCost: number;
+  necessity: string; // Sự cần thiết đầu tư thiết bị
+  deviceRequirements: DeviceRequirement[];
   proposedBy: string;
-  proposedDate: string;
+  proposedById: string;
+  proposedDate: string; // date of first submit (hoàn tất)
+  createdDate: string; // date of creation
   status: ProposalStatus;
+  approvers: ProposalApprover[];
   approvedBy?: string;
-  approvedDate?: string;
-  notes?: string;
-  department: string;
+  approvedDate?: string; // hh:mm dd/mm/yyyy
+  rejectedBy?: string;
+  rejectedDate?: string;
+  rejectionReason?: string;
+  registeredToSystem?: boolean; // whether device has been registered
+  department?: string;
 }
 
 export interface CalibrationSchedule {
@@ -68,7 +76,7 @@ export interface IncidentReport {
   description: string;
   severity: "Nhẹ" | "Trung bình" | "Nghiêm trọng";
   reportedBy: string;
-  status: ProposalStatus;
+  status: "Chờ duyệt" | "Đã duyệt" | "Từ chối";
   resolution?: string;
 }
 
@@ -86,6 +94,41 @@ export interface HistoryLog {
   targetName?: string;
   timestamp: string;
   ipAddress?: string;
+}
+
+export interface Device {
+  id: string;
+  code: string;
+  name: string;
+  model: string;
+  manufacturer: string;
+  serial: string;
+  purchaseDate: string;
+  warrantyExpiry: string;
+  location: string;
+  department: string;
+  status: DeviceStatus;
+  lastCalibration?: string;
+  nextCalibration?: string;
+  lastMaintenance?: string;
+  nextMaintenance?: string;
+  imageUrl?: string;
+  description?: string;
+  responsiblePerson: string;
+  price?: number;
+}
+
+// Notification type
+export interface Notification {
+  id: string;
+  userId: string;
+  type: "proposal_pending" | "proposal_approved" | "proposal_rejected" | "proposal_related";
+  title: string;
+  message: string;
+  proposalId: string;
+  proposalCode: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 // Mock Devices
@@ -212,47 +255,127 @@ export const mockDevices: Device[] = [
   },
 ];
 
-// Mock Proposals
+// Mock Proposals - new format
 export const mockProposals: NewDeviceProposal[] = [
   {
     id: "p1",
-    proposalCode: "DX-2024-001",
-    deviceName: "Máy đông máu tự động",
-    quantity: 1,
-    purpose: "Bổ sung năng lực xét nghiệm đông máu, đáp ứng nhu cầu tăng cao",
-    estimatedCost: 350000000,
+    proposalCode: "PDX-2024-001",
+    necessity: "Bổ sung năng lực xét nghiệm đông máu, đáp ứng nhu cầu tăng cao của bệnh nhân trong thời gian gần đây. Hiện tại phòng xét nghiệm chưa có máy đông máu tự động, phải thực hiện thủ công gây mất nhiều thời gian.",
+    deviceRequirements: [
+      {
+        id: "dr1",
+        deviceName: "Máy đông máu tự động",
+        manufacturer: "Stago",
+        yearOfManufacture: "2023",
+        distributor: "Công ty TNHH Thiết bị Y tế ABC",
+        quantity: 1,
+        technicalSpecs: "Tốc độ xử lý tối thiểu 200 test/giờ, có khả năng thực hiện các xét nghiệm PT, APTT, Fibrinogen",
+        attachments: [],
+      },
+    ],
     proposedBy: "Phạm Thị Kỹ Thuật",
+    proposedById: "4",
     proposedDate: "2024-02-15",
+    createdDate: "2024-02-14",
     status: "Chờ duyệt",
+    approvers: [
+      { userId: "2", fullName: "Trần Thị Giám Đốc", role: "Giám đốc", isApprover: true },
+      { userId: "3", fullName: "Lê Văn Trưởng Phòng", role: "Trưởng phòng xét nghiệm", isApprover: false },
+    ],
     department: "Huyết học",
-    notes: "Cần thiết để mở rộng dịch vụ xét nghiệm đông máu",
   },
   {
     id: "p2",
-    proposalCode: "DX-2024-002",
-    deviceName: "Máy xét nghiệm nước tiểu tự động",
-    quantity: 2,
-    purpose: "Thay thế máy cũ đã hết hạn sử dụng",
-    estimatedCost: 180000000,
+    proposalCode: "PDX-2024-002",
+    necessity: "Thay thế máy xét nghiệm nước tiểu cũ đã hết hạn sử dụng, không còn đảm bảo độ chính xác. Máy hiện tại đã sử dụng được 8 năm và thường xuyên gặp sự cố.",
+    deviceRequirements: [
+      {
+        id: "dr2",
+        deviceName: "Máy xét nghiệm nước tiểu tự động",
+        manufacturer: "Sysmex",
+        yearOfManufacture: "2023",
+        distributor: "Công ty CP Thiết bị Y tế XYZ",
+        quantity: 2,
+        technicalSpecs: "Phân tích 10 thông số, tốc độ 120 mẫu/giờ, có module phân tích cặn lắng",
+        attachments: [],
+      },
+    ],
     proposedBy: "Lê Văn Trưởng Phòng",
+    proposedById: "3",
     proposedDate: "2024-02-20",
+    createdDate: "2024-02-19",
     status: "Đã duyệt",
+    approvers: [
+      { userId: "2", fullName: "Trần Thị Giám Đốc", role: "Giám đốc", isApprover: true },
+    ],
     approvedBy: "Trần Thị Giám Đốc",
-    approvedDate: "2024-02-25",
+    approvedDate: "14:30 25/02/2024",
     department: "Tổng quát",
-    notes: "Đã được phê duyệt, đang trong quá trình đấu thầu",
+    registeredToSystem: true,
   },
   {
     id: "p3",
-    proposalCode: "DX-2024-003",
-    deviceName: "Máy điện giải tự động",
-    quantity: 1,
-    purpose: "Nâng cao chất lượng xét nghiệm điện giải",
-    estimatedCost: 95000000,
+    proposalCode: "PDX-2024-003",
+    necessity: "Nâng cao chất lượng xét nghiệm điện giải, đáp ứng tiêu chuẩn ISO 15189. Thiết bị hiện tại không đủ độ chính xác theo yêu cầu kiểm định.",
+    deviceRequirements: [
+      {
+        id: "dr3",
+        deviceName: "Máy điện giải tự động",
+        manufacturer: "Radiometer",
+        yearOfManufacture: "2024",
+        distributor: "Công ty TNHH Dược phẩm DEF",
+        quantity: 1,
+        technicalSpecs: "Đo Na+, K+, Cl-, Ca2+, pH, pCO2, pO2. Thời gian phân tích < 60 giây",
+        attachments: [],
+      },
+    ],
     proposedBy: "Hoàng Văn Chất Lượng",
+    proposedById: "5",
     proposedDate: "2024-03-01",
+    createdDate: "2024-02-28",
     status: "Chờ duyệt",
+    approvers: [
+      { userId: "2", fullName: "Trần Thị Giám Đốc", role: "Giám đốc", isApprover: true },
+      { userId: "6", fullName: "Vũ Thị Thiết Bị", role: "Quản lý trang thiết bị", isApprover: false },
+    ],
     department: "Sinh hóa",
+  },
+];
+
+// Mock Notifications
+export const mockNotifications: Notification[] = [
+  {
+    id: "n1",
+    userId: "2",
+    type: "proposal_pending",
+    title: "Yêu cầu phê duyệt mới",
+    message: "Phiếu đề xuất PDX-2024-001 cần được phê duyệt",
+    proposalId: "p1",
+    proposalCode: "PDX-2024-001",
+    isRead: false,
+    createdAt: "2024-02-15T08:00:00",
+  },
+  {
+    id: "n2",
+    userId: "3",
+    type: "proposal_related",
+    title: "Bạn được liệt kê là người liên quan",
+    message: "Phiếu đề xuất PDX-2024-001 - Bạn được liệt kê là người liên quan",
+    proposalId: "p1",
+    proposalCode: "PDX-2024-001",
+    isRead: false,
+    createdAt: "2024-02-15T08:00:00",
+  },
+  {
+    id: "n3",
+    userId: "3",
+    type: "proposal_pending",
+    title: "Yêu cầu phê duyệt mới",
+    message: "Phiếu đề xuất PDX-2024-003 cần được phê duyệt",
+    proposalId: "p3",
+    proposalCode: "PDX-2024-003",
+    isRead: false,
+    createdAt: "2024-03-01T09:00:00",
   },
 ];
 
@@ -392,10 +515,10 @@ export const mockHistoryLogs: HistoryLog[] = [
     userName: "Lê Văn Trưởng Phòng",
     userRole: "Trưởng phòng xét nghiệm",
     action: "Đề xuất thiết bị mới",
-    description: "Tạo đề xuất DX-2024-002 - Máy xét nghiệm nước tiểu tự động",
+    description: "Tạo đề xuất PDX-2024-002 - Máy xét nghiệm nước tiểu tự động",
     targetType: "Đề xuất",
     targetId: "p2",
-    targetName: "DX-2024-002",
+    targetName: "PDX-2024-002",
     timestamp: "2024-02-20T14:00:00",
     ipAddress: "192.168.1.103",
   },
@@ -407,10 +530,10 @@ export const mockHistoryLogs: HistoryLog[] = [
     userName: "Trần Thị Giám Đốc",
     userRole: "Giám đốc",
     action: "Phê duyệt đề xuất",
-    description: "Phê duyệt đề xuất DX-2024-002 - Máy xét nghiệm nước tiểu tự động",
+    description: "Phê duyệt đề xuất PDX-2024-002 - Máy xét nghiệm nước tiểu tự động",
     targetType: "Đề xuất",
     targetId: "p2",
-    targetName: "DX-2024-002",
+    targetName: "PDX-2024-002",
     timestamp: "2024-02-25T09:00:00",
     ipAddress: "192.168.1.101",
   },
@@ -461,6 +584,16 @@ export const mockHistoryLogs: HistoryLog[] = [
   },
 ];
 
+// Exported user list for approver selection
+export const MOCK_USERS_LIST = [
+  { id: "1", fullName: "Nguyễn Văn Admin", role: "Admin" },
+  { id: "2", fullName: "Trần Thị Giám Đốc", role: "Giám đốc" },
+  { id: "3", fullName: "Lê Văn Trưởng Phòng", role: "Trưởng phòng xét nghiệm" },
+  { id: "4", fullName: "Phạm Thị Kỹ Thuật", role: "Kỹ thuật viên" },
+  { id: "5", fullName: "Hoàng Văn Chất Lượng", role: "Quản lý chất lượng" },
+  { id: "6", fullName: "Vũ Thị Thiết Bị", role: "Quản lý trang thiết bị" },
+];
+
 export const departments = [
   "Huyết học",
   "Sinh hóa",
@@ -471,6 +604,54 @@ export const departments = [
   "Tổng quát",
   "Nước tiểu",
 ];
+
+// Configurable lists
+export const specialties = ["Huyết học", "Hóa sinh", "Vi sinh", "Giải phẫu bệnh"];
+export const deviceCategories = ["Máy xét nghiệm chính", "Thiết bị phụ trợ"];
+export const deviceTypes = [
+  "Máy xét nghiệm chính",
+  "Máy thành phần",
+  "Máy ủ & sấy",
+  "Kính hiển vi",
+  "Máy ly tâm",
+  "Tủ lạnh & tủ âm sâu",
+  "Nồi hấp",
+  "Máy xử lý nước",
+  "Tủ An toàn sinh học & Tủ thao tác PCR",
+  "Tủ ấm",
+  "Pippette",
+  "Nhiệt kế & ẩm kế",
+  "Máy vortex & spindown",
+  "Cân",
+  "Đầu đọc",
+];
+export const deviceLocations = [
+  "Phòng hóa sinh – Huyết học",
+  "Phòng nuôi cấy vi sinh",
+  "Hành lang tầng 1",
+  "Hành lang tầng 2",
+  "Phòng kho",
+  "Phòng tách chiết",
+  "Phòng lưu mẫu và hấp sấy",
+  "Phòng kháng sinh đồ",
+  "Phòng chuẩn bị hóa chất",
+];
+export const countries = [
+  "Việt Nam", "Nhật Bản", "Hoa Kỳ", "Đức", "Pháp", "Anh", "Hàn Quốc",
+  "Trung Quốc", "Thụy Sĩ", "Thụy Điển", "Đan Mạch", "Hà Lan", "Ý", "Tây Ban Nha",
+  "Canada", "Úc", "Singapore", "Đài Loan",
+];
+
+// Helper to generate PDX code
+export function generatePDXCode(existingProposals: NewDeviceProposal[]): string {
+  const year = new Date().getFullYear();
+  const yearStr = String(year);
+  const sameYearProposals = existingProposals.filter((p) =>
+    p.proposalCode.startsWith(`PDX-${yearStr}-`)
+  );
+  const nextNum = sameYearProposals.length + 1;
+  return `PDX-${yearStr}-${String(nextNum).padStart(3, "0")}`;
+}
 
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("vi-VN", {

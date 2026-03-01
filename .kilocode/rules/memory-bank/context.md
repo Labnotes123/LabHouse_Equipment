@@ -86,3 +86,4 @@ export async function GET() {
 |------|---------|
 | Initial | Template created with base setup |
 | 2024-03-01 | Built complete device management system (Phần mềm quản lý thiết bị) with modern UI for LabHouse medical laboratory |
+| 2026-03-01 | Rebuilt Tab Thiết bị mới (NewDeviceTab) with full PDX proposal workflow: table view with sorting/filtering/pagination, proposal form with PDX auto-code, necessity field, multi-device requirements, PDF-only attachments, draft/send workflow, approver selection modal, rejection with reason, register device form (full fields), notification system, DashboardTab navigation integration |

@@ -24,7 +24,11 @@ import {
 } from "@/lib/mockData";
 import { useToast } from "@/contexts/ToastContext";
 
-export default function DashboardTab() {
+interface DashboardTabProps {
+  onNavigateNewDevicePending?: () => void;
+}
+
+export default function DashboardTab({ onNavigateNewDevicePending }: DashboardTabProps) {
   const { info } = useToast();
   const [activeFilter, setActiveFilter] = useState<"all" | "calibration" | "maintenance">("all");
 
@@ -128,13 +132,16 @@ export default function DashboardTab() {
                 <Bell size={18} className="text-blue-600" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-800 text-sm">Chờ duyệt đề xuất thiết bị</h3>
+                <h3 className="font-bold text-slate-800 text-sm">Thiết bị mới chờ duyệt</h3>
                 <p className="text-xs text-slate-400">{pendingProposals.length} đề xuất</p>
               </div>
             </div>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+            <button
+              onClick={onNavigateNewDevicePending}
+              className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-pointer"
+            >
               {pendingProposals.length}
-            </span>
+            </button>
           </div>
           <div className="divide-y divide-slate-50">
             {pendingProposals.length === 0 ? (
@@ -144,10 +151,10 @@ export default function DashboardTab() {
               </div>
             ) : (
               pendingProposals.map((p) => (
-                <div key={p.id} className="p-4 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => info("Xem đề xuất", `Đề xuất ${p.proposalCode}: ${p.deviceName}`)}>
+                <div key={p.id} className="p-4 hover:bg-slate-50 transition-colors cursor-pointer" onClick={onNavigateNewDevicePending}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-700 text-sm truncate">{p.deviceName}</p>
+                      <p className="font-semibold text-slate-700 text-sm truncate">{p.deviceRequirements?.[0]?.deviceName ?? p.proposalCode}</p>
                       <p className="text-xs text-slate-400 mt-0.5">{p.proposalCode} • {p.proposedBy}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">

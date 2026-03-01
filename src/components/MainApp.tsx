@@ -27,6 +27,7 @@ import HistoryTab from "@/components/tabs/HistoryTab";
 import { mockProposals, mockIncidents } from "@/lib/mockData";
 
 type TabId = "dashboard" | "new-device" | "device-profile" | "admin" | "history";
+type NewDeviceFilter = "all" | "pending";
 
 const tabs: {
   id: TabId;
@@ -86,6 +87,7 @@ export default function MainApp() {
   const { user, logout } = useAuth();
   const { success } = useToast();
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
+  const [newDeviceFilter, setNewDeviceFilter] = useState<NewDeviceFilter>("all");
   const [showProfile, setShowProfile] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -99,10 +101,15 @@ export default function MainApp() {
     success("Đã đăng xuất", "Hẹn gặp lại bạn!");
   };
 
+  const navigateToNewDevicePending = () => {
+    setNewDeviceFilter("pending");
+    setActiveTab("new-device");
+  };
+
   const renderTab = () => {
     switch (activeTab) {
-      case "dashboard": return <DashboardTab />;
-      case "new-device": return <NewDeviceTab />;
+      case "dashboard": return <DashboardTab onNavigateNewDevicePending={navigateToNewDevicePending} />;
+      case "new-device": return <NewDeviceTab filterPending={newDeviceFilter === "pending"} onNavigate={(tab) => { setNewDeviceFilter("all"); setActiveTab(tab as TabId); }} />;
       case "device-profile": return <DeviceProfileTab />;
       case "admin": return <AdminTab />;
       case "history": return <HistoryTab />;
@@ -141,7 +148,7 @@ export default function MainApp() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { setActiveTab(tab.id); if (tab.id !== "new-device") setNewDeviceFilter("all"); }}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all group relative ${
                   isActive
                     ? "bg-white/10 shadow-lg"
