@@ -196,7 +196,7 @@ export default function DeviceProfileTab() {
   });
   
   // Info submenu state
-  const [infoSubmenu, setInfoSubmenu] = useState<"history" | "change-manager" | "print-label" | null>(null);
+  const [infoSubmenu, setInfoSubmenu] = useState<"history" | "change-manager" | "change-contact" | "print-label" | null>(null);
   const [showInfoDropdown, setShowInfoDropdown] = useState<string | null>(null);
   
   // Change manager state
@@ -208,6 +208,23 @@ export default function DeviceProfileTab() {
   // Print label state
   const [showQRCode, setShowQRCode] = useState(true);
   const [showLabelInfo, setShowLabelInfo] = useState(true);
+  
+  // Edit contact state
+  const [editingContact, setEditingContact] = useState<Partial<DeviceContact>>(() => {
+    // Initialize with existing contact if available
+    if (selectedDevice) {
+      const existingContact = selectedDevice.contacts?.[0];
+      if (existingContact) {
+        return {
+          fullName: existingContact.fullName,
+          phone: existingContact.phone,
+          email: existingContact.email,
+          address: existingContact.address || "",
+        };
+      }
+    }
+    return { fullName: "", phone: "", email: "", address: "" };
+  });
   
   // Accessory and contact form states
   const [newAccessory, setNewAccessory] = useState("");
@@ -409,9 +426,9 @@ export default function DeviceProfileTab() {
         setInfoSubmenu("change-manager");
         setShowInfoDropdown(null);
         break;
-      case "info-print-label":
+      case "info-change-contact":
         setSelectedDevice(device);
-        setInfoSubmenu("print-label");
+        setInfoSubmenu("change-contact");
         setShowInfoDropdown(null);
         break;
       case "incident":
@@ -504,9 +521,39 @@ export default function DeviceProfileTab() {
     
     success("Thành công", `Đã thay đổi người quản lý thiết bị`);
     setInfoSubmenu(null);
+    setSelectedDevice(null);
     setSelectedNewManager(null);
     setNewManagerSearch("");
     setNewManagerStartDate("");
+  };
+  
+  // Handle change contact info
+  const handleChangeContact = (deviceId: string) => {
+    if (!editingContact.fullName) {
+      error("Lỗi", "Vui lòng nhập họ và tên");
+      return;
+    }
+    
+    const newContact: DeviceContact = {
+      id: `c${uniqueId}`,
+      fullName: editingContact.fullName || "",
+      phone: editingContact.phone || "",
+      email: editingContact.email || "",
+      address: editingContact.address,
+    };
+    
+    setDevices(devices.map(d => {
+      if (d.id === deviceId) {
+        const updatedContacts = d.contacts?.length ? d.contacts.map(c => ({...c, ...newContact, id: c.id })) : [newContact];
+        return { ...d, contacts: updatedContacts };
+      }
+      return d;
+    }));
+    
+    success("Thành công", "Đã cập nhật thông tin liên hệ");
+    setInfoSubmenu(null);
+    setSelectedDevice(null);
+    setEditingContact({ fullName: "", phone: "", email: "", address: "" });
   };
   
   const handleAddDevice = () => {
@@ -825,6 +872,13 @@ export default function DeviceProfileTab() {
                                   Thay đổi người quản lý
                                 </button>
                                 <button
+                                  onClick={() => handleActionClick(device, "info-change-contact")}
+                                  className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-purple-50 flex items-center gap-2"
+                                >
+                                  <Phone size={14} className="text-green-600" />
+                                  Thay đổi thông tin liên hệ
+                                </button>
+                                <button
                                   onClick={() => handleActionClick(device, "info-print-label")}
                                   className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-purple-50 flex items-center gap-2"
                                 >
@@ -1132,6 +1186,16 @@ export default function DeviceProfileTab() {
                                             >
                                               <User size={16} className="text-blue-600" />
                                               Thay đổi người quản lý
+                                            </button>
+                                            <button
+                                              onClick={() => {
+                                                handleActionClick(device, "info-change-contact");
+                                                setShowInfoDropdown(null);
+                                              }}
+                                              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-purple-50 flex items-center gap-3"
+                                            >
+                                              <Phone size={16} className="text-green-600" />
+                                              Thay đổi thông tin liên hệ
                                             </button>
                                             <button
                                               onClick={() => {
@@ -1581,14 +1645,14 @@ export default function DeviceProfileTab() {
 
       {/* Device History Modal - BM.03.QL.TC.018 */}
       {infoSubmenu === "history" && selectedDevice && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setInfoSubmenu(null)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }}>
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Lý lịch thiết bị</h2>
                 <p className="text-sm text-slate-500">BM.03.QL.TC.018</p>
               </div>
-              <button onClick={() => setInfoSubmenu(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+              <button onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }} className="p-2 hover:bg-slate-100 rounded-lg">
                 <X size={20} />
               </button>
             </div>
@@ -1632,7 +1696,7 @@ export default function DeviceProfileTab() {
               </div>
               
               <div className="flex justify-end pt-4 border-t">
-                <button onClick={() => setInfoSubmenu(null)} className="px-4 py-2 border rounded-lg text-slate-600 hover:bg-slate-50">Dong</button>
+                <button onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }} className="px-4 py-2 border rounded-lg text-slate-600 hover:bg-slate-50">Đóng</button>
               </div>
             </div>
           </div>
@@ -1641,11 +1705,11 @@ export default function DeviceProfileTab() {
 
       {/* Change Manager Modal */}
       {infoSubmenu === "change-manager" && selectedDevice && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setInfoSubmenu(null)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }}>
           <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-800">Thay doi nguoi quan ly</h2>
-              <button onClick={() => setInfoSubmenu(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+              <button onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }} className="p-2 hover:bg-slate-100 rounded-lg">
                 <X size={20} />
               </button>
             </div>
@@ -1701,7 +1765,7 @@ export default function DeviceProfileTab() {
               </div>
               
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button onClick={() => setInfoSubmenu(null)} className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Huy</button>
+                <button onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }} className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Huy</button>
                 <button onClick={() => handleChangeManager(selectedDevice.id)} disabled={!selectedNewManager || !newManagerStartDate} className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2">
                   <CheckCircle2 size={18} /> Luu thay doi
                 </button>
@@ -1713,11 +1777,11 @@ export default function DeviceProfileTab() {
 
       {/* Print Label Modal with QR Code */}
       {infoSubmenu === "print-label" && selectedDevice && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setInfoSubmenu(null)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }}>
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-800">In nhan thiet bi</h2>
-              <button onClick={() => setInfoSubmenu(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+              <button onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }} className="p-2 hover:bg-slate-100 rounded-lg">
                 <X size={20} />
               </button>
             </div>
@@ -1769,12 +1833,83 @@ export default function DeviceProfileTab() {
               )}
               
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button onClick={() => setInfoSubmenu(null)} className="px-4 py-2 border rounded-lg text-slate-600 hover:bg-slate-50">Dong</button>
+                <button onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }} className="px-4 py-2 border rounded-lg text-slate-600 hover:bg-slate-50">Đóng</button>
                 <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
                   <Download size={18} /> Tai PDF
                 </button>
                 <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2">
                   <Printer size={18} /> In nhan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Contact Modal */}
+      {infoSubmenu === "change-contact" && selectedDevice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }}>
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-800">Thay đổi thông tin liên hệ</h2>
+              <button onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="bg-purple-50 rounded-xl p-4">
+                <h3 className="font-semibold text-purple-800">{selectedDevice.name}</h3>
+                <p className="text-sm text-purple-600">{selectedDevice.code}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Họ và tên <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={editingContact.fullName || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, fullName: e.target.value })}
+                  placeholder="Nhập họ và tên"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Số điện thoại</label>
+                <input
+                  type="tel"
+                  value={editingContact.phone || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, phone: e.target.value })}
+                  placeholder="Nhập số điện thoại"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Địa chỉ email</label>
+                <input
+                  type="email"
+                  value={editingContact.email || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, email: e.target.value })}
+                  placeholder="Nhập địa chỉ email"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Địa chỉ liên hệ</label>
+                <textarea
+                  value={editingContact.address || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, address: e.target.value })}
+                  placeholder="Nhập địa chỉ liên hệ"
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 resize-none"
+                />
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button onClick={() => { setInfoSubmenu(null); setSelectedDevice(null); }} className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Hủy</button>
+                <button onClick={() => handleChangeContact(selectedDevice.id)} disabled={!editingContact.fullName} className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2">
+                  <CheckCircle2 size={18} /> Lưu thay đổi
                 </button>
               </div>
             </div>

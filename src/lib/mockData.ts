@@ -102,6 +102,7 @@ export interface DeviceContact {
   fullName: string;
   phone: string;
   email: string;
+  address?: string;
 }
 
 export interface DeviceAccessory {
