@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/preserve-manual-memoization */
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable jsx-a11y/alt-text */
 "use client";
@@ -52,6 +51,12 @@ import {
   Paperclip,
   CheckSquare,
   Square,
+  Gauge,
+  ArrowRightLeft,
+  FileCheck,
+  FilePlus,
+  ClipboardList,
+  Send,
 } from "lucide-react";
 import {
   Device,
@@ -81,6 +86,17 @@ interface Column {
   width?: number;
 }
 
+// Action button configuration with icons and colors
+const actionButtons = [
+  { key: "accept", label: "Tiếp nhận", icon: ClipboardCheck, color: "emerald", bg: "bg-emerald-500", hover: "hover:bg-emerald-600" },
+  { key: "info", label: "Thông tin quản lý", icon: Settings, color: "blue", bg: "bg-blue-500", hover: "hover:bg-blue-600" },
+  { key: "incident", label: "Báo cáo sự cố", icon: AlertTriangle, color: "red", bg: "bg-red-500", hover: "hover:bg-red-600" },
+  { key: "calibration", label: "Hiệu chuẩn", icon: Gauge, color: "purple", bg: "bg-purple-500", hover: "hover:bg-purple-600" },
+  { key: "maintenance", label: "Bảo dưỡng", icon: Wrench, color: "orange", bg: "bg-orange-500", hover: "hover:bg-orange-600" },
+  { key: "transfer", label: "Điều chuyển", icon: ArrowRightLeft, color: "cyan", bg: "bg-cyan-500", hover: "hover:bg-cyan-600" },
+  { key: "dispose", label: "Thanh lý", icon: Trash2, color: "slate", bg: "bg-slate-500", hover: "hover:bg-slate-600" },
+];
+
 const statusConfig: Record<DeviceStatus, { color: string; bg: string; icon: React.ReactNode }> = {
   "Đăng ký mới": { color: "text-blue-700", bg: "bg-blue-100", icon: <FileText size={13} /> },
   "Chờ vận hành": { color: "text-amber-700", bg: "bg-amber-100", icon: <Clock size={13} /> },
@@ -107,9 +123,15 @@ const defaultColumns: Column[] = [
   { key: "serial", label: "Số serial", visible: true, width: 150 },
   { key: "location", label: "Vị trí", visible: true, width: 180 },
   { key: "manufacturer", label: "Nhà sản xuất", visible: true, width: 150 },
-  { key: "yearOfManufacture", label: "Năm sản xuất", visible: true, width: 100 },
+  { key: "yearOfManufacture", label: "Năm SX", visible: true, width: 80 },
   { key: "countryOfOrigin", label: "Xuất xứ", visible: true, width: 100 },
-  { key: "status", label: "Trạng thái", visible: true, width: 120 },
+  { key: "distributor", label: "Nhà phân phối", visible: false, width: 180 },
+  { key: "contactPerson", label: "Người liên hệ", visible: false, width: 140 },
+  { key: "phone", label: "Điện thoại", visible: false, width: 110 },
+  { key: "email", label: "Email", visible: false, width: 180 },
+  { key: "usageStartDate", label: "Ngày SD", visible: false, width: 100 },
+  { key: "image", label: "Hình ảnh", visible: false, width: 80 },
+  { key: "status", label: "Trạng thái", visible: true, width: 130 },
   { key: "actions", label: "Thao tác", visible: true, width: 80 },
 ];
 
@@ -208,20 +230,71 @@ export default function DeviceProfileTab() {
     });
   }, [devices, searchTerm, filterStatus]);
   
-  // Sorting and pagination for table view
+  // Sorting, filtering and pagination for table view
   const sortedDevices = useMemo(() => {
     if (viewMode !== "list") return filteredDevices;
     
-    return [...filteredDevices].sort((a, b) => {
-      const aVal = getDeviceFieldValue(a, sortColumn) || "";
-      const bVal = getDeviceFieldValue(b, sortColumn) || "";
+    let result = [...filteredDevices];
+    
+    // Apply column filters
+    if (Object.keys(filters).length > 0) {
+      result = result.filter(device => {
+        return Object.entries(filters).every(([key, value]) => {
+          if (!value) return true;
+          const deviceValue = getDeviceFieldValue(device, key);
+          if (typeof deviceValue === 'string') {
+            return deviceValue.toLowerCase().includes(value.toLowerCase());
+          }
+          return true;
+        });
+      });
+    }
+    
+    // Apply sorting
+    return result.sort((a, b) => {
+      const aVal = getDeviceFieldValue(a, sortColumn);
+      const bVal = getDeviceFieldValue(b, sortColumn);
+      
+      const aStr = typeof aVal === 'string' ? aVal : '';
+      const bStr = typeof bVal === 'string' ? bVal : '';
       
       if (sortDirection === "asc") {
-        return aVal.localeCompare(bVal);
+        return aStr.localeCompare(bStr);
       }
-      return bVal.localeCompare(aVal);
+      return bStr.localeCompare(aStr);
     });
-  }, [filteredDevices, sortColumn, sortDirection, viewMode]);
+  }, [filteredDevices, sortColumn, sortDirection, viewMode, filters]);
+
+  // Export to Excel function
+  const exportToExcel = () => {
+    const visibleColumns = columns.filter(c => c.visible && c.key !== 'actions');
+    const headers = visibleColumns.map(c => c.label);
+    const rows = sortedDevices.map(device => {
+      return visibleColumns.map(col => {
+        const value = getDeviceFieldValue(device, col.key);
+        return typeof value === 'string' ? value : '';
+      });
+    });
+    
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    // Create and download file
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Danh_sach_thiet_bi_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    success('Xuất file thành công', 'Danh sách thiết bị đã được xuất ra file Excel');
+  };
   
   const paginatedDevices = useMemo(() => {
     if (viewMode !== "list" || pageSize === -1) return sortedDevices;
@@ -231,7 +304,8 @@ export default function DeviceProfileTab() {
   
   const totalPages = Math.ceil(sortedDevices.length / pageSize);
   
-  function getDeviceFieldValue(device: Device, key: string): string {
+  function getDeviceFieldValue(device: Device, key: string): string | React.ReactNode {
+    const primaryContact = device.contacts?.[0];
     switch (key) {
       case "code": return device.code;
       case "name": return device.name;
@@ -241,7 +315,18 @@ export default function DeviceProfileTab() {
       case "manufacturer": return device.manufacturer;
       case "yearOfManufacture": return device.yearOfManufacture;
       case "countryOfOrigin": return device.countryOfOrigin;
-      case "status": return device.status;
+      case "distributor": return device.distributor || '—';
+      case "contactPerson": return primaryContact?.fullName || '—';
+      case "phone": return primaryContact?.phone || '—';
+      case "email": return primaryContact?.email || '—';
+      case "usageStartDate": return formatDate(device.usageStartDate);
+      case "image": return device.imageUrl ? <img src={device.imageUrl} alt="" className="w-10 h-10 object-cover rounded" /> : '—';
+      case "status": return (
+        <span className={`${statusConfig[device.status].bg} ${statusConfig[device.status].color} py-0.5 px-2 rounded-full text-xs font-semibold inline-flex items-center gap-1`}>
+          {statusConfig[device.status].icon}
+          {device.status}
+        </span>
+      );
       default: return "";
     }
   }
@@ -252,6 +337,36 @@ export default function DeviceProfileTab() {
     } else {
       setSortColumn(column);
       setSortDirection("asc");
+    }
+  };
+  
+  // Handle action button clicks
+  const handleActionClick = (device: Device, action: string) => {
+    setSelectedDeviceForAction(device);
+    switch (action) {
+      case "accept":
+        setActiveModal("accept");
+        break;
+      case "info":
+        setSelectedDevice(device);
+        break;
+      case "incident":
+        setActiveModal("incident");
+        break;
+      case "calibration":
+        setActiveModal("calibration");
+        break;
+      case "maintenance":
+        setActiveModal("maintenance");
+        break;
+      case "transfer":
+        setActiveModal("transfer");
+        break;
+      case "dispose":
+        setActiveModal("dispose");
+        break;
+      default:
+        break;
     }
   };
   
@@ -511,11 +626,11 @@ export default function DeviceProfileTab() {
           {filteredDevices.map((device, idx) => {
             const sc = statusConfig[device.status];
             const colorClass = deviceColors[idx % deviceColors.length];
+            const primaryContact = device.contacts?.[0];
             return (
               <div
                 key={device.id}
-                className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover cursor-pointer group"
-                onClick={() => setSelectedDevice(device)}
+                className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover cursor-pointer group relative"
               >
                 {/* Card Header */}
                 <div className={`h-32 bg-gradient-to-br ${colorClass} relative flex items-center justify-center`}>
@@ -535,6 +650,24 @@ export default function DeviceProfileTab() {
                       {device.status}
                     </span>
                   </div>
+                  
+                  {/* Hover overlay with action buttons */}
+                  <div 
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 flex-wrap p-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {actionButtons.map((btn) => (
+                      <button
+                        key={btn.key}
+                        onClick={() => handleActionClick(device, btn.key)}
+                        className={`${btn.bg} ${btn.hover} text-white px-3 py-2 rounded-lg text-xs font-medium flex flex-col items-center gap-1 transition-all transform hover:scale-105 shadow-lg`}
+                        title={btn.label}
+                      >
+                        <btn.icon size={16} />
+                        <span className="whitespace-nowrap">{btn.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 
                 {/* Card Body */}
@@ -553,6 +686,71 @@ export default function DeviceProfileTab() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Hover tooltip with full device info */}
+                <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-slate-200 p-4 z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform translate-y-2 group-hover:translate-y-0" style={{ minWidth: '280px' }}>
+                  <h4 className="font-bold text-slate-800 text-sm mb-3 pb-2 border-b border-slate-100">
+                    {device.name}
+                  </h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Mã thiết bị:</span>
+                      <span className="font-medium text-slate-800">{device.code}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Model:</span>
+                      <span className="font-medium text-slate-800">{device.model || '—'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Số serial:</span>
+                      <span className="font-medium text-slate-800">{device.serial || '—'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Vị trí:</span>
+                      <span className="font-medium text-slate-800">{device.location}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Nhà sản xuất:</span>
+                      <span className="font-medium text-slate-800">{device.manufacturer}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Năm sản xuất:</span>
+                      <span className="font-medium text-slate-800">{device.yearOfManufacture || '—'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Xuất xứ:</span>
+                      <span className="font-medium text-slate-800">{device.countryOfOrigin || '—'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Nhà phân phối:</span>
+                      <span className="font-medium text-slate-800">{device.distributor || '—'}</span>
+                    </div>
+                    {primaryContact && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Người liên hệ:</span>
+                          <span className="font-medium text-slate-800">{primaryContact.fullName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Số điện thoại:</span>
+                          <span className="font-medium text-slate-800">{primaryContact.phone || '—'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Email:</span>
+                          <span className="font-medium text-slate-800">{primaryContact.email || '—'}</span>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Bắt đầu sử dụng:</span>
+                      <span className="font-medium text-slate-800">{formatDate(device.usageStartDate)}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-slate-100">
+                      <span className="text-slate-500">Trạng thái:</span>
+                      <span className={`font-semibold ${sc.color}`}>{device.status}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -561,119 +759,230 @@ export default function DeviceProfileTab() {
       
       {/* List View */}
       {viewMode === "list" && (
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-slate-50">
-              <tr>
+        <div className="space-y-4">
+          {/* Table Controls */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">Hiển thị:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+              >
+                <option value={5}>5 dòng</option>
+                <option value={10}>10 dòng</option>
+                <option value={15}>15 dòng</option>
+                <option value={20}>20 dòng</option>
+                <option value={-1}>Tất cả</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowColumnConfig(!showColumnConfig)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+              >
+                <Settings size={16} />
+                Cấu hình cột
+              </button>
+              <button
+                onClick={() => exportToExcel()}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+              >
+                <Download size={16} />
+                Xuất Excel
+              </button>
+            </div>
+          </div>
+          
+          {/* Column Configuration Panel */}
+          {showColumnConfig && (
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <h4 className="font-semibold text-slate-800 mb-3">Cấu hình hiển thị cột</h4>
+              <div className="flex flex-wrap gap-3">
                 {columns.map((col) => (
-                  col.visible && (
-                    <th key={col.key} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
-                      style={{ width: col.width }}
-                    >
-                      <div className="flex items-center gap-1">
-                        {col.label}
-                        {col.key !== "actions" && (
-                          <button
-                            onClick={() => handleSort(col.key)}
-                            className="text-slate-400 hover:text-slate-600"
-                          >
-                            {sortColumn === col.key ? (
-                              sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />
-                            ) : (
-                              <ChevronRight size={14} />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </th>
-                  )
+                  <label key={col.key} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={col.visible}
+                      onChange={(e) => {
+                        setColumns(columns.map(c => 
+                          c.key === col.key ? { ...c, visible: e.target.checked } : c
+                        ));
+                      }}
+                      className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-slate-700">{col.label}</span>
+                  </label>
                 ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {paginatedDevices.length > 0 ? (
-                paginatedDevices.map((device) => (
-                  <tr 
-                    key={device.id} 
-                    className="hover:bg-slate-50 cursor-pointer"
-                    onClick={() => setSelectedDevice(device)}
-                  >
+              </div>
+            </div>
+          )}
+          
+          {/* Table */}
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr>
                     {columns.map((col) => (
                       col.visible && (
-                        <td key={col.key} className="px-4 py-3 text-sm text-slate-600">
-                          {col.key === "status" ? (
-                            <span className={`${statusConfig[device.status].bg} ${statusConfig[device.status].color} py-0.5 px-2 rounded-full text-xs font-semibold inline-flex items-center gap-1`}>
-                              {statusConfig[device.status].icon}
-                              {device.status}
-                            </span>
-                          ) : (
-                            getDeviceFieldValue(device, col.key)
-                          )}
-                        </td>
+                        <th key={col.key} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider whitespace-nowrap"
+                          style={{ width: col.width }}
+                        >
+                          <div className="flex items-center gap-1">
+                            {col.label}
+                            {col.key !== "actions" && (
+                              <button
+                                onClick={() => handleSort(col.key)}
+                                className="text-slate-400 hover:text-slate-600"
+                              >
+                                {sortColumn === col.key ? (
+                                  sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                                ) : (
+                                  <ChevronRight size={14} />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </th>
                       )
                     ))}
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedDevice(device);
-                          }}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-purple-50 transition-all"
-                          title="Xem chi tiết"
-                        >
-                          <Eye size={16} />
-                        </button>
-                      </div>
-                    </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={columns.filter(c => c.visible).length + 1} className="px-4 py-8 text-center text-slate-500">
-                    Không có thiết bị nào
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  {/* Filter Row */}
+                  <tr className="bg-slate-100">
+                    {columns.map((col) => (
+                      col.visible && col.key !== "actions" && col.key !== "image" && col.key !== "status" && (
+                        <th key={`filter-${col.key}`} className="px-2 py-2">
+                          <input
+                            type="text"
+                            placeholder="Lọc..."
+                            value={filters[col.key] || ""}
+                            onChange={(e) => {
+                              setFilters({ ...filters, [col.key]: e.target.value });
+                              setCurrentPage(1);
+                            }}
+                            className="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:border-purple-500 focus:ring-1 focus:ring-purple-100"
+                          />
+                        </th>
+                      )
+                    ))}
+                    {columns.filter(c => c.visible && (c.key === "actions" || c.key === "image" || c.key === "status")).map((col) => (
+                      <th key={`filter-${col.key}`} className="px-2 py-2"></th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedDevices.length > 0 ? (
+                    paginatedDevices.map((device) => (
+                      <tr 
+                        key={device.id} 
+                        className="hover:bg-slate-50 cursor-pointer group"
+                      >
+                        {columns.map((col) => (
+                          col.visible && (
+                            <td 
+                              key={col.key} 
+                              className={`px-4 py-3 text-sm text-slate-600 ${col.key !== 'actions' ? 'cursor-pointer' : ''}`}
+                              onClick={(e) => {
+                                if (col.key !== 'actions') {
+                                  setSelectedDevice(device);
+                                }
+                              }}
+                            >
+                              {getDeviceFieldValue(device, col.key)}
+                            </td>
+                          )
+                        ))}
+                        <td className="px-4 py-3">
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowActionMenu(showActionMenu === device.id ? null : device.id);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-purple-50 transition-all"
+                              title="Thao tác"
+                            >
+                              <MoreHorizontal size={16} />
+                            </button>
+                            {/* Action Dropdown - fully visible */}
+                            {showActionMenu === device.id && (
+                              <div 
+                                className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 min-w-[200px]"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {actionButtons.map((btn) => (
+                                  <button
+                                    key={btn.key}
+                                    onClick={() => {
+                                      handleActionClick(device, btn.key);
+                                      setShowActionMenu(null);
+                                    }}
+                                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-3 hover:bg-slate-50 ${btn.color === 'emerald' ? 'text-emerald-600' : btn.color === 'blue' ? 'text-blue-600' : btn.color === 'red' ? 'text-red-600' : btn.color === 'purple' ? 'text-purple-600' : btn.color === 'orange' ? 'text-orange-600' : btn.color === 'cyan' ? 'text-cyan-600' : 'text-slate-600'}`}
+                                  >
+                                    <btn.icon size={16} />
+                                    {btn.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={columns.filter(c => c.visible).length + 1} className="px-4 py-8 text-center text-slate-500">
+                        Không có thiết bị nào
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
       
       {/* Pagination */}
-      {viewMode === "list" && totalPages > 1 && (
-        <div className="flex items-center justify-between">
+      {viewMode === "list" && (
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="text-sm text-slate-500">
             Hiển thị {paginatedDevices.length}/{sortedDevices.length} thiết bị
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
-            >
-              <ChevronRight className="rotate-180" size={16} />
-            </button>
-            {[...Array(Math.min(5, totalPages))].map((_, i) => {
-              const page = i + 1;
-              return (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1.5 rounded-lg text-sm ${currentPage === page ? "bg-purple-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
-                >
-                  {page}
-                </button>
-              );
-            })}
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+              >
+                <ChevronRight className="rotate-180" size={16} />
+              </button>
+              {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                const page = i + 1;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1.5 rounded-lg text-sm ${currentPage === page ? "bg-purple-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
       )}
       
