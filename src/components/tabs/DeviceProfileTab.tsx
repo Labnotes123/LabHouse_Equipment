@@ -195,6 +195,20 @@ export default function DeviceProfileTab() {
     inspectionFrequency: "",
   });
   
+  // Info submenu state
+  const [infoSubmenu, setInfoSubmenu] = useState<"history" | "change-manager" | "print-label" | null>(null);
+  const [showInfoDropdown, setShowInfoDropdown] = useState<string | null>(null);
+  
+  // Change manager state
+  const [newManagerSearch, setNewManagerSearch] = useState("");
+  const [newManagerStartDate, setNewManagerStartDate] = useState("");
+  const [showManagerSearchDropdown, setShowManagerSearchDropdown] = useState(false);
+  const [selectedNewManager, setSelectedNewManager] = useState<{ id: string; fullName: string } | null>(null);
+  
+  // Print label state
+  const [showQRCode, setShowQRCode] = useState(true);
+  const [showLabelInfo, setShowLabelInfo] = useState(true);
+  
   // Accessory and contact form states
   const [newAccessory, setNewAccessory] = useState("");
   const [newAccessoryFile, setNewAccessoryFile] = useState<{ name: string; url: string } | null>(null);
@@ -362,6 +376,14 @@ export default function DeviceProfileTab() {
     }
   };
   
+  // Filtered managers for dropdown
+  const filteredManagers = useMemo(() => {
+    const managers = MOCK_USERS_LIST.filter(u => 
+      u.fullName.toLowerCase().includes(newManagerSearch.toLowerCase())
+    );
+    return managers;
+  }, [newManagerSearch]);
+  
   // Handle action button clicks
   const handleActionClick = (device: Device, action: string) => {
     setSelectedDeviceForAction(device);
@@ -374,7 +396,23 @@ export default function DeviceProfileTab() {
         }
         break;
       case "info":
+        // Open info submenu dropdown
+        setShowInfoDropdown(showInfoDropdown === device.id ? null : device.id);
+        break;
+      case "info-history":
         setSelectedDevice(device);
+        setInfoSubmenu("history");
+        setShowInfoDropdown(null);
+        break;
+      case "info-change-manager":
+        setSelectedDevice(device);
+        setInfoSubmenu("change-manager");
+        setShowInfoDropdown(null);
+        break;
+      case "info-print-label":
+        setSelectedDevice(device);
+        setInfoSubmenu("print-label");
+        setShowInfoDropdown(null);
         break;
       case "incident":
         setActiveModal("incident");
@@ -429,6 +467,46 @@ export default function DeviceProfileTab() {
   // Handle liquidation approval
   const handleLiquidationApproval = (deviceId: string) => {
     updateDeviceStatus(deviceId, "Ngừng sử dụng");
+  };
+  
+  // Handle change manager
+  const handleChangeManager = (deviceId: string) => {
+    if (!selectedNewManager || !newManagerStartDate) {
+      error("Lỗi", "Vui lòng chọn người quản lý và ngày bắt đầu");
+      return;
+    }
+    
+    setDevices(devices.map(d => {
+      if (d.id === deviceId) {
+        const currentManager = d.managerHistory?.find(m => m.isCurrent);
+        const updatedHistory = d.managerHistory || [];
+        
+        // Mark current manager as ended
+        if (currentManager) {
+          const idx = updatedHistory.findIndex(m => m.isCurrent);
+          if (idx !== -1) {
+            updatedHistory[idx] = { ...updatedHistory[idx], isCurrent: false, endDate: newManagerStartDate };
+          }
+        }
+        
+        // Add new manager
+        updatedHistory.push({
+          userId: selectedNewManager.id,
+          fullName: selectedNewManager.fullName,
+          startDate: newManagerStartDate,
+          isCurrent: true,
+        });
+        
+        return { ...d, managerHistory: updatedHistory };
+      }
+      return d;
+    }));
+    
+    success("Thành công", `Đã thay đổi người quản lý thiết bị`);
+    setInfoSubmenu(null);
+    setSelectedNewManager(null);
+    setNewManagerSearch("");
+    setNewManagerStartDate("");
   };
   
   const handleAddDevice = () => {
@@ -718,15 +796,55 @@ export default function DeviceProfileTab() {
                     onClick={(e) => e.stopPropagation()}
                   >
                     {actionButtons.map((btn) => (
-                      <button
-                        key={btn.key}
-                        onClick={() => handleActionClick(device, btn.key)}
-                        className={`${btn.bg} ${btn.hover} text-white px-3 py-2 rounded-lg text-xs font-medium flex flex-col items-center gap-1 transition-all transform hover:scale-105 shadow-lg`}
-                        title={btn.label}
-                      >
-                        <btn.icon size={16} />
-                        <span className="whitespace-nowrap">{btn.label}</span>
-                      </button>
+                      <div key={btn.key} className="relative">
+                        {btn.key === "info" ? (
+                          <>
+                            <button
+                              onClick={() => handleActionClick(device, btn.key)}
+                              className={`${btn.bg} ${btn.hover} text-white px-3 py-2 rounded-lg text-xs font-medium flex flex-col items-center gap-1 transition-all transform hover:scale-105 shadow-lg`}
+                              title={btn.label}
+                            >
+                              <btn.icon size={16} />
+                              <span className="whitespace-nowrap">{btn.label}</span>
+                            </button>
+                            {/* Info submenu dropdown */}
+                            {showInfoDropdown === device.id && (
+                              <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl py-1 min-w-[160px] z-30">
+                                <button
+                                  onClick={() => handleActionClick(device, "info-history")}
+                                  className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-purple-50 flex items-center gap-2"
+                                >
+                                  <FileText size={14} className="text-purple-600" />
+                                  Xem lý lịch thiết bị
+                                </button>
+                                <button
+                                  onClick={() => handleActionClick(device, "info-change-manager")}
+                                  className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-purple-50 flex items-center gap-2"
+                                >
+                                  <User size={14} className="text-blue-600" />
+                                  Thay đổi người quản lý
+                                </button>
+                                <button
+                                  onClick={() => handleActionClick(device, "info-print-label")}
+                                  className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-purple-50 flex items-center gap-2"
+                                >
+                                  <Printer size={14} className="text-green-600" />
+                                  In nhãn thiết bị
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleActionClick(device, btn.key)}
+                            className={`${btn.bg} ${btn.hover} text-white px-3 py-2 rounded-lg text-xs font-medium flex flex-col items-center gap-1 transition-all transform hover:scale-105 shadow-lg`}
+                            title={btn.label}
+                          >
+                            <btn.icon size={16} />
+                            <span className="whitespace-nowrap">{btn.label}</span>
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -976,17 +1094,71 @@ export default function DeviceProfileTab() {
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 {actionButtons.map((btn) => (
-                                  <button
-                                    key={btn.key}
-                                    onClick={() => {
-                                      handleActionClick(device, btn.key);
-                                      setShowActionMenu(null);
-                                    }}
-                                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-3 hover:bg-slate-50 ${btn.color === 'emerald' ? 'text-emerald-600' : btn.color === 'blue' ? 'text-blue-600' : btn.color === 'red' ? 'text-red-600' : btn.color === 'purple' ? 'text-purple-600' : btn.color === 'orange' ? 'text-orange-600' : btn.color === 'cyan' ? 'text-cyan-600' : 'text-slate-600'}`}
-                                  >
-                                    <btn.icon size={16} />
-                                    {btn.label}
-                                  </button>
+                                  <div key={btn.key} className="relative">
+                                    {btn.key === "info" ? (
+                                      <>
+                                        <button
+                                          onClick={() => {
+                                            setShowInfoDropdown(showInfoDropdown === device.id ? device.id : device.id);
+                                            setShowActionMenu(null);
+                                          }}
+                                          className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between hover:bg-slate-50 ${btn.color === 'emerald' ? 'text-emerald-600' : btn.color === 'blue' ? 'text-blue-600' : btn.color === 'red' ? 'text-red-600' : btn.color === 'purple' ? 'text-purple-600' : btn.color === 'orange' ? 'text-orange-600' : btn.color === 'cyan' ? 'text-cyan-600' : 'text-slate-600'}`}
+                                        >
+                                          <span className="flex items-center gap-3">
+                                            <btn.icon size={16} />
+                                            {btn.label}
+                                          </span>
+                                          <ChevronRight size={14} className="rotate-90" />
+                                        </button>
+                                        {/* Info submenu dropdown */}
+                                        {showInfoDropdown === device.id && (
+                                          <div className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-slate-200 py-2 min-w-[180px]">
+                                            <button
+                                              onClick={() => {
+                                                handleActionClick(device, "info-history");
+                                                setShowInfoDropdown(null);
+                                              }}
+                                              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-purple-50 flex items-center gap-3"
+                                            >
+                                              <FileText size={16} className="text-purple-600" />
+                                              Xem lý lịch thiết bị
+                                            </button>
+                                            <button
+                                              onClick={() => {
+                                                handleActionClick(device, "info-change-manager");
+                                                setShowInfoDropdown(null);
+                                              }}
+                                              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-purple-50 flex items-center gap-3"
+                                            >
+                                              <User size={16} className="text-blue-600" />
+                                              Thay đổi người quản lý
+                                            </button>
+                                            <button
+                                              onClick={() => {
+                                                handleActionClick(device, "info-print-label");
+                                                setShowInfoDropdown(null);
+                                              }}
+                                              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-purple-50 flex items-center gap-3"
+                                            >
+                                              <Printer size={16} className="text-green-600" />
+                                              In nhãn thiết bị
+                                            </button>
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <button
+                                        onClick={() => {
+                                          handleActionClick(device, btn.key);
+                                          setShowActionMenu(null);
+                                        }}
+                                        className={`w-full px-4 py-2 text-left text-sm flex items-center gap-3 hover:bg-slate-50 ${btn.color === 'emerald' ? 'text-emerald-600' : btn.color === 'blue' ? 'text-blue-600' : btn.color === 'red' ? 'text-red-600' : btn.color === 'purple' ? 'text-purple-600' : btn.color === 'orange' ? 'text-orange-600' : btn.color === 'cyan' ? 'text-cyan-600' : 'text-slate-600'}`}
+                                      >
+                                        <btn.icon size={16} />
+                                        {btn.label}
+                                      </button>
+                                    )}
+                                  </div>
                                 ))}
                               </div>
                             )}
@@ -1246,7 +1418,7 @@ export default function DeviceProfileTab() {
       )}
 
       {/* Device Detail Modal */}
-      {selectedDevice && activeModal !== "accept" && activeModal !== "accept-return" && (
+      {selectedDevice && !infoSubmenu && activeModal !== "accept" && activeModal !== "accept-return" && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedDevice(null)}>
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
@@ -1406,7 +1578,210 @@ export default function DeviceProfileTab() {
           </div>
         </div>
       )}
-      
+
+      {/* Device History Modal - BM.03.QL.TC.018 */}
+      {infoSubmenu === "history" && selectedDevice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setInfoSubmenu(null)}>
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Lý lịch thiết bị</h2>
+                <p className="text-sm text-slate-500">BM.03.QL.TC.018</p>
+              </div>
+              <button onClick={() => setInfoSubmenu(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="bg-purple-50 rounded-xl p-4">
+                <h3 className="font-semibold text-purple-800 text-lg">{selectedDevice.name}</h3>
+                <p className="text-sm text-purple-600">{selectedDevice.code} - {selectedDevice.model} - Serial: {selectedDevice.serial}</p>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200">Thong tin co ban</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div><label className="text-xs text-slate-500">Ten thiet bi</label><p className="font-medium">{selectedDevice.name}</p></div>
+                  <div><label className="text-xs text-slate-500">Ma thiet bi</label><p className="font-medium">{selectedDevice.code}</p></div>
+                  <div><label className="text-xs text-slate-500">Model</label><p className="font-medium">{selectedDevice.model || '-'}</p></div>
+                  <div><label className="text-xs text-slate-500">Serial</label><p className="font-medium">{selectedDevice.serial || '-'}</p></div>
+                  <div><label className="text-xs text-slate-500">Hang san xuat</label><p className="font-medium">{selectedDevice.manufacturer}</p></div>
+                  <div><label className="text-xs text-slate-500">Xuat xu</label><p className="font-medium">{selectedDevice.countryOfOrigin || '-'}</p></div>
+                  <div><label className="text-xs text-slate-500">Nha cung cap</label><p className="font-medium">{selectedDevice.distributor || '-'}</p></div>
+                  <div><label className="text-xs text-slate-500">Thoi gian nhan</label><p className="font-medium">{formatDate(selectedDevice.usageStartDate)}</p></div>
+                  <div><label className="text-xs text-slate-500">Vi tri lap dat</label><p className="font-medium">{selectedDevice.installationLocation || selectedDevice.location}</p></div>
+                  <div><label className="text-xs text-slate-500">Tinh trang khi nhan</label><p className="font-medium">{selectedDevice.conditionOnReceive}</p></div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200">Nguoi phu trach</h4>
+                <div className="space-y-3">
+                  {selectedDevice.managerHistory?.map((mgr, idx) => (
+                    <div key={idx} className={`p-4 rounded-xl ${mgr.isCurrent ? 'bg-emerald-50 border-2 border-emerald-200' : 'bg-slate-50'}`}>
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium">{mgr.fullName}</p>
+                        <span className={`text-xs px-2 py-1 rounded-full ${mgr.isCurrent ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200'}`}>
+                          {mgr.isCurrent ? 'Hien tai' : `Ngung tu ${formatDate(mgr.endDate || '')}`}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-500 mt-1">Bat dau: {formatDate(mgr.startDate)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex justify-end pt-4 border-t">
+                <button onClick={() => setInfoSubmenu(null)} className="px-4 py-2 border rounded-lg text-slate-600 hover:bg-slate-50">Dong</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Manager Modal */}
+      {infoSubmenu === "change-manager" && selectedDevice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setInfoSubmenu(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-800">Thay doi nguoi quan ly</h2>
+              <button onClick={() => setInfoSubmenu(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="bg-purple-50 rounded-xl p-4">
+                <h3 className="font-semibold text-purple-800">{selectedDevice.name}</h3>
+                <p className="text-sm text-purple-600">{selectedDevice.code}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Nguoi quan ly hien tai</label>
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  {selectedDevice.managerHistory?.find(m => m.isCurrent) ? (
+                    <p className="font-medium text-emerald-800">{selectedDevice.managerHistory.find(m => m.isCurrent)?.fullName}</p>
+                  ) : (
+                    <p className="text-slate-500 italic">Chua co nguoi quan ly</p>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Nguoi quan ly moi <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={newManagerSearch}
+                    onChange={(e) => { setNewManagerSearch(e.target.value); setShowManagerSearchDropdown(true); }}
+                    onFocus={() => setShowManagerSearchDropdown(true)}
+                    placeholder="Tim kiem nguoi quan ly..."
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500"
+                  />
+                  {showManagerSearchDropdown && filteredManagers.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+                      {filteredManagers.map((mgr) => (
+                        <button
+                          key={mgr.id}
+                          onClick={() => { setSelectedNewManager(mgr); setNewManagerSearch(mgr.fullName); setShowManagerSearchDropdown(false); }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-purple-50 flex items-center gap-2"
+                        >
+                          <User size={16} className="text-slate-400" />
+                          {mgr.fullName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedNewManager && <p className="text-sm text-emerald-600 mt-2">Da chon: {selectedNewManager.fullName}</p>}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Ngay bat dau quan ly <span className="text-red-500">*</span></label>
+                <input type="date" value={newManagerStartDate} onChange={(e) => setNewManagerStartDate(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button onClick={() => setInfoSubmenu(null)} className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Huy</button>
+                <button onClick={() => handleChangeManager(selectedDevice.id)} disabled={!selectedNewManager || !newManagerStartDate} className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2">
+                  <CheckCircle2 size={18} /> Luu thay doi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print Label Modal with QR Code */}
+      {infoSubmenu === "print-label" && selectedDevice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setInfoSubmenu(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-800">In nhan thiet bi</h2>
+              <button onClick={() => setInfoSubmenu(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={showQRCode} onChange={(e) => setShowQRCode(e.target.checked)} className="w-4 h-4 rounded" />
+                  <span className="text-sm text-slate-700">Hien QR Code</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={showLabelInfo} onChange={(e) => setShowLabelInfo(e.target.checked)} className="w-4 h-4 rounded" />
+                  <span className="text-sm text-slate-700">Hien thong tin</span>
+                </label>
+              </div>
+              
+              <div className="border-2 border-dashed border-slate-300 rounded-xl p-6">
+                <div className="flex gap-6 items-center justify-center">
+                  {showLabelInfo && (
+                    <div className="text-left space-y-2">
+                      <p className="text-xs text-slate-500">Cong ty TNHH LABHOUSE VIET NAM</p>
+                      <p className="font-bold text-slate-800">{selectedDevice.name}</p>
+                      <p className="text-sm text-slate-600">Ma: {selectedDevice.code}</p>
+                      <p className="text-sm text-slate-600">Ngay SD: {formatDate(selectedDevice.usageStartDate)}</p>
+                      <p className="text-sm text-slate-600">Nguoi phu trach: {selectedDevice.managerHistory?.find(m => m.isCurrent)?.fullName || '-'}</p>
+                    </div>
+                  )}
+                  {showQRCode && (
+                    <div className="flex flex-col items-center">
+                      <div className="w-32 h-32 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-300">
+                        <QrCode size={48} className="text-slate-400" />
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">QR Code</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {showQRCode && (
+                <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-600 space-y-1">
+                  <p className="font-medium text-slate-700">Thong tin trong QR:</p>
+                  <p>Cong ty TNHH LABHOUSE VIET NAM</p>
+                  <p>Ten: {selectedDevice.name}</p>
+                  <p>Ma: {selectedDevice.code}</p>
+                  <p>Ngay: {formatDate(selectedDevice.usageStartDate)}</p>
+                  <p>Nguoi phu trach: {selectedDevice.managerHistory?.find(m => m.isCurrent)?.fullName || '-'}</p>
+                  <p>Dien thoai: {selectedDevice.contacts?.[0]?.phone || '-'}</p>
+                  <p className="text-xs text-slate-500 mt-2">Quet QR de bao cao su cu</p>
+                </div>
+              )}
+              
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button onClick={() => setInfoSubmenu(null)} className="px-4 py-2 border rounded-lg text-slate-600 hover:bg-slate-50">Dong</button>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                  <Download size={18} /> Tai PDF
+                </button>
+                <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2">
+                  <Printer size={18} /> In nhan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Device Form Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddForm(false)}>
