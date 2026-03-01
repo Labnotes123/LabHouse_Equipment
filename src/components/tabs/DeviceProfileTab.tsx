@@ -207,6 +207,28 @@ export default function DeviceProfileTab() {
   // Device photo
   const [devicePhoto, setDevicePhoto] = useState<{ name: string; url: string } | null>(null);
   
+  // Acceptance checklist state
+  const [acceptanceChecklist, setAcceptanceChecklist] = useState({
+    approvalForm: false,
+    handoverRecord: false,
+    installationSurvey: false,
+    userManual: false,
+    co: false,
+    cq: false,
+    contract: false,
+    installationReport: false,
+    usageConfirmation: false,
+  });
+  
+  // Acceptance document attachments
+  const [acceptanceDocuments, setAcceptanceDocuments] = useState<Record<string, { name: string; url: string }[]>>({});
+  
+  // Return acceptance state
+  const [returnAcceptance, setReturnAcceptance] = useState({
+    handoverForm: false,
+    acceptanceForm: false,
+  });
+  
   // Search states for dropdowns
   const [countrySearch, setCountrySearch] = useState("");
   const [managerSearch, setManagerSearch] = useState("");
@@ -345,7 +367,11 @@ export default function DeviceProfileTab() {
     setSelectedDeviceForAction(device);
     switch (action) {
       case "accept":
-        setActiveModal("accept");
+        if (device.status === "Tạm điều chuyển") {
+          setActiveModal("accept-return");
+        } else {
+          setActiveModal("accept");
+        }
         break;
       case "info":
         setSelectedDevice(device);
@@ -368,6 +394,41 @@ export default function DeviceProfileTab() {
       default:
         break;
     }
+  };
+
+  // Status change functions
+  const updateDeviceStatus = (deviceId: string, newStatus: DeviceStatus) => {
+    setDevices(devices.map(d => 
+      d.id === deviceId ? { ...d, status: newStatus } : d
+    ));
+    success('Cập nhật trạng thái', `Thiết bị đã chuyển sang trạng thái ${newStatus}`);
+  };
+
+  // Complete acceptance - change status from "Đăng ký mới" to "Chờ vận hành"
+  const completeAcceptance = (deviceId: string) => {
+    updateDeviceStatus(deviceId, "Chờ vận hành");
+    setActiveModal(null);
+  };
+
+  // Complete return acceptance - change status from "Tạm điều chuyển" to "Đang vận hành"
+  const completeReturnAcceptance = (deviceId: string) => {
+    updateDeviceStatus(deviceId, "Đang vận hành");
+    setActiveModal(null);
+  };
+
+  // Handle incident report with pause
+  const handleIncidentPause = (deviceId: string) => {
+    updateDeviceStatus(deviceId, "Tạm dừng");
+  };
+
+  // Handle transfer proposal approval
+  const handleTransferApproval = (deviceId: string) => {
+    updateDeviceStatus(deviceId, "Tạm điều chuyển");
+  };
+
+  // Handle liquidation approval
+  const handleLiquidationApproval = (deviceId: string) => {
+    updateDeviceStatus(deviceId, "Ngừng sử dụng");
   };
   
   const handleAddDevice = () => {
@@ -986,8 +1047,206 @@ export default function DeviceProfileTab() {
         </div>
       )}
       
+      {/* Acceptance Modal - New Device */}
+      {activeModal === "accept" && selectedDeviceForAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-800">Tiếp nhận thiết bị mới</h2>
+              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              {/* Device Info */}
+              <div className="bg-purple-50 rounded-xl p-4 mb-6">
+                <h3 className="font-semibold text-purple-800">{selectedDeviceForAction.name}</h3>
+                <p className="text-sm text-purple-600">{selectedDeviceForAction.code} • {selectedDeviceForAction.model}</p>
+              </div>
+              
+              {/* Checklist */}
+              <h4 className="font-semibold text-slate-800 mb-4">Checklist tiếp nhận thiết bị mới</h4>
+              <div className="space-y-3">
+                {[
+                  { key: "approvalForm", label: "Phiếu phê duyệt", desc: "Search mã phiếu phê duyệt, có nút tải về" },
+                  { key: "handoverRecord", label: "Biên bản bàn giao/tiếp nhận", desc: "Đính kèm file PDF, có nút view và tải" },
+                  { key: "installationSurvey", label: "Khảo sát điều kiện lắp đặt", desc: "Lập phiếu khảo sát theo BM.05.QL.TC.018" },
+                  { key: "userManual", label: "Tài liệu sử dụng", desc: "Tài liệu của lab và hãng" },
+                  { key: "co", label: "CO (Certificate of Origin)", desc: "Chứng minh nguồn gốc xuất xứ" },
+                  { key: "cq", label: "CQ (Certificate of Quality)", desc: "Chứng minh chất lượng" },
+                  { key: "contract", label: "Hợp đồng", desc: "Hợp đồng mua bán" },
+                  { key: "installationReport", label: "Biên bản lắp đặt", desc: "Biên bản nghiệm thu lắp đặt" },
+                  { key: "usageConfirmation", label: "Xác nhận giá trị sử dụng", desc: "Không bắt buộc (tùy chọn)", required: false },
+                ].map((item) => (
+                  <div key={item.key} className={`p-4 rounded-xl border ${acceptanceChecklist[item.key as keyof typeof acceptanceChecklist] ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200'}`}>
+                    <div className="flex items-start gap-3">
+                      <button
+                        onClick={() => setAcceptanceChecklist({ ...acceptanceChecklist, [item.key]: !acceptanceChecklist[item.key as keyof typeof acceptanceChecklist] })}
+                        className={`mt-0.5 ${acceptanceChecklist[item.key as keyof typeof acceptanceChecklist] ? 'text-emerald-600' : 'text-slate-400'}`}
+                      >
+                        {acceptanceChecklist[item.key as keyof typeof acceptanceChecklist] ? <CheckCircle2 size={22} /> : <Circle size={22} />}
+                      </button>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-medium ${acceptanceChecklist[item.key as keyof typeof acceptanceChecklist] ? 'text-emerald-800' : 'text-slate-700'}`}>
+                            {item.label}
+                          </span>
+                          {item.required !== false && (
+                            <span className="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded">Bắt buộc</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-500 mt-1">{item.desc}</p>
+                        {item.key === "approvalForm" && (
+                          <input
+                            type="text"
+                            placeholder="Nhập mã phiếu phê duyệt..."
+                            className="mt-2 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                          />
+                        )}
+                        {(item.key === "handoverRecord" || item.key === "userManual" || item.key === "co" || item.key === "cq" || item.key === "contract" || item.key === "installationReport" || item.key === "usageConfirmation") && (
+                          <div className="mt-2 flex gap-2">
+                            <button className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm text-slate-600">
+                              <Upload size={14} />
+                              Đính kèm file
+                            </button>
+                            {acceptanceDocuments[item.key]?.length > 0 && (
+                              <span className="text-sm text-emerald-600 self-center">
+                                {acceptanceDocuments[item.key].length} file
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Complete Button */}
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={() => completeAcceptance(selectedDeviceForAction.id)}
+                  disabled={!acceptanceChecklist.approvalForm || !acceptanceChecklist.handoverRecord || !acceptanceChecklist.installationSurvey || !acceptanceChecklist.userManual || !acceptanceChecklist.co || !acceptanceChecklist.cq || !acceptanceChecklist.contract || !acceptanceChecklist.installationReport}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <CheckCircle2 size={18} />
+                  Hoàn tất tiếp nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Acceptance Modal - Return Device */}
+      {activeModal === "accept-return" && selectedDeviceForAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-800">Tiếp nhận thiết bị trở lại</h2>
+              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              {/* Device Info */}
+              <div className="bg-purple-50 rounded-xl p-4 mb-6">
+                <h3 className="font-semibold text-purple-800">{selectedDeviceForAction.name}</h3>
+                <p className="text-sm text-purple-600">{selectedDeviceForAction.code} • {selectedDeviceForAction.model}</p>
+              </div>
+              
+              {/* Tabs */}
+              <div className="flex border-b border-slate-200 mb-4">
+                <button className="px-4 py-2 border-b-2 border-purple-600 text-purple-600 font-medium">
+                  Checklist
+                </button>
+                <button className="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700">
+                  Phiếu ghi nhận vận chuyển
+                </button>
+              </div>
+              
+              {/* Checklist Tab */}
+              <div className="space-y-3">
+                <div className={`p-4 rounded-xl border ${returnAcceptance.handoverForm ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200'}`}>
+                  <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => setReturnAcceptance({ ...returnAcceptance, handoverForm: !returnAcceptance.handoverForm })}
+                      className={`mt-0.5 ${returnAcceptance.handoverForm ? 'text-emerald-600' : 'text-slate-400'}`}
+                    >
+                      {returnAcceptance.handoverForm ? <CheckCircle2 size={22} /> : <Circle size={22} />}
+                    </button>
+                    <div className="flex-1">
+                      <span className={`font-medium ${returnAcceptance.handoverForm ? 'text-emerald-800' : 'text-slate-700'}`}>
+                        Phiếu bàn giao
+                      </span>
+                      <p className="text-sm text-slate-500 mt-1">Search mã phiếu bàn giao hoặc đính kèm file PDF</p>
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Nhập mã phiếu bàn giao..."
+                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                        />
+                        <button className="flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm text-slate-600">
+                          <Upload size={14} />
+                          Đính kèm
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={`p-4 rounded-xl border ${returnAcceptance.acceptanceForm ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200'}`}>
+                  <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => setReturnAcceptance({ ...returnAcceptance, acceptanceForm: !returnAcceptance.acceptanceForm })}
+                      className={`mt-0.5 ${returnAcceptance.acceptanceForm ? 'text-emerald-600' : 'text-slate-400'}`}
+                    >
+                      {returnAcceptance.acceptanceForm ? <CheckCircle2 size={22} /> : <Circle size={22} />}
+                    </button>
+                    <div className="flex-1">
+                      <span className={`font-medium ${returnAcceptance.acceptanceForm ? 'text-emerald-800' : 'text-slate-700'}`}>
+                        Phiếu tiếp nhận
+                      </span>
+                      <p className="text-sm text-slate-500 mt-1">Tạo phiếu tiếp nhận với thông tin: tên phiếu, mã PTN-năm-số thứ tự, tình trạng, ghi chú, người bàn giao, người tiếp nhận</p>
+                      <button className="mt-2 flex items-center gap-1 px-3 py-2 bg-purple-100 hover:bg-purple-200 rounded-lg text-sm text-purple-700">
+                        <FilePlus size={14} />
+                        Tạo phiếu tiếp nhận
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Complete Button */}
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={() => completeReturnAcceptance(selectedDeviceForAction.id)}
+                  disabled={!returnAcceptance.handoverForm || !returnAcceptance.acceptanceForm}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <CheckCircle2 size={18} />
+                  Hoàn tất tiếp nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Device Detail Modal */}
-      {selectedDevice && (
+      {selectedDevice && activeModal !== "accept" && activeModal !== "accept-return" && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedDevice(null)}>
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
