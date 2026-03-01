@@ -35,7 +35,7 @@ export default function DashboardTab({ onNavigateNewDevicePending }: DashboardTa
   const pendingProposals = mockProposals.filter((p) => p.status === "Chờ duyệt");
   const pendingIncidents = mockIncidents.filter((i) => i.status === "Chờ duyệt");
   const overdueSchedules = mockSchedules.filter((s) => s.status === "Quá hạn");
-  const activeDevices = mockDevices.filter((d) => d.status === "Đang hoạt động");
+  const activeDevices = mockDevices.filter((d) => d.status === "Đang vận hành");
 
   const filteredSchedules = mockSchedules.filter((s) => {
     if (activeFilter === "calibration") return s.type === "Hiệu chuẩn";
