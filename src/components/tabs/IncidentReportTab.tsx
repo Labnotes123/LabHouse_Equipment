@@ -1013,7 +1013,126 @@ export default function IncidentReportTab() {
                 />
               </div>
 
-              {/* Action Buttons at bottom */}
+              {/* Conclusion Section */}
+              <div className="border-t border-slate-200 pt-4">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Kết luận</label>
+                <div className="flex gap-4 mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="conclusion"
+                      checked={form.conclusion === "đã khắc phục"}
+                      onChange={() => setForm({ ...form, conclusion: "đã khắc phục" })}
+                      className="w-4 h-4 text-green-600"
+                    />
+                    <span className="text-sm text-slate-700">Sự cố đã được khắc phục</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="conclusion"
+                      checked={form.conclusion === "chưa khắc phục" || !form.conclusion}
+                      onChange={() => setForm({ ...form, conclusion: "chưa khắc phục" })}
+                      className="w-4 h-4 text-red-600"
+                    />
+                    <span className="text-sm text-slate-700">Sự cố chưa được khắc phục</span>
+                  </label>
+                </div>
+
+                {/* Resolution Options */}
+                {form.conclusion === "đã khắc phục" && (
+                  <div className="bg-green-50 rounded-xl p-4 border border-green-200 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-green-800 mb-2">Người khắc phục</label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="resolvedByType"
+                            checked={form.resolvedByType === "nhân viên lab"}
+                            onChange={() => setForm({ ...form, resolvedByType: "nhân viên lab", linkedWorkOrderCode: undefined })}
+                            className="w-4 h-4 text-green-600"
+                          />
+                          <span className="text-sm text-slate-700">Nhân viên trong lab</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="resolvedByType"
+                            checked={form.resolvedByType === "nhà sản xuất"}
+                            onChange={() => setForm({ ...form, resolvedByType: "nhà sản xuất" })}
+                            className="w-4 h-4 text-green-600"
+                          />
+                          <span className="text-sm text-slate-700">Nhà sản xuất/NCC</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {form.resolvedByType === "nhân viên lab" && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Chọn người khắc phục (dùng Ctrl/Cmd để chọn nhiều)</label>
+                        <div className="flex flex-wrap gap-2">
+                          {LAB_STAFF.map(staff => (
+                            <button
+                              key={staff.id}
+                              type="button"
+                              onClick={() => {
+                                const current = form.resolvedBy || "";
+                                const newList = current.includes(staff.fullName)
+                                  ? current.replace(staff.fullName, "").trim()
+                                  : current ? `${current}, ${staff.fullName}` : staff.fullName;
+                                setForm({ ...form, resolvedBy: newList });
+                              }}
+                              className={`px-3 py-1 rounded-full text-sm transition-all ${
+                                (form.resolvedBy || "").includes(staff.fullName)
+                                  ? "bg-green-500 text-white"
+                                  : "bg-white border border-slate-300 text-slate-700 hover:bg-green-50"
+                              }`}
+                            >
+                              {staff.fullName}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {form.resolvedByType === "nhà sản xuất" && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Mã công việc NCC</label>
+                        <select
+                          value={form.linkedWorkOrderCode || ""}
+                          onChange={(e) => setForm({ ...form, linkedWorkOrderCode: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                        >
+                          <option value="">Chọn mã công việc</option>
+                          {incidentReports
+                            .filter(i => i.deviceId === form.deviceId && i.workOrders && i.workOrders.length > 0)
+                            .flatMap(i => i.workOrders || [])
+                            .filter(wo => wo.status === "Đóng")
+                            .map(wo => (
+                              <option key={wo.id} value={wo.workOrderCode}>{wo.workOrderCode}</option>
+                            ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Completion DateTime for resolved incidents */}
+              {form.conclusion === "đã khắc phục" && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian hoàn thành</label>
+                  <input
+                    type="datetime-local"
+                    value={form.completionDateTime || ''}
+                    onChange={(e) => setForm({ ...form, completionDateTime: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg"
+                  />
+                </div>
+              )}
+
+              {/* Action Buttons */}
               <div className="flex justify-between pt-4 border-t border-slate-200">
                 <button
                   onClick={() => setShowForm(false)}
@@ -1021,21 +1140,130 @@ export default function IncidentReportTab() {
                 >
                   Hủy
                 </button>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleCreateIncident}
-                    className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 flex items-center gap-2"
-                  >
-                    <Save size={18} />
-                    Lưu nháp
-                  </button>
-                  <button
-                    onClick={handleSaveAsInProgress}
-                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2"
-                  >
-                    <Save size={18} />
-                    Lưu & Đóng
-                  </button>
+                <div className="flex gap-2">
+                  {form.conclusion === "chưa khắc phục" && (
+                    <button
+                      onClick={() => {
+                        if (!form.deviceId || !form.description || !form.immediateAction) {
+                          error("Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc");
+                          return;
+                        }
+                        
+                        const currentYear = new Date().getFullYear();
+                        const newCounter = incidentCounter + 1;
+                        const newIncident: IncidentReport = {
+                          id: `i${Date.now()}`,
+                          reportCode: generateIncidentCode(currentYear, newCounter),
+                          deviceId: form.deviceId || "",
+                          deviceName: form.deviceName || "",
+                          deviceCode: form.deviceCode || "",
+                          specialty: form.specialty || "",
+                          incidentDateTime: form.incidentDateTime || "",
+                          discoveredBy: form.discoveredBy || "",
+                          discoveredByRole: form.discoveredByRole || "",
+                          supplier: form.supplier || "",
+                          description: form.description || "",
+                          immediateAction: form.immediateAction || "",
+                          supplierAction: "",
+                          affectsPatientResult: false,
+                          affectedPatientSid: "",
+                          howAffected: "",
+                          requiresDeviceStop: false,
+                          stopFrom: "",
+                          stopTo: "",
+                          hasProposal: false,
+                          proposal: "",
+                          reportedBy: user?.fullName || "",
+                          deviceManager: form.deviceManager || "",
+                          relatedUsers: form.relatedUsers || [],
+                          status: "Đang khắc phục",
+                          conclusion: "chưa khắc phục",
+                          createdAt: new Date().toISOString(),
+                          workOrders: [],
+                        };
+
+                        setIncidentReports([newIncident, ...incidentReports]);
+                        setIncidentCounter(newCounter);
+                        setWorkOrderCounters({ ...workOrderCounters, [newIncident.reportCode]: 0 });
+                        setForm({
+                          deviceId: "", deviceName: "", deviceCode: "", specialty: "",
+                          incidentDateTime: "", discoveredBy: "", discoveredByRole: "", supplier: "",
+                          description: "", immediateAction: "", supplierAction: "", affectsPatientResult: false,
+                          affectedPatientSid: "", howAffected: "", requiresDeviceStop: false,
+                          stopFrom: "", stopTo: "", hasProposal: false, proposal: "",
+                          reportedBy: "", deviceManager: "", relatedUsers: [], status: "Nháp", workOrders: [],
+                        });
+                        success("Thành công", "Đã lưu báo cáo sự cố với trạng thái Đang khắc phục");
+                        setShowForm(false);
+                      }}
+                      className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
+                    >
+                      <Save size={18} /> Lưu & Đóng
+                    </button>
+                  )}
+                  {form.conclusion === "đã khắc phục" && (
+                    <button
+                      onClick={() => {
+                        if (!form.deviceId || !form.description || !form.immediateAction) {
+                          error("Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc");
+                          return;
+                        }
+
+                        const currentYear = new Date().getFullYear();
+                        const newCounter = incidentCounter + 1;
+                        const newIncident: IncidentReport = {
+                          id: `i${Date.now()}`,
+                          reportCode: generateIncidentCode(currentYear, newCounter),
+                          deviceId: form.deviceId || "",
+                          deviceName: form.deviceName || "",
+                          deviceCode: form.deviceCode || "",
+                          specialty: form.specialty || "",
+                          incidentDateTime: form.incidentDateTime || "",
+                          discoveredBy: form.discoveredBy || "",
+                          discoveredByRole: form.discoveredByRole || "",
+                          supplier: form.supplier || "",
+                          description: form.description || "",
+                          immediateAction: form.immediateAction || "",
+                          supplierAction: form.supplierAction || "",
+                          affectsPatientResult: false,
+                          affectedPatientSid: "",
+                          howAffected: "",
+                          requiresDeviceStop: false,
+                          stopFrom: "",
+                          stopTo: "",
+                          hasProposal: false,
+                          proposal: "",
+                          reportedBy: user?.fullName || "",
+                          deviceManager: form.deviceManager || "",
+                          relatedUsers: form.relatedUsers || [],
+                          status: "Hoàn thành",
+                          conclusion: "đã khắc phục",
+                          resolvedBy: form.resolvedBy || "",
+                          resolvedByType: form.resolvedByType as "nhân viên lab" | "nhà sản xuất" | undefined,
+                          linkedWorkOrderCode: form.linkedWorkOrderCode,
+                          completionDateTime: form.completionDateTime,
+                          createdAt: new Date().toISOString(),
+                          workOrders: [],
+                        };
+
+                        setIncidentReports([newIncident, ...incidentReports]);
+                        setIncidentCounter(newCounter);
+                        setForm({
+                          deviceId: "", deviceName: "", deviceCode: "", specialty: "",
+                          incidentDateTime: "", discoveredBy: "", discoveredByRole: "", supplier: "",
+                          description: "", immediateAction: "", supplierAction: "", affectsPatientResult: false,
+                          affectedPatientSid: "", howAffected: "", requiresDeviceStop: false,
+                          stopFrom: "", stopTo: "", hasProposal: false, proposal: "",
+                          reportedBy: "", deviceManager: "", relatedUsers: [], status: "Nháp", workOrders: [],
+                        });
+                        success("Thành công", "Đã hoàn thành báo cáo sự cố");
+                        setShowForm(false);
+                      }}
+                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2"
+                    >
+                      <CheckCircle2 size={18} /> Hoàn thành
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
