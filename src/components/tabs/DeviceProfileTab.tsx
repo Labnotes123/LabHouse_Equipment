@@ -67,6 +67,7 @@ import {
   EyeIcon,
   Filter,
   RefreshCw,
+  GraduationCap,
 } from "lucide-react";
 import {
   Device,
@@ -109,6 +110,7 @@ const actionButtons = [
   { key: "maintenance", label: "Bảo dưỡng", icon: Wrench, color: "orange", bg: "bg-orange-500", hover: "hover:bg-orange-600" },
   { key: "transfer", label: "Điều chuyển", icon: ArrowRightLeft, color: "cyan", bg: "bg-cyan-500", hover: "hover:bg-cyan-600" },
   { key: "dispose", label: "Thanh lý", icon: Trash2, color: "slate", bg: "bg-slate-500", hover: "hover:bg-slate-600" },
+  { key: "training", label: "Đào tạo", icon: GraduationCap, color: "indigo", bg: "bg-indigo-500", hover: "hover:bg-indigo-600" },
 ];
 
 const statusConfig: Record<DeviceStatus, { color: string; bg: string; icon: React.ReactNode }> = {
@@ -306,6 +308,73 @@ export default function DeviceProfileTab() {
     attachments: [] as { name: string; url: string }[],
   });
   const [calibrationResults, setCalibrationResults] = useState<any[]>([]);
+  
+  // ================================================
+  // TRANSFER MODAL STATES
+  // ================================================
+  const [transferRequests, setTransferRequests] = useState<any[]>([]);
+  const [transferViewMode, setTransferViewMode] = useState<"list" | "form">("list");
+  const [transferForm, setTransferForm] = useState({
+    fromDepartment: "",
+    toDepartment: "",
+    reason: "",
+    requestDate: "",
+    expectedDate: "",
+    requester: "",
+    approver: "",
+    status: "Nháp" as "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành",
+    notes: "",
+    attachments: [] as { name: string; url: string }[],
+  });
+  const [transferCounter, setTransferCounter] = useState(1);
+  const [transferSearchTerm, setTransferSearchTerm] = useState("");
+  const [transferFilterStatus, setTransferFilterStatus] = useState<string>("all");
+  
+  // ================================================
+  // DISPOSAL MODAL STATES
+  // ================================================
+  const [disposalRequests, setDisposalRequests] = useState<any[]>([]);
+  const [disposalViewMode, setDisposalViewMode] = useState<"list" | "form">("list");
+  const [disposalForm, setDisposalForm] = useState({
+    reason: "",
+    requestDate: "",
+    expectedDate: "",
+    requester: "",
+    approver: "",
+    status: "Nháp" as "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành",
+    notes: "",
+    attachments: [] as { name: string; url: string }[],
+    scrapValue: 0,
+    depreciation: 0,
+    originalValue: 0,
+  });
+  const [disposalCounter, setDisposalCounter] = useState(1);
+  const [disposalSearchTerm, setDisposalSearchTerm] = useState("");
+  const [disposalFilterStatus, setDisposalFilterStatus] = useState<string>("all");
+  
+  // ================================================
+  // TRAINING MODAL STATES
+  // ================================================
+  const [trainingRecords, setTrainingRecords] = useState<any[]>([]);
+  const [trainingViewMode, setTrainingViewMode] = useState<"list" | "form">("list");
+  const [trainingForm, setTrainingForm] = useState({
+    traineeName: "",
+    traineeId: "",
+    trainingDate: "",
+    trainerName: "",
+    trainerId: "",
+    content: "",
+    result: "" as "" | "Đạt" | "Không đạt",
+    resultDate: "",
+    expiryDate: "",
+    notes: "",
+    status: "Nháp" as "Nháp" | "Chờ đào tạo" | "Đã đào tạo" | "Hoàn thành",
+    trainingResultAttachments: [] as { name: string; url: string }[],
+    certificateAttachments: [] as { name: string; url: string }[],
+  });
+  const [trainingCounter, setTrainingCounter] = useState(1);
+  const [trainingSearchTerm, setTrainingSearchTerm] = useState("");
+  const [trainingFilterStatus, setTrainingFilterStatus] = useState<string>("all");
   
   // Device registration form
   const [form, setForm] = useState<Partial<Device>>({
@@ -586,10 +655,16 @@ export default function DeviceProfileTab() {
         setActiveModal("maintenance");
         break;
       case "transfer":
+        setTransferViewMode("list");
         setActiveModal("transfer");
         break;
       case "dispose":
+        setDisposalViewMode("list");
         setActiveModal("dispose");
+        break;
+      case "training":
+        setTrainingViewMode("list");
+        setActiveModal("training");
         break;
       default:
         break;
@@ -2638,16 +2713,42 @@ export default function DeviceProfileTab() {
                                   </td>
                                   <td className="px-4 py-3 text-center">
                                     <div className="flex justify-center gap-2">
-                                      <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Cập nhật">
+                                      <button 
+                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" 
+                                        title="Cập nhật"
+                                        onClick={() => {
+                                          // Handle edit incident
+                                        }}
+                                      >
                                         <Edit size={16} />
                                       </button>
-                                      <button className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Xem chi tiết">
+                                      <button 
+                                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" 
+                                        title="Xem chi tiết"
+                                      >
                                         <Eye size={16} />
                                       </button>
-                                      <button className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Đính kèm">
+                                      <button 
+                                        className="p-1.5 text-green-600 hover:bg-green-50 rounded" 
+                                        title="Đính kèm"
+                                      >
                                         <Paperclip size={16} />
                                       </button>
-                                      <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Xuất PDF">
+                                      <button 
+                                        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded" 
+                                        title="Tạo/Liên kết công việc kỹ sư"
+                                        onClick={() => {
+                                          setCurrentIncidentForWorkOrder(incident);
+                                          setShowWorkOrderForm(true);
+                                          setIncidentModalTab("work-orders");
+                                        }}
+                                      >
+                                        <Phone size={16} />
+                                      </button>
+                                      <button 
+                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded" 
+                                        title="Xuất PDF"
+                                      >
                                         <FileText size={16} />
                                       </button>
                                     </div>
