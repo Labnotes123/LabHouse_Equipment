@@ -18,7 +18,11 @@ LabHouse is a laboratory equipment management system for medical laboratories wi
 - [x] Tab Hồ sơ thiết bị (DeviceProfileTab) with thumbnail/table views
 - [x] Tab Báo cáo sự cố (IncidentReportTab) with BM.11.QL.TC.018 workflow
 - [x] Tab Hiệu chuẩn (CalibrationTab) with PHC request workflow
-- [x] **Integrate Incident Report & Calibration modals into DeviceProfileTab** (latest)
+- [x] **Integrate Incident Report & Calibration modals into DeviceProfileTab**
+- [x] **Build AdminTab with full User/Profile configuration** - User CRUD with export, column config, filters; Profile CRUD with permission management (Quản lý chung, Thiết bị mới, Hồ sơ thiết bị, Quản trị, Lịch sử)
+- [x] **Build AdminTab with Department/Position/Supplier configuration** - Branch/Department management, Position management, Country management, Supplier management
+- [x] **Build AdminTab with History auto-delete configuration** - Auto-delete settings for history logs
+- [x] **Rebuild HistoryTab with advanced filters** - Time range (today/yesterday/week/month/custom), Device filter, User filter, Module filter, Column filters, Pagination (20 items)
 
 ## Current Structure
 
@@ -103,3 +107,5 @@ export async function GET() {
 | 2024-03-01 | Built complete device management system (Phần mềm quản lý thiết bị) with modern UI for LabHouse medical laboratory |
 | 2026-03-01 | Rebuilt Tab Thiết bị mới (NewDeviceTab) with full PDX proposal workflow: table view with sorting/filtering/pagination, proposal form with PDX auto-code, necessity field, multi-device requirements, PDF-only attachments, draft/send workflow, approver selection modal, rejection with reason, register device form (full fields), notification system, DashboardTab navigation integration |
 | 2026-03-01 | Built Tab Hồ sơ thiết bị (DeviceProfileTab) with thumbnail/table views: real-time search by code/serial/model, comprehensive registration form with all fields (specialty, category, device type, manufacturer, origin, year, distributor, manager history, contacts, accessories, maintenance schedules), thumbnail view with hover tooltips and action buttons, table view with sortable columns, filters, column configuration, pagination, status lifecycle (Đăng ký mới → Chờ vận hành → Đang vận hành → Tạm dừng/Tạm điều chuyển → Ngừng sử dụng) |
+| 2026-03-02 | **Built AdminTab with full User/Profile/Department/Position/Supplier/HistoryConfig** - User management with CRUD, export CSV, column config, filters; Profile management with permission categories (Quản lý chung, Thiết bị mới, Hồ sơ thiết bị, Quản trị, Lịch sử); Branch/Department management; Position management; Country management; Supplier management; History auto-delete config |
+| 2026-03-02 | **Rebuilt HistoryTab with advanced filters** - Time range (hôm nay/hôm qua/1 tuần/1 tháng/tùy chọn), multi-select Device filter, multi-select User filter, multi-select Module filter (Thiết bị mới/Hồ sơ thiết bị/Quản trị/Quản lý chung), column filters, pagination (20 items per page) |

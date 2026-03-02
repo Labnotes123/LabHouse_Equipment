@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   History,
   Search,
@@ -9,25 +9,24 @@ import {
   Users,
   Settings,
   Package,
-  AlertTriangle,
-  Calendar,
-  Clock,
-  ChevronDown,
-  ChevronUp,
-  Hash,
-  User,
   Shield,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react";
-import { mockHistoryLogs, HistoryLog, formatDateTime } from "@/lib/mockData";
+import { mockHistoryLogs, mockDevices, MOCK_USERS_LIST, HistoryLog, formatDateTime } from "@/lib/mockData";
 import { useAuth } from "@/contexts/AuthContext";
 
-const targetTypeConfig: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
-  "Thiết bị": { icon: <Cpu size={14} />, color: "text-blue-600", bg: "bg-blue-50" },
-  "Người dùng": { icon: <Users size={14} />, color: "text-purple-600", bg: "bg-purple-50" },
-  "Hệ thống": { icon: <Settings size={14} />, color: "text-slate-600", bg: "bg-slate-100" },
-  "Đề xuất": { icon: <Package size={14} />, color: "text-emerald-600", bg: "bg-emerald-50" },
-  "Sự cố": { icon: <AlertTriangle size={14} />, color: "text-red-600", bg: "bg-red-50" },
-  "Lịch": { icon: <Calendar size={14} />, color: "text-amber-600", bg: "bg-amber-50" },
+type TimeRange = "today" | "yesterday" | "week" | "month" | "custom";
+
+type ModuleType = "Thiết bị mới" | "Hồ sơ thiết bị" | "Quản trị" | "Quản lý chung";
+
+const moduleConfig: Record<ModuleType, { icon: React.ReactNode; color: string; bg: string }> = {
+  "Thiết bị mới": { icon: <Package size={14} />, color: "text-emerald-600", bg: "bg-emerald-50" },
+  "Hồ sơ thiết bị": { icon: <Cpu size={14} />, color: "text-blue-600", bg: "bg-blue-50" },
+  "Quản trị": { icon: <Settings size={14} />, color: "text-slate-600", bg: "bg-slate-100" },
+  "Quản lý chung": { icon: <Users size={14} />, color: "text-purple-600", bg: "bg-purple-50" },
 };
 
 const roleColors: Record<string, string> = {
@@ -40,19 +39,153 @@ const roleColors: Record<string, string> = {
   "Quản lý trang thiết bị": "bg-orange-100 text-orange-700",
 };
 
+// Helper function outside component
+function getModuleType(targetType: string): ModuleType {
+  switch (targetType) {
+    case "Đề xuất":
+      return "Thiết bị mới";
+    case "Thiết bị":
+    case "Sự cố":
+    case "Lịch":
+      return "Hồ sơ thiết bị";
+    case "Hệ thống":
+      return "Quản trị";
+    default:
+      return "Quản lý chung";
+  }
+}
+
+function calculateDateRange(timeRange: TimeRange, dateFrom: string, dateTo: string): { from: Date; to: Date } {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  switch (timeRange) {
+    case "today":
+      return { from: today, to: now };
+    case "yesterday":
+      return { from: yesterday, to: new Date(yesterday.getTime() + 24 * 60 * 60 * 1000 - 1) };
+    case "week":
+      return { from: weekAgo, to: now };
+    case "month":
+      return { from: monthAgo, to: now };
+    case "custom":
+      return { from: dateFrom ? new Date(dateFrom) : new Date(0), to: dateTo ? new Date(dateTo + "T23:59:59") : now };
+    default:
+      return { from: weekAgo, to: now };
+  }
+}
+
 export default function HistoryTab() {
   const { user } = useAuth();
   const [logs] = useState<HistoryLog[]>(mockHistoryLogs);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [filterUser, setFilterUser] = useState<string>("");
+  
+  // Filters
+  const [timeRange, setTimeRange] = useState<TimeRange>("week");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedModules, setSelectedModules] = useState<ModuleType[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(true);
+  
+  // Column filters
+  const [contentFilter, setContentFilter] = useState("");
+  const [userNameFilter, setUserNameFilter] = useState("");
+  const [moduleFilter, setModuleFilter] = useState<ModuleType | "">("");
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
+  // Check access - but don't return early, use conditional rendering instead
   const canAccess = user?.role === "Admin" || user?.role === "Giám đốc" || user?.role === "Trưởng phòng xét nghiệm";
 
+  // Calculate date range
+  const dateRange = useMemo(() => {
+    return calculateDateRange(timeRange, dateFrom, dateTo);
+  }, [timeRange, dateFrom, dateTo]);
+
+  // Filter logs
+  const filteredLogs = useMemo(() => {
+    const { from, to } = dateRange;
+    
+    return logs.filter((log) => {
+      // Time filter
+      const logDate = new Date(log.timestamp);
+      if (logDate < from || logDate > to) return false;
+
+      // Device filter
+      if (selectedDevices.length > 0 && log.targetType === "Thiết bị") {
+        const device = mockDevices.find(d => d.id === log.targetId);
+        if (!device || !selectedDevices.includes(device.code)) return false;
+      }
+
+      // User filter
+      if (selectedUsers.length > 0 && !selectedUsers.includes(log.userName)) return false;
+
+      // Module filter
+      if (selectedModules.length > 0) {
+        const moduleType = getModuleType(log.targetType);
+        if (!selectedModules.includes(moduleType)) return false;
+      }
+
+      // Search term
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        const matchSearch = 
+          log.userName.toLowerCase().includes(search) ||
+          log.action.toLowerCase().includes(search) ||
+          log.description.toLowerCase().includes(search) ||
+          log.actionCode.toLowerCase().includes(search) ||
+          (log.targetName ?? "").toLowerCase().includes(search);
+        if (!matchSearch) return false;
+      }
+
+      // Column filters
+      if (contentFilter && !log.description.toLowerCase().includes(contentFilter.toLowerCase())) return false;
+      if (userNameFilter && !log.userName.toLowerCase().includes(userNameFilter.toLowerCase())) return false;
+      if (moduleFilter) {
+        const moduleType = getModuleType(log.targetType);
+        if (moduleType !== moduleFilter) return false;
+      }
+
+      return true;
+    }).sort((a, b) => b.actionNumber - a.actionNumber);
+  }, [logs, dateRange, selectedDevices, selectedUsers, selectedModules, searchTerm, contentFilter, userNameFilter, moduleFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Device options
+  const deviceOptions = mockDevices.map(d => ({ value: d.code, label: `${d.name} (${d.code})` }));
+
+  // User options
+  const userOptions = MOCK_USERS_LIST.map(u => ({ value: u.fullName, label: u.fullName }));
+
+  // Module options
+  const moduleOptions: ModuleType[] = ["Thiết bị mới", "Hồ sơ thiết bị", "Quản trị", "Quản lý chung"];
+
+  // Clear all filters
+  const clearFilters = () => {
+    setTimeRange("week");
+    setDateFrom("");
+    setDateTo("");
+    setSelectedDevices([]);
+    setSelectedUsers([]);
+    setSelectedModules([]);
+    setSearchTerm("");
+    setContentFilter("");
+    setUserNameFilter("");
+    setModuleFilter("");
+    setCurrentPage(1);
+  };
+
+  // Render access denied
   if (!canAccess) {
     return (
       <div className="p-6 flex items-center justify-center min-h-96">
@@ -66,30 +199,6 @@ export default function HistoryTab() {
       </div>
     );
   }
-
-  const filtered = logs.filter((log) => {
-    const matchSearch =
-      log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.actionCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (log.targetName ?? "").toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchType = filterType === "all" || log.targetType === filterType;
-    const matchUser = !filterUser || log.userName.toLowerCase().includes(filterUser.toLowerCase());
-
-    let matchDate = true;
-    if (dateFrom) {
-      matchDate = matchDate && new Date(log.timestamp) >= new Date(dateFrom);
-    }
-    if (dateTo) {
-      matchDate = matchDate && new Date(log.timestamp) <= new Date(dateTo + "T23:59:59");
-    }
-
-    return matchSearch && matchType && matchUser && matchDate;
-  });
-
-  const uniqueUsers = [...new Set(logs.map((l) => l.userName))];
 
   return (
     <div className="p-6 space-y-6">
@@ -106,13 +215,14 @@ export default function HistoryTab() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-slate-600 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
-            {filtered.length} / {logs.length} bản ghi
+            {filteredLogs.length} / {logs.length} bản ghi
           </span>
         </div>
       </div>
 
-      {/* Search & Filters */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+      {/* Filters */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
+        {/* Search & Quick Filters */}
         <div className="flex gap-3 items-center flex-wrap">
           <div className="relative flex-1 min-w-48">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -120,10 +230,43 @@ export default function HistoryTab() {
               type="text"
               placeholder="Tìm kiếm theo người dùng, hành động, mã..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-100 transition-all"
             />
           </div>
+
+          {/* Time Range */}
+          <select
+            value={timeRange}
+            onChange={(e) => { setTimeRange(e.target.value as TimeRange); setCurrentPage(1); }}
+            className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 focus:border-slate-500"
+          >
+            <option value="today">Hôm nay</option>
+            <option value="yesterday">Từ hôm qua</option>
+            <option value="week">1 tuần</option>
+            <option value="month">1 tháng</option>
+            <option value="custom">Tùy chọn</option>
+          </select>
+
+          {timeRange === "custom" && (
+            <>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 focus:border-slate-500"
+                placeholder="Từ ngày"
+              />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 focus:border-slate-500"
+                placeholder="Đến ngày"
+              />
+            </>
+          )}
+
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
@@ -134,156 +277,272 @@ export default function HistoryTab() {
             <Filter size={16} />
             Bộ lọc
           </button>
+
+          {(selectedDevices.length > 0 || selectedUsers.length > 0 || selectedModules.length > 0 || searchTerm) && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-red-600 hover:bg-red-50"
+            >
+              <X size={16} />
+              Xóa lọc
+            </button>
+          )}
         </div>
 
+        {/* Advanced Filters */}
         {showFilters && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-slate-100 fade-in">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100 fade-in">
+            {/* Device Filter */}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Loại đối tượng</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 focus:border-slate-500 transition-all"
-              >
-                <option value="all">Tất cả</option>
-                {Object.keys(targetTypeConfig).map((t) => <option key={t}>{t}</option>)}
-              </select>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Thiết bị</label>
+              <div className="relative">
+                <select
+                  multiple
+                  value={selectedDevices}
+                  onChange={(e) => {
+                    const values = Array.from(e.target.selectedOptions, opt => opt.value);
+                    setSelectedDevices(values);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 h-24"
+                >
+                  {deviceOptions.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                </select>
+                <p className="text-xs text-slate-400 mt-1">Giữ Ctrl/Cmd để chọn nhiều</p>
+              </div>
             </div>
+
+            {/* User Filter */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Người dùng</label>
-              <select
-                value={filterUser}
-                onChange={(e) => setFilterUser(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 focus:border-slate-500 transition-all"
-              >
-                <option value="">Tất cả</option>
-                {uniqueUsers.map((u) => <option key={u}>{u}</option>)}
-              </select>
+              <div className="relative">
+                <select
+                  multiple
+                  value={selectedUsers}
+                  onChange={(e) => {
+                    const values = Array.from(e.target.selectedOptions, opt => opt.value);
+                    setSelectedUsers(values);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 h-24"
+                >
+                  {userOptions.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                </select>
+                <p className="text-xs text-slate-400 mt-1">Giữ Ctrl/Cmd để chọn nhiều</p>
+              </div>
             </div>
+
+            {/* Module Filter */}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Từ ngày</label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 focus:border-slate-500 transition-all"
-              />
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Module</label>
+              <div className="relative">
+                <select
+                  multiple
+                  value={selectedModules}
+                  onChange={(e) => {
+                    const values = Array.from(e.target.selectedOptions, opt => opt.value as ModuleType);
+                    setSelectedModules(values);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 h-24"
+                >
+                  {moduleOptions.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <p className="text-xs text-slate-400 mt-1">Giữ Ctrl/Cmd để chọn nhiều</p>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Đến ngày</label>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 focus:border-slate-500 transition-all"
-              />
-            </div>
+          </div>
+        )}
+
+        {/* Active Filters Display */}
+        {(selectedDevices.length > 0 || selectedUsers.length > 0 || selectedModules.length > 0) && (
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+            <span className="text-xs text-slate-400">Đang lọc:</span>
+            {selectedDevices.map(d => (
+              <span key={d} className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                {d}
+                <button onClick={() => { setSelectedDevices(prev => prev.filter(x => x !== d)); setCurrentPage(1); }} className="hover:text-blue-800">
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
+            {selectedUsers.map(u => (
+              <span key={u} className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-600 px-2 py-1 rounded-full">
+                {u}
+                <button onClick={() => { setSelectedUsers(prev => prev.filter(x => x !== u)); setCurrentPage(1); }} className="hover:text-purple-800">
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
+            {selectedModules.map(m => (
+              <span key={m} className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full">
+                {m}
+                <button onClick={() => { setSelectedModules(prev => prev.filter(x => x !== m)); setCurrentPage(1); }} className="hover:text-green-800">
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Log List */}
-      <div className="space-y-2">
-        {filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-slate-100">
-            <History size={48} className="mx-auto mb-3 text-slate-200" />
-            <p className="text-slate-400 font-medium">Không tìm thấy bản ghi nào</p>
-          </div>
-        ) : (
-          filtered
-            .sort((a, b) => b.actionNumber - a.actionNumber)
-            .map((log) => {
-              const tc = targetTypeConfig[log.targetType] ?? targetTypeConfig["Hệ thống"];
-              const isExpanded = expandedId === log.id;
-              return (
-                <div key={log.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                  <div
-                    className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
-                    onClick={() => setExpandedId(isExpanded ? null : log.id)}
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* Action Number */}
-                      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
-                        <span className="text-xs font-bold text-slate-500">#{log.actionNumber}</span>
-                      </div>
-
-                      {/* Main Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3 flex-wrap">
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-slate-800 text-sm">{log.action}</span>
-                              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${tc.bg} ${tc.color}`}>
-                                {tc.icon}
-                                {log.targetType}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3 mt-1 flex-wrap">
-                              <span className="flex items-center gap-1 text-xs text-slate-500">
-                                <User size={11} />
-                                {log.userName}
-                              </span>
-                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${roleColors[log.userRole] ?? "bg-slate-100 text-slate-600"}`}>
-                                {log.userRole}
-                              </span>
-                              <span className="flex items-center gap-1 text-xs text-slate-400">
-                                <Clock size={11} />
-                                {formatDateTime(log.timestamp)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="font-mono text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">{log.actionCode}</span>
-                            {isExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+      {/* Results Table */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-50">
+                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase w-16">ID</th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase w-40">
+                  <div className="flex flex-col gap-1">
+                    <span>Thời gian</span>
                   </div>
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">
+                  <div className="flex flex-col gap-1">
+                    <span>Người dùng</span>
+                    <input
+                      type="text"
+                      placeholder="Lọc..."
+                      value={userNameFilter}
+                      onChange={(e) => { setUserNameFilter(e.target.value); setCurrentPage(1); }}
+                      className="text-xs px-1 py-0.5 border border-slate-200 rounded"
+                    />
+                  </div>
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">
+                  <div className="flex flex-col gap-1">
+                    <span>Module</span>
+                    <select
+                      value={moduleFilter}
+                      onChange={(e) => { setModuleFilter(e.target.value as ModuleType | ""); setCurrentPage(1); }}
+                      className="text-xs px-1 py-0.5 border border-slate-200 rounded"
+                    >
+                      <option value="">Tất cả</option>
+                      {moduleOptions.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">
+                  <div className="flex flex-col gap-1">
+                    <span>Nội dung</span>
+                    <input
+                      type="text"
+                      placeholder="Lọc..."
+                      value={contentFilter}
+                      onChange={(e) => { setContentFilter(e.target.value); setCurrentPage(1); }}
+                      className="text-xs px-1 py-0.5 border border-slate-200 rounded"
+                    />
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {paginatedLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-slate-400">
+                    <History size={32} className="mx-auto mb-2 text-slate-200" />
+                    <p>Không tìm thấy bản ghi nào</p>
+                  </td>
+                </tr>
+              ) : (
+                paginatedLogs.map((log) => {
+                  const moduleType = getModuleType(log.targetType);
+                  const mc = moduleConfig[moduleType];
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs text-slate-500">#{log.actionNumber}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Clock size={12} className="text-slate-400" />
+                          {formatDateTime(log.timestamp)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-semibold text-slate-700 text-sm">{log.userName}</span>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full inline-block w-fit ${roleColors[log.userRole] || "bg-slate-100 text-slate-600"}`}>
+                            {log.userRole}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${mc.bg} ${mc.color}`}>
+                          {mc.icon}
+                          {moduleType}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-semibold text-slate-700 text-sm">{log.action}</p>
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{log.description}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
 
-                  {isExpanded && (
-                    <div className="px-4 pb-4 border-t border-slate-100 pt-3">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        <div className="bg-slate-50 rounded-xl p-3">
-                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
-                            <Hash size={11} /> Mã hành động
-                          </p>
-                          <p className="text-sm font-mono font-bold text-slate-700">{log.actionCode}</p>
-                        </div>
-                        <div className="bg-slate-50 rounded-xl p-3">
-                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
-                            <User size={11} /> Người thực hiện
-                          </p>
-                          <p className="text-sm font-semibold text-slate-700">{log.userName}</p>
-                        </div>
-                        <div className="bg-slate-50 rounded-xl p-3">
-                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
-                            <Clock size={11} /> Thời gian
-                          </p>
-                          <p className="text-sm font-semibold text-slate-700">{formatDateTime(log.timestamp)}</p>
-                        </div>
-                        {log.targetName && (
-                          <div className="bg-slate-50 rounded-xl p-3">
-                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Đối tượng</p>
-                            <p className="text-sm font-semibold text-slate-700">{log.targetName}</p>
-                          </div>
-                        )}
-                        {log.ipAddress && (
-                          <div className="bg-slate-50 rounded-xl p-3">
-                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Địa chỉ IP</p>
-                            <p className="text-sm font-mono text-slate-700">{log.ipAddress}</p>
-                          </div>
-                        )}
-                        <div className="bg-slate-50 rounded-xl p-3 md:col-span-3">
-                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Mô tả chi tiết</p>
-                          <p className="text-sm text-slate-700">{log.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t border-slate-100">
+            <span className="text-sm text-slate-500">
+              Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredLogs.length)} của {filteredLogs.length} bản ghi
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-slate-100 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 flex items-center gap-1"
+              >
+                <ChevronLeft size={16} />
+                Trước
+              </button>
+              
+              {/* Page Numbers */}
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-8 h-8 rounded-lg text-sm font-semibold ${
+                        currentPage === pageNum 
+                          ? "bg-slate-600 text-white" 
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-slate-100 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 flex items-center gap-1"
+              >
+                Sau
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

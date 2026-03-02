@@ -1,3 +1,80 @@
+// ============ USER & PROFILE TYPES ============
+
+export interface Profile {
+  id: string;
+  name: string;
+  description: string;
+  permissions: Permission[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Permission {
+  id: string;
+  category: PermissionCategory;
+  name: string;
+  enabled: boolean;
+}
+
+export type PermissionCategory = 
+  | "quan_ly_chung" 
+  | "thiet_bi_moi" 
+  | "ho_so_thiet_bi" 
+  | "quan_tri" 
+  | "lich_su";
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  password: string;
+  fullName: string;
+  employeeId: string;
+  phone: string;
+  email: string;
+  position: string;
+  department: string;
+  branch: string;
+  signature?: string;
+  managedDevices: string[];
+  profileIds: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Branch {
+  id: string;
+  name: string;
+  code: string;
+  departments: string[];
+  isActive: boolean;
+}
+
+export interface Position {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  code: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  contactPerson?: string;
+  isActive: boolean;
+}
+
+export interface HistoryConfig {
+  autoDeleteEnabled: boolean;
+  deleteAfterDays: number;
+  lastAutoDelete?: string;
+}
+
 // Mock data for the device management system
 
 export type DeviceStatus =
@@ -954,4 +1031,257 @@ export const formatDateTime = (dateStr: string): string => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+// ============ MOCK USER PROFILES ============
+
+export const mockUserProfiles: UserProfile[] = [
+  {
+    id: "u1",
+    username: "admin",
+    password: "admin123",
+    fullName: "Nguyễn Văn Admin",
+    employeeId: "NV-001",
+    phone: "0912345678",
+    email: "admin@labhouse.vn",
+    position: "Quản trị viên",
+    department: "IT",
+    branch: "LabHouse Central",
+    signature: "",
+    managedDevices: ["TB-001", "TB-002"],
+    profileIds: ["p1"],
+    isActive: true,
+    createdAt: "2023-01-01T00:00:00",
+  },
+  {
+    id: "u2",
+    username: "giamdoc",
+    password: "giamdoc123",
+    fullName: "Trần Thị Giám Đốc",
+    employeeId: "NV-002",
+    phone: "0912345679",
+    email: "giamdoc@labhouse.vn",
+    position: "Giám đốc",
+    department: "Ban Giám đốc",
+    branch: "LabHouse Central",
+    signature: "",
+    managedDevices: [],
+    profileIds: ["p2"],
+    isActive: true,
+    createdAt: "2023-01-01T00:00:00",
+  },
+  {
+    id: "u3",
+    username: "truongphong",
+    password: "truongphong123",
+    fullName: "Lê Văn Trưởng Phòng",
+    employeeId: "NV-003",
+    phone: "0912345680",
+    email: "truongphong@labhouse.vn",
+    position: "Trưởng phòng xét nghiệm",
+    department: "Huyết học",
+    branch: "LabHouse Central",
+    signature: "",
+    managedDevices: ["TB-005"],
+    profileIds: ["p3"],
+    isActive: true,
+    createdAt: "2023-03-01T00:00:00",
+  },
+  {
+    id: "u4",
+    username: "ktv",
+    password: "ktv123",
+    fullName: "Phạm Thị Kỹ Thuật",
+    employeeId: "NV-004",
+    phone: "0912345681",
+    email: "ktv@labhouse.vn",
+    position: "Kỹ thuật viên",
+    department: "Huyết học",
+    branch: "LabHouse Central",
+    signature: "",
+    managedDevices: ["TB-001"],
+    profileIds: ["p4"],
+    isActive: true,
+    createdAt: "2023-03-15T00:00:00",
+  },
+  {
+    id: "u5",
+    username: "qlcl",
+    password: "qlcl123",
+    fullName: "Hoàng Văn Chất Lượng",
+    employeeId: "NV-005",
+    phone: "0912345682",
+    email: "qlcl@labhouse.vn",
+    position: "Quản lý chất lượng",
+    department: "Quản lý chất lượng",
+    branch: "LabHouse Central",
+    signature: "",
+    managedDevices: ["TB-004"],
+    profileIds: ["p4"],
+    isActive: true,
+    createdAt: "2023-04-01T00:00:00",
+  },
+  {
+    id: "u6",
+    username: "qltb",
+    password: "qltb123",
+    fullName: "Vũ Thị Thiết Bị",
+    employeeId: "NV-006",
+    phone: "0912345683",
+    email: "qltb@labhouse.vn",
+    position: "Quản lý trang thiết bị",
+    department: "Thiết bị",
+    branch: "LabHouse Central",
+    signature: "",
+    managedDevices: ["TB-003", "TB-006"],
+    profileIds: ["p4"],
+    isActive: true,
+    createdAt: "2023-04-15T00:00:00",
+  },
+];
+
+// ============ MOCK PROFILES ============
+
+export const mockProfiles: Profile[] = [
+  {
+    id: "p1",
+    name: "Quản trị viên",
+    description: "Toàn quyền quản lý hệ thống",
+    permissions: [
+      { id: "perm1", category: "quan_ly_chung", name: "Xem thông báo yêu cầu thiết bị mới", enabled: true },
+      { id: "perm2", category: "quan_ly_chung", name: "Xem thông báo yêu cầu hiệu chuẩn", enabled: true },
+      { id: "perm3", category: "quan_ly_chung", name: "Xem thông báo báo cáo sự cố", enabled: true },
+      { id: "perm4", category: "thiet_bi_moi", name: "Cho phép vào mục thiết bị mới", enabled: true },
+      { id: "perm5", category: "ho_so_thiet_bi", name: "Cho phép vào mục hồ sơ thiết bị", enabled: true },
+      { id: "perm6", category: "ho_so_thiet_bi", name: "Cho phép vào mục tiếp nhận", enabled: true },
+      { id: "perm7", category: "ho_so_thiet_bi", name: "Cho phép vào mục thông tin quản lý", enabled: true },
+      { id: "perm8", category: "ho_so_thiet_bi", name: "Cho phép vào mục báo cáo sự cố", enabled: true },
+      { id: "perm9", category: "ho_so_thiet_bi", name: "Cho phép vào mục hiệu chuẩn", enabled: true },
+      { id: "perm10", category: "ho_so_thiet_bi", name: "Cho phép vào mục bảo dưỡng", enabled: true },
+      { id: "perm11", category: "ho_so_thiet_bi", name: "Cho phép vào mục thanh lý", enabled: true },
+      { id: "perm12", category: "quan_tri", name: "Cho phép vào phần quản trị", enabled: true },
+      { id: "perm13", category: "quan_tri", name: "Cho phép cấu hình user và profile", enabled: true },
+      { id: "perm14", category: "quan_tri", name: "Cho phép cấu hình khoa phòng", enabled: true },
+      { id: "perm15", category: "lich_su", name: "Cho phép vào phần xem lịch sử", enabled: true },
+    ],
+    createdAt: "2023-01-01T00:00:00",
+  },
+  {
+    id: "p2",
+    name: "Giám đốc",
+    description: "Quản lý cấp cao, có quyền phê duyệt",
+    permissions: [
+      { id: "perm1", category: "quan_ly_chung", name: "Xem thông báo yêu cầu thiết bị mới", enabled: true },
+      { id: "perm2", category: "quan_ly_chung", name: "Xem thông báo yêu cầu hiệu chuẩn", enabled: true },
+      { id: "perm3", category: "quan_ly_chung", name: "Xem thông báo báo cáo sự cố", enabled: true },
+      { id: "perm4", category: "thiet_bi_moi", name: "Cho phép vào mục thiết bị mới", enabled: true },
+      { id: "perm5", category: "ho_so_thiet_bi", name: "Cho phép vào mục hồ sơ thiết bị", enabled: true },
+      { id: "perm6", category: "ho_so_thiet_bi", name: "Cho phép vào mục tiếp nhận", enabled: true },
+      { id: "perm7", category: "ho_so_thiet_bi", name: "Cho phép vào mục thông tin quản lý", enabled: true },
+      { id: "perm8", category: "ho_so_thiet_bi", name: "Cho phép vào mục báo cáo sự cố", enabled: true },
+      { id: "perm9", category: "ho_so_thiet_bi", name: "Cho phép vào mục hiệu chuẩn", enabled: true },
+      { id: "perm10", category: "ho_so_thiet_bi", name: "Cho phép vào mục bảo dưỡng", enabled: false },
+      { id: "perm11", category: "ho_so_thiet_bi", name: "Cho phép vào mục thanh lý", enabled: false },
+      { id: "perm12", category: "quan_tri", name: "Cho phép vào phần quản trị", enabled: true },
+      { id: "perm13", category: "quan_tri", name: "Cho phép cấu hình user và profile", enabled: false },
+      { id: "perm14", category: "quan_tri", name: "Cho phép cấu hình khoa phòng", enabled: false },
+      { id: "perm15", category: "lich_su", name: "Cho phép vào phần xem lịch sử", enabled: true },
+    ],
+    createdAt: "2023-01-01T00:00:00",
+  },
+  {
+    id: "p3",
+    name: "Trưởng phòng",
+    description: "Quản lý phòng xét nghiệm, phê duyệt đề xuất",
+    permissions: [
+      { id: "perm1", category: "quan_ly_chung", name: "Xem thông báo yêu cầu thiết bị mới", enabled: true },
+      { id: "perm2", category: "quan_ly_chung", name: "Xem thông báo yêu cầu hiệu chuẩn", enabled: false },
+      { id: "perm3", category: "quan_ly_chung", name: "Xem thông báo báo cáo sự cố", enabled: true },
+      { id: "perm4", category: "thiet_bi_moi", name: "Cho phép vào mục thiết bị mới", enabled: true },
+      { id: "perm5", category: "ho_so_thiet_bi", name: "Cho phép vào mục hồ sơ thiết bị", enabled: true },
+      { id: "perm6", category: "ho_so_thiet_bi", name: "Cho phép vào mục tiếp nhận", enabled: false },
+      { id: "perm7", category: "ho_so_thiet_bi", name: "Cho phép vào mục thông tin quản lý", enabled: true },
+      { id: "perm8", category: "ho_so_thiet_bi", name: "Cho phép vào mục báo cáo sự cố", enabled: true },
+      { id: "perm9", category: "ho_so_thiet_bi", name: "Cho phép vào mục hiệu chuẩn", enabled: false },
+      { id: "perm10", category: "ho_so_thiet_bi", name: "Cho phép vào mục bảo dưỡng", enabled: false },
+      { id: "perm11", category: "ho_so_thiet_bi", name: "Cho phép vào mục thanh lý", enabled: false },
+      { id: "perm12", category: "quan_tri", name: "Cho phép vào phần quản trị", enabled: false },
+      { id: "perm13", category: "quan_tri", name: "Cho phép cấu hình user và profile", enabled: false },
+      { id: "perm14", category: "quan_tri", name: "Cho phép cấu hình khoa phòng", enabled: false },
+      { id: "perm15", category: "lich_su", name: "Cho phép vào phần xem lịch sử", enabled: true },
+    ],
+    createdAt: "2023-01-01T00:00:00",
+  },
+  {
+    id: "p4",
+    name: "Nhân viên",
+    description: "Nhân viên kỹ thuật, thực hiện công việc được giao",
+    permissions: [
+      { id: "perm1", category: "quan_ly_chung", name: "Xem thông báo yêu cầu thiết bị mới", enabled: false },
+      { id: "perm2", category: "quan_ly_chung", name: "Xem thông báo yêu cầu hiệu chuẩn", enabled: false },
+      { id: "perm3", category: "quan_ly_chung", name: "Xem thông báo báo cáo sự cố", enabled: false },
+      { id: "perm4", category: "thiet_bi_moi", name: "Cho phép vào mục thiết bị mới", enabled: true },
+      { id: "perm5", category: "ho_so_thiet_bi", name: "Cho phép vào mục hồ sơ thiết bị", enabled: true },
+      { id: "perm6", category: "ho_so_thiet_bi", name: "Cho phép vào mục tiếp nhận", enabled: false },
+      { id: "perm7", category: "ho_so_thiet_bi", name: "Cho phép vào mục thông tin quản lý", enabled: false },
+      { id: "perm8", category: "ho_so_thiet_bi", name: "Cho phép vào mục báo cáo sự cố", enabled: true },
+      { id: "perm9", category: "ho_so_thiet_bi", name: "Cho phép vào mục hiệu chuẩn", enabled: true },
+      { id: "perm10", category: "ho_so_thiet_bi", name: "Cho phép vào mục bảo dưỡng", enabled: true },
+      { id: "perm11", category: "ho_so_thiet_bi", name: "Cho phép vào mục thanh lý", enabled: false },
+      { id: "perm12", category: "quan_tri", name: "Cho phép vào phần quản trị", enabled: false },
+      { id: "perm13", category: "quan_tri", name: "Cho phép cấu hình user và profile", enabled: false },
+      { id: "perm14", category: "quan_tri", name: "Cho phép cấu hình khoa phòng", enabled: false },
+      { id: "perm15", category: "lich_su", name: "Cho phép vào phần xem lịch sử", enabled: false },
+    ],
+    createdAt: "2023-01-01T00:00:00",
+  },
+];
+
+// ============ MOCK BRANCHES ============
+
+export const mockBranches: Branch[] = [
+  {
+    id: "b1",
+    name: "LabHouse Central",
+    code: "LHC-Central",
+    departments: ["Huyết học", "Sinh hóa", "Vi sinh", "Miễn dịch", "IT", "Ban Giám đốc", "Quản lý chất lượng", "Thiết bị"],
+    isActive: true,
+  },
+  {
+    id: "b2",
+    name: "LabHouse District 1",
+    code: "LHC-D1",
+    departments: ["Huyết học", "Sinh hóa", "Tổng quát"],
+    isActive: true,
+  },
+];
+
+// ============ MOCK POSITIONS ============
+
+export const mockPositions: Position[] = [
+  { id: "pos1", name: "Giám đốc", code: "GD", description: "Giám đốc trung tâm", isActive: true },
+  { id: "pos2", name: "Phó Giám đốc", code: "PGD", description: "Phó Giám đốc", isActive: true },
+  { id: "pos3", name: "Trưởng phòng xét nghiệm", code: "TPXN", description: "Trưởng phòng xét nghiệm", isActive: true },
+  { id: "pos4", name: "Trưởng nhóm", code: "TN", description: "Trưởng nhóm", isActive: true },
+  { id: "pos5", name: "Kỹ thuật viên", code: "KTV", description: "Kỹ thuật viên xét nghiệm", isActive: true },
+  { id: "pos6", name: "Quản lý chất lượng", code: "QLCL", description: "Quản lý chất lượng", isActive: true },
+  { id: "pos7", name: "Quản lý trang thiết bị", code: "QLTB", description: "Quản lý trang thiết bị", isActive: true },
+  { id: "pos8", name: "Quản trị viên", code: "Admin", description: "Quản trị hệ thống", isActive: true },
+];
+
+// ============ MOCK SUPPLIERS ============
+
+export const mockSuppliers: Supplier[] = [
+  { id: "sup1", name: "Công ty TNHH Thiết bị Y tế ABC", code: "NCC-001", address: "123 Đường ABC, TP.HCM", phone: "02812345678", email: "abc@company.com", contactPerson: "Nguyễn Văn A", isActive: true },
+  { id: "sup2", name: "Công ty CP Thiết bị Y tế XYZ", code: "NCC-002", address: "456 Đường XYZ, TP.HCM", phone: "02823456789", email: "xyz@company.com", contactPerson: "Trần Thị B", isActive: true },
+  { id: "sup3", name: "Công ty TNHH Dược phẩm DEF", code: "NCC-003", address: "789 Đường DEF, TP.HCM", phone: "02834567890", email: "def@company.com", contactPerson: "Lê Văn C", isActive: true },
+  { id: "sup4", name: "Công ty TNHH Thiết bị Y tế GHI", code: "NCC-004", address: "321 Đường GHI, TP.HCM", phone: "02845678901", email: "ghi@company.com", contactPerson: "Phạm Văn D", isActive: true },
+  { id: "sup5", name: "Công ty MNO", code: "NCC-005", address: "654 Đường MNO, TP.HCM", phone: "02856789012", email: "mno@company.com", contactPerson: "Hoàng Văn E", isActive: true },
+];
+
+// ============ MOCK HISTORY CONFIG ============
+
+export const mockHistoryConfig: HistoryConfig = {
+  autoDeleteEnabled: false,
+  deleteAfterDays: 365,
 };
