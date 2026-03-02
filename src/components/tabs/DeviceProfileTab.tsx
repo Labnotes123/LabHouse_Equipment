@@ -508,73 +508,6 @@ export default function DeviceProfileTab() {
   });
   const [calibrationResults, setCalibrationResults] = useState<any[]>([]);
   
-  // ================================================
-  // TRANSFER MODAL STATES
-  // ================================================
-  const [transferRequests, setTransferRequests] = useState<any[]>([]);
-  const [transferViewMode, setTransferViewMode] = useState<"list" | "form">("list");
-  const [transferForm, setTransferForm] = useState({
-    fromDepartment: "",
-    toDepartment: "",
-    reason: "",
-    requestDate: "",
-    expectedDate: "",
-    requester: "",
-    approver: "",
-    status: "Nháp" as "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành",
-    notes: "",
-    attachments: [] as { name: string; url: string }[],
-  });
-  const [transferCounter, setTransferCounter] = useState(1);
-  const [transferSearchTerm, setTransferSearchTerm] = useState("");
-  const [transferFilterStatus, setTransferFilterStatus] = useState<string>("all");
-  
-  // ================================================
-  // DISPOSAL MODAL STATES
-  // ================================================
-  const [disposalRequests, setDisposalRequests] = useState<any[]>([]);
-  const [disposalViewMode, setDisposalViewMode] = useState<"list" | "form">("list");
-  const [disposalForm, setDisposalForm] = useState({
-    reason: "",
-    requestDate: "",
-    expectedDate: "",
-    requester: "",
-    approver: "",
-    status: "Nháp" as "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành",
-    notes: "",
-    attachments: [] as { name: string; url: string }[],
-    scrapValue: 0,
-    depreciation: 0,
-    originalValue: 0,
-  });
-  const [disposalCounter, setDisposalCounter] = useState(1);
-  const [disposalSearchTerm, setDisposalSearchTerm] = useState("");
-  const [disposalFilterStatus, setDisposalFilterStatus] = useState<string>("all");
-  
-  // ================================================
-  // TRAINING MODAL STATES
-  // ================================================
-  const [trainingRecords, setTrainingRecords] = useState<any[]>([]);
-  const [trainingViewMode, setTrainingViewMode] = useState<"list" | "form">("list");
-  const [trainingForm, setTrainingForm] = useState({
-    traineeName: "",
-    traineeId: "",
-    trainingDate: "",
-    trainerName: "",
-    trainerId: "",
-    content: "",
-    result: "" as "" | "Đạt" | "Không đạt",
-    resultDate: "",
-    expiryDate: "",
-    notes: "",
-    status: "Nháp" as "Nháp" | "Chờ đào tạo" | "Đã đào tạo" | "Hoàn thành",
-    trainingResultAttachments: [] as { name: string; url: string }[],
-    certificateAttachments: [] as { name: string; url: string }[],
-  });
-  const [trainingCounter, setTrainingCounter] = useState(1);
-  const [trainingSearchTerm, setTrainingSearchTerm] = useState("");
-  const [trainingFilterStatus, setTrainingFilterStatus] = useState<string>("all");
-  
   // Device registration form
   const [form, setForm] = useState<Partial<Device>>({
     code: "",
@@ -1110,7 +1043,6 @@ export default function DeviceProfileTab() {
         setActiveModal("transfer");
         break;
       case "dispose":
-        setDisposalViewMode("list");
         setLiquidationViewMode("list");
         setActiveModal("dispose");
         break;
