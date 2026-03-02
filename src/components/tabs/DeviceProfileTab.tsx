@@ -57,6 +57,16 @@ import {
   FilePlus,
   ClipboardList,
   Send,
+  MessageSquare,
+  Contact,
+  Users,
+  Briefcase,
+  Building2,
+  Link,
+  File,
+  EyeIcon,
+  Filter,
+  RefreshCw,
 } from "lucide-react";
 import {
   Device,
@@ -73,6 +83,10 @@ import {
   deviceTypes,
   deviceLocations,
   countries,
+  mockIncidents,
+  IncidentReport,
+  WorkOrder,
+  AttachedFile,
 } from "@/lib/mockData";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -165,6 +179,60 @@ export default function DeviceProfileTab() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [selectedDeviceForAction, setSelectedDeviceForAction] = useState<Device | null>(null);
   const [deviceCounter, setDeviceCounter] = useState(0);
+  
+  // Incident Report states
+  const [incidentReports, setIncidentReports] = useState<IncidentReport[]>(mockIncidents);
+  const [showIncidentForm, setShowIncidentForm] = useState(false);
+  const [showSupplierContact, setShowSupplierContact] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
+  const [incidentTab, setIncidentTab] = useState<"reports" | "work-orders">("reports");
+  const [incidentCounter, setIncidentCounter] = useState(2); // Current max number for PSC-XXXX-XXX
+  const [workOrderCounter, setWorkOrderCounter] = useState(1); // Current max number for WO-XXX
+  
+  // Incident form state
+  const [incidentForm, setIncidentForm] = useState<Partial<IncidentReport>>({
+    deviceId: "",
+    deviceName: "",
+    deviceCode: "",
+    specialty: "",
+    incidentDateTime: "",
+    discoveredBy: "",
+    discoveredByRole: "",
+    supplier: "",
+    description: "",
+    immediateAction: "",
+    supplierAction: "",
+    affectsPatientResult: false,
+    affectedPatientSid: "",
+    howAffected: "",
+    requiresDeviceStop: false,
+    stopFrom: "",
+    stopTo: "",
+    hasProposal: false,
+    proposal: "",
+    reportedBy: "",
+    deviceManager: "",
+    relatedUsers: [],
+    status: "Nháp",
+    workOrders: [],
+  });
+  
+  // Work order form state
+  const [workOrderForm, setWorkOrderForm] = useState<Partial<WorkOrder>>({
+    contactPerson: "",
+    contactMethod: "điện thoại",
+    startDateTime: "",
+    endDateTime: "",
+    actionDescription: "",
+    notes: "",
+    attachments: [],
+    status: "Mở",
+    isCompleted: false,
+  });
+  
+  // Search states for incident reports
+  const [incidentSearchTerm, setIncidentSearchTerm] = useState("");
+  const [incidentFilterStatus, setIncidentFilterStatus] = useState<string>("all");
   
   // Device registration form
   const [form, setForm] = useState<Partial<Device>>({

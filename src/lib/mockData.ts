@@ -70,15 +70,71 @@ export interface CalibrationSchedule {
 
 export interface IncidentReport {
   id: string;
-  reportCode: string;
+  reportCode: string; // Format: PSC-năm-STT (e.g., PSC-2024-001)
   deviceId: string;
   deviceName: string;
-  incidentDate: string;
-  description: string;
-  severity: "Nhẹ" | "Trung bình" | "Nghiêm trọng";
-  reportedBy: string;
-  status: "Chờ duyệt" | "Đã duyệt" | "Từ chối";
-  resolution?: string;
+  deviceCode: string;
+  specialty: string; // Bộ phận xét nghiệm
+  incidentDateTime: string; // Format: hh:mm dd/mm/yyyy
+  discoveredBy: string; // Người phát hiện sự cố
+  discoveredByRole: string; // Chức vụ người phát hiện
+  supplier: string; // Tên nhà cung ứng
+  description: string; // Mô tả chi tiết sự cố
+  immediateAction: string; // Hành động xử trí tức thời
+  supplierAction: string; // Hành động khắc phục của nhà cung ứng
+  
+  // Required fields before submitting
+  affectsPatientResult: boolean;
+  affectedPatientSid?: string; // SID bệnh nhân bị ảnh hưởng
+  howAffected?: string; // Bị ảnh hưởng như thế nào
+  
+  requiresDeviceStop: boolean;
+  stopFrom?: string; // Thời gian dừng từ
+  stopTo?: string; // Đến thời gian
+  
+  hasProposal: boolean;
+  proposal?: string; // Đề xuất thêm
+  
+  // Approval
+  reportedBy: string; // Người báo cáo
+  deviceManager: string; // Quản lý trang thiết bị
+  relatedUsers: string[]; // Người liên quan
+  
+  // Status
+  status: "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành";
+  createdAt: string;
+  updatedAt?: string;
+  approvedBy?: string;
+  approvedDate?: string;
+  rejectedBy?: string;
+  rejectedReason?: string;
+  
+  // Work orders from supplier
+  workOrders: WorkOrder[];
+}
+
+export interface WorkOrder {
+  id: string;
+  workOrderCode: string; // Format: PSC-2024-001-WO-001
+  incidentReportCode: string;
+  contactPerson: string; // Người liên hệ nhà cung ứng
+  contactMethod: "zalo" | "điện thoại" | "email" | "tin nhắn" | "trao đổi trực tiếp";
+  startDateTime: string; // Format: hh:mm dd/mm/yyyy
+  endDateTime?: string; // Format: hh:mm dd/mm/yyyy
+  actionDescription: string; // Mô tả hành động
+  notes: string; // Ghi chú
+  attachments: AttachedFile[]; // Đính kèm hình ảnh/phiếu sửa chữa
+  
+  // Status
+  status: "Mở" | "Đóng";
+  
+  // Engineer signature
+  engineerName?: string; // Tên người sửa chữa
+  signatureUrl?: string; // Chữ ký
+  isCompleted: boolean; // Đã hoàn tất (ký xong)
+  conclusion?: "hoàn thành" | "xử trí 1 phần";
+  
+  createdAt: string;
 }
 
 export interface HistoryLog {
@@ -583,29 +639,82 @@ export const mockSchedules: CalibrationSchedule[] = [
   },
 ];
 
-// Mock Incident Reports
+// Mock Incident Reports - BM.11.QL.TC.018
 export const mockIncidents: IncidentReport[] = [
   {
     id: "i1",
-    reportCode: "SC-2024-001",
-    deviceId: "d6",
-    deviceName: "Tủ an toàn sinh học cấp II",
-    incidentDate: "2024-02-28",
-    description: "Quạt tủ an toàn sinh học phát ra tiếng ồn bất thường, cần kiểm tra",
-    severity: "Trung bình",
-    reportedBy: "Phạm Thị Kỹ Thuật",
+    reportCode: "PSC-2024-001",
+    deviceId: "d3",
+    deviceName: "Máy miễn dịch tự động",
+    deviceCode: "TB-003",
+    specialty: "Huyết học",
+    incidentDateTime: "09:15 28/02/2024",
+    discoveredBy: "Vũ Thị Thiết Bị",
+    discoveredByRole: "Quản lý trang thiết bị",
+    supplier: "Abbott",
+    description: "Máy hiển thị lỗi E-1001, quạt hút không hoạt động. Cần kiểm tra và sửa chữa.",
+    immediateAction: "Tạm dừng sử dụng máy, báo kỹ sư của hãng Abbott đến kiểm tra.",
+    supplierAction: "",
+    affectsPatientResult: false,
+    requiresDeviceStop: true,
+    stopFrom: "09:15 28/02/2024",
+    stopTo: "",
+    hasProposal: false,
+    reportedBy: "Vũ Thị Thiết Bị",
+    deviceManager: "Vũ Thị Thiết Bị",
+    relatedUsers: ["Phạm Thị Kỹ Thuật"],
     status: "Chờ duyệt",
+    createdAt: "2024-02-28T09:20:00",
+    workOrders: [],
   },
   {
     id: "i2",
-    reportCode: "SC-2024-002",
-    deviceId: "d3",
-    deviceName: "Máy miễn dịch tự động",
-    incidentDate: "2024-03-01",
-    description: "Kết quả xét nghiệm không ổn định, cần hiệu chuẩn lại",
-    severity: "Nghiêm trọng",
-    reportedBy: "Vũ Thị Thiết Bị",
-    status: "Chờ duyệt",
+    reportCode: "PSC-2024-002",
+    deviceId: "d1",
+    deviceName: "Máy phân tích huyết học tự động",
+    deviceCode: "TB-001",
+    specialty: "Huyết học",
+    incidentDateTime: "14:30 01/03/2024",
+    discoveredBy: "Phạm Thị Kỹ Thuật",
+    discoveredByRole: "Kỹ thuật viên",
+    supplier: "Sysmex",
+    description: "Kết quả xét nghiệm huyết học có sự sai lệch, cần hiệu chuẩn lại.",
+    immediateAction: "Tạm dừng xét nghiệm trên máy, sử dụng máy dự phòng.",
+    supplierAction: "02/03/2024 08:00 - 12:00, Kỹ sư Nguyễn Văn A - Thay sensor huyết học, hiệu chuẩn lại máy. Hoàn thành.",
+    affectsPatientResult: true,
+    affectedPatientSid: "BN-2024-00156",
+    howAffected: "Kết quả WBC cao bất thường, cần xét nghiệm lại",
+    requiresDeviceStop: true,
+    stopFrom: "14:30 01/03/2024",
+    stopTo: "02/03/2024 12:00",
+    hasProposal: true,
+    proposal: "Đề xuất kiểm tra định kỳ sensor hàng tháng",
+    reportedBy: "Phạm Thị Kỹ Thuật",
+    deviceManager: "Phạm Thị Kỹ Thuật",
+    relatedUsers: ["Nguyễn Văn Admin", "Lê Văn Trưởng Phòng"],
+    status: "Hoàn thành",
+    createdAt: "2024-03-01T14:35:00",
+    approvedBy: "Lê Văn Trưởng Phòng",
+    approvedDate: "03/03/2024 10:00",
+    workOrders: [
+      {
+        id: "wo1",
+        workOrderCode: "PSC-2024-002-WO-001",
+        incidentReportCode: "PSC-2024-002",
+        contactPerson: "Kỹ sư Nguyễn Văn A",
+        contactMethod: "trao đổi trực tiếp",
+        startDateTime: "08:00 02/03/2024",
+        endDateTime: "12:00 02/03/2024",
+        actionDescription: "Thay sensor huyết học, vệ sinh đầu đọc, hiệu chuẩn máy",
+        notes: "Máy hoạt động bình thường sau khi sửa chữa",
+        attachments: [],
+        status: "Đóng",
+        engineerName: "Nguyễn Văn A",
+        isCompleted: true,
+        conclusion: "hoàn thành",
+        createdAt: "2024-03-02T08:00:00",
+      },
+    ],
   },
 ];
 

@@ -198,15 +198,14 @@ export default function DashboardTab({ onNavigateNewDevicePending }: DashboardTa
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-slate-700 text-sm truncate">{inc.deviceName}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{inc.reportCode} • {formatDate(inc.incidentDate)}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{inc.reportCode} • {inc.incidentDateTime}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        inc.severity === "Nghiêm trọng" ? "bg-red-100 text-red-700" :
-                        inc.severity === "Trung bình" ? "bg-amber-100 text-amber-700" :
-                        "bg-green-100 text-green-700"
+                        inc.status === "Chờ duyệt" ? "bg-amber-100 text-amber-700" :
+                        "bg-slate-100 text-slate-700"
                       }`}>
-                        {inc.severity}
+                        {inc.status}
                       </span>
                       <ChevronRight size={14} className="text-slate-300" />
                     </div>

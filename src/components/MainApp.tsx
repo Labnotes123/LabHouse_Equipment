@@ -15,6 +15,8 @@ import {
   X,
   User,
   Shield,
+  AlertTriangle,
+  Gauge,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -24,9 +26,11 @@ import NewDeviceTab from "@/components/tabs/NewDeviceTab";
 import DeviceProfileTab from "@/components/tabs/DeviceProfileTab";
 import AdminTab from "@/components/tabs/AdminTab";
 import HistoryTab from "@/components/tabs/HistoryTab";
+import IncidentReportTab from "@/components/tabs/IncidentReportTab";
+import CalibrationTab from "@/components/tabs/CalibrationTab";
 import { mockProposals, mockIncidents } from "@/lib/mockData";
 
-type TabId = "dashboard" | "new-device" | "device-profile" | "admin" | "history";
+type TabId = "dashboard" | "new-device" | "device-profile" | "incident-report" | "calibration" | "admin" | "history";
 type NewDeviceFilter = "all" | "pending";
 
 const tabs: {
@@ -56,6 +60,20 @@ const tabs: {
     icon: <Cpu size={20} />,
     gradient: "from-purple-500 to-violet-600",
     desc: "Quản lý thiết bị",
+  },
+  {
+    id: "incident-report",
+    label: "Báo cáo sự cố",
+    icon: <AlertTriangle size={20} />,
+    gradient: "from-red-500 to-rose-600",
+    desc: "Báo cáo & theo dõi sự cố",
+  },
+  {
+    id: "calibration",
+    label: "Hiệu chuẩn",
+    icon: <Gauge size={20} />,
+    gradient: "from-violet-500 to-purple-600",
+    desc: "Yêu cầu & lịch hiệu chuẩn",
   },
   {
     id: "admin",
@@ -111,6 +129,8 @@ export default function MainApp() {
       case "dashboard": return <DashboardTab onNavigateNewDevicePending={navigateToNewDevicePending} />;
       case "new-device": return <NewDeviceTab filterPending={newDeviceFilter === "pending"} onNavigate={(tab) => { setNewDeviceFilter("all"); setActiveTab(tab as TabId); }} />;
       case "device-profile": return <DeviceProfileTab />;
+      case "incident-report": return <IncidentReportTab />;
+      case "calibration": return <CalibrationTab />;
       case "admin": return <AdminTab />;
       case "history": return <HistoryTab />;
     }
