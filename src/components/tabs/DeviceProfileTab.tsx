@@ -218,7 +218,7 @@ export default function DeviceProfileTab() {
   });
   
   // Work order form state
-  const [workOrderForm, setWorkOrderForm] = useState<Partial<WorkOrder>>({
+  const [workOrderForm, setWorkOrderForm] = useState<Partial<WorkOrder> & { woConclusion?: "hoàn thành" | "xử trí 1 phần" }>({
     contactPerson: "",
     contactMethod: "điện thoại",
     startDateTime: "",
@@ -228,11 +228,18 @@ export default function DeviceProfileTab() {
     attachments: [],
     status: "Mở",
     isCompleted: false,
+    woConclusion: undefined,
   });
   
   // Search states for incident reports
   const [incidentSearchTerm, setIncidentSearchTerm] = useState("");
   const [incidentFilterStatus, setIncidentFilterStatus] = useState<string>("all");
+  
+  // Supplier contact modal state
+  const [showSupplierContactModal, setShowSupplierContactModal] = useState(false);
+  const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrder | null>(null);
+  const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
+  const [currentIncidentForWorkOrder, setCurrentIncidentForWorkOrder] = useState<IncidentReport | null>(null);
   
   // Calibration form state
   const [calibrationForm, setCalibrationForm] = useState<{
@@ -267,6 +274,30 @@ export default function DeviceProfileTab() {
   const [calibrationRequests, setCalibrationRequests] = useState<any[]>([]);
   const [calibrationSearchTerm, setCalibrationSearchTerm] = useState("");
   const [calibrationFilterStatus, setCalibrationFilterStatus] = useState<string>("all");
+  
+  // Calibration schedule state
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    scheduledDate: "",
+    scheduledTime: "",
+    reminderDays: 3,
+    content: "",
+    relatedUsers: [] as string[],
+  });
+  const [calibrationSchedules, setCalibrationSchedules] = useState<any[]>([]);
+  
+  // Calibration result state
+  const [showResultForm, setShowResultForm] = useState(false);
+  const [resultForm, setResultForm] = useState({
+    executionDate: "",
+    content: "",
+    unit: "",
+    result: "",
+    standard: "",
+    conclusion: "" as "Đạt" | "Không đạt" | "",
+    attachments: [] as { name: string; url: string }[],
+  });
+  const [calibrationResults, setCalibrationResults] = useState<any[]>([]);
   
   // Device registration form
   const [form, setForm] = useState<Partial<Device>>({
@@ -2599,6 +2630,22 @@ export default function DeviceProfileTab() {
                 />
               </div>
 
+              {/* Liên hệ nhà cung ứng button */}
+              <div className="flex items-center justify-between bg-amber-50 rounded-xl p-4 border border-amber-200">
+                <div>
+                  <h4 className="font-semibold text-amber-800">Liên hệ nhà cung ứng</h4>
+                  <p className="text-sm text-amber-600">Quản lý công việc sửa chữa từ nhà cung ứng</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSupplierContactModal(true)}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
+                >
+                  <Phone size={18} />
+                  Liên hệ NCC
+                </button>
+              </div>
+
               {/* Conclusion Section */}
               <div className="border-t border-slate-200 pt-4">
                 <label className="block text-sm font-medium text-slate-700 mb-2">Kết luận</label>
@@ -2716,6 +2763,101 @@ export default function DeviceProfileTab() {
                   />
                 </div>
               )}
+
+              {/* Required Fields Before Submit */}
+              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 space-y-4">
+                <h4 className="font-semibold text-blue-800">Thông tin bắt buộc trước khi gửi báo cáo</h4>
+                
+                {/* Affects Patient Result */}
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer mb-2">
+                    <input
+                      type="checkbox"
+                      checked={incidentForm.affectsPatientResult || false}
+                      onChange={(e) => setIncidentForm({ ...incidentForm, affectsPatientResult: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 rounded"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Có ảnh hưởng tới kết quả bệnh nhân không?</span>
+                  </label>
+                  {incidentForm.affectsPatientResult && (
+                    <div className="ml-6 space-y-2">
+                      <input
+                        type="text"
+                        value={incidentForm.affectedPatientSid || ''}
+                        onChange={(e) => setIncidentForm({ ...incidentForm, affectedPatientSid: e.target.value })}
+                        placeholder="Nhập SID bệnh nhân bị ảnh hưởng"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                      <textarea
+                        value={incidentForm.howAffected || ''}
+                        onChange={(e) => setIncidentForm({ ...incidentForm, howAffected: e.target.value })}
+                        placeholder="Mô tả bệnh nhân bị ảnh hưởng như thế nào"
+                        rows={2}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Requires Device Stop */}
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer mb-2">
+                    <input
+                      type="checkbox"
+                      checked={incidentForm.requiresDeviceStop || false}
+                      onChange={(e) => setIncidentForm({ ...incidentForm, requiresDeviceStop: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 rounded"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Có phải dừng hoạt động của máy không?</span>
+                  </label>
+                  {incidentForm.requiresDeviceStop && (
+                    <div className="ml-6 grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-slate-500">Từ</label>
+                        <input
+                          type="datetime-local"
+                          value={incidentForm.stopFrom || ''}
+                          onChange={(e) => setIncidentForm({ ...incidentForm, stopFrom: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-500">Đến</label>
+                        <input
+                          type="datetime-local"
+                          value={incidentForm.stopTo || ''}
+                          onChange={(e) => setIncidentForm({ ...incidentForm, stopTo: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Has Proposal */}
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer mb-2">
+                    <input
+                      type="checkbox"
+                      checked={incidentForm.hasProposal || false}
+                      onChange={(e) => setIncidentForm({ ...incidentForm, hasProposal: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 rounded"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Có đề xuất gì thêm không?</span>
+                  </label>
+                  {incidentForm.hasProposal && (
+                    <div className="ml-6">
+                      <textarea
+                        value={incidentForm.proposal || ''}
+                        onChange={(e) => setIncidentForm({ ...incidentForm, proposal: e.target.value })}
+                        placeholder="Nhập đề xuất của bạn"
+                        rows={2}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Action Buttons */}
               <div className="flex justify-between pt-4 border-t border-slate-200">
@@ -2890,6 +3032,324 @@ export default function DeviceProfileTab() {
                         ))}
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================
+      /* SUPPLIER CONTACT MODAL */
+      /* ============================================ */}
+      {showSupplierContactModal && selectedDeviceForAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowSupplierContactModal(false)}>
+          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Liên hệ nhà cung ứng</h2>
+                <p className="text-sm text-slate-500">Quản lý công việc sửa chữa của nhà cung ứng</p>
+              </div>
+              <button onClick={() => setShowSupplierContactModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Device Info */}
+              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                <h3 className="font-semibold text-amber-800">{selectedDeviceForAction.name}</h3>
+                <p className="text-sm text-amber-600">{selectedDeviceForAction.code} - {selectedDeviceForAction.distributor || 'Chưa có NCC'}</p>
+              </div>
+
+              {/* Add Work Order Button */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    setEditingWorkOrder(null);
+                    setWorkOrderForm({
+                      contactPerson: "",
+                      contactMethod: "điện thoại",
+                      startDateTime: "",
+                      endDateTime: "",
+                      actionDescription: "",
+                      notes: "",
+                      attachments: [],
+                      status: "Mở",
+                      isCompleted: false,
+                    });
+                    setShowWorkOrderForm(true);
+                  }}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
+                >
+                  <Plus size={18} /> Thêm công việc
+                </button>
+              </div>
+
+              {/* Work Orders Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã công việc</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Người liên hệ</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Hình thức</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian bắt đầu</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian kết thúc</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Kết luận</th>
+                      <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {incidentReports
+                      .filter(i => i.deviceId === selectedDeviceForAction.id)
+                      .flatMap(i => i.workOrders || [])
+                      .map(wo => (
+                        <tr key={wo.id} className="hover:bg-slate-50">
+                          <td className="px-4 py-3 font-mono text-amber-600">{wo.workOrderCode}</td>
+                          <td className="px-4 py-3">{wo.contactPerson}</td>
+                          <td className="px-4 py-3">{wo.contactMethod}</td>
+                          <td className="px-4 py-3">{wo.startDateTime || '—'}</td>
+                          <td className="px-4 py-3">{wo.endDateTime || '—'}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              wo.status === 'Mở' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                            }`}>
+                              {wo.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {wo.conclusion ? (
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                wo.conclusion === 'hoàn thành' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                              }`}>
+                                {wo.conclusion === 'hoàn thành' ? 'Hoàn thành' : 'Xử trí 1 phần'}
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex justify-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingWorkOrder(wo);
+                                  setWorkOrderForm({
+                                    contactPerson: wo.contactPerson,
+                                    contactMethod: wo.contactMethod,
+                                    startDateTime: wo.startDateTime,
+                                    endDateTime: wo.endDateTime || "",
+                                    actionDescription: wo.actionDescription,
+                                    notes: wo.notes,
+                                    attachments: wo.attachments,
+                                    status: wo.status,
+                                    isCompleted: wo.isCompleted,
+                                  });
+                                  setShowWorkOrderForm(true);
+                                }}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                title="Cập nhật"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                                title="Xem chi tiết"
+                              >
+                                <Eye size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    {incidentReports.filter(i => i.deviceId === selectedDeviceForAction.id).flatMap(i => i.workOrders || []).length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                          Chưa có công việc nào
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Work Order Form Modal */}
+              {showWorkOrderForm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={() => setShowWorkOrderForm(false)}>
+                  <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-800">
+                          {editingWorkOrder ? 'Cập nhật công việc' : 'Thêm công việc mới'}
+                        </h3>
+                        <p className="text-sm text-slate-500">
+                          Mã công việc: {editingWorkOrder?.workOrderCode || `${selectedDeviceForAction.code}-WO-${String(workOrderCounter).padStart(3, '0')}`}
+                        </p>
+                      </div>
+                      <button onClick={() => setShowWorkOrderForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                        <X size={20} />
+                      </button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      {/* Contact Person */}
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Người liên hệ NCC</label>
+                        <input
+                          type="text"
+                          value={workOrderForm.contactPerson || ''}
+                          onChange={(e) => setWorkOrderForm({ ...workOrderForm, contactPerson: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                          placeholder="Tên người liên hệ"
+                        />
+                      </div>
+
+                      {/* Contact Method */}
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Hình thức liên hệ</label>
+                        <select
+                          value={workOrderForm.contactMethod || 'điện thoại'}
+                          onChange={(e) => setWorkOrderForm({ ...workOrderForm, contactMethod: e.target.value as any })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                        >
+                          <option value="zalo">Zalo</option>
+                          <option value="điện thoại">Điện thoại</option>
+                          <option value="email">Email</option>
+                          <option value="tin nhắn">Tin nhắn</option>
+                          <option value="trao đổi trực tiếp">Trao đổi trực tiếp</option>
+                        </select>
+                      </div>
+
+                      {/* Time */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian bắt đầu</label>
+                          <input
+                            type="datetime-local"
+                            value={workOrderForm.startDateTime || ''}
+                            onChange={(e) => setWorkOrderForm({ ...workOrderForm, startDateTime: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian kết thúc</label>
+                          <input
+                            type="datetime-local"
+                            value={workOrderForm.endDateTime || ''}
+                            onChange={(e) => setWorkOrderForm({ ...workOrderForm, endDateTime: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả hành động</label>
+                        <textarea
+                          value={workOrderForm.actionDescription || ''}
+                          onChange={(e) => setWorkOrderForm({ ...workOrderForm, actionDescription: e.target.value })}
+                          rows={3}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                          placeholder="Mô tả công việc đã thực hiện..."
+                        />
+                      </div>
+
+                      {/* Notes */}
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Ghi chú</label>
+                        <textarea
+                          value={workOrderForm.notes || ''}
+                          onChange={(e) => setWorkOrderForm({ ...workOrderForm, notes: e.target.value })}
+                          rows={2}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                          placeholder="Ghi chú thêm..."
+                        />
+                      </div>
+
+                      {/* Attachments */}
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Đính kèm</label>
+                        <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 text-center">
+                          <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+                          <p className="text-sm text-slate-500">Kéo thả file hoặc click để tải lên</p>
+                          <p className="text-xs text-slate-400 mt-1">Hình ảnh, phiếu sửa chữa (PDF)</p>
+                        </div>
+                      </div>
+
+                      {/* Engineer Signature Section */}
+                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-200 space-y-4">
+                        <h4 className="font-semibold text-purple-800">Dành cho kỹ sư sửa chữa</h4>
+                        
+                        {/* Engineer Name */}
+                        <div>
+                          <label className="block text-sm font-medium text-purple-800 mb-1">Tên người sửa chữa</label>
+                          <input
+                            type="text"
+                            value={workOrderForm.notes?.split('|engineer:')[1]?.split('|')[0] || ''}
+                            onChange={(e) => setWorkOrderForm({ 
+                              ...workOrderForm, 
+                              notes: (workOrderForm.notes || '') + `|engineer:${e.target.value}|` 
+                            })}
+                            className="w-full px-3 py-2 rounded-lg border border-purple-200 text-sm"
+                            placeholder="Tên kỹ sư"
+                          />
+                        </div>
+
+                        {/* Conclusion */}
+                        <div>
+                          <label className="block text-sm font-medium text-purple-800 mb-2">Kết luận</label>
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="woConclusion"
+                                checked={(workOrderForm as any).woConclusion === "hoàn thành"}
+                                onChange={() => setWorkOrderForm({ ...workOrderForm, woConclusion: "hoàn thành" } as any)}
+                                className="w-4 h-4 text-green-600"
+                              />
+                              <span className="text-sm text-slate-700">Hoàn thành</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="woConclusion"
+                                checked={(workOrderForm as any).woConclusion === "xử trí 1 phần"}
+                                onChange={() => setWorkOrderForm({ ...workOrderForm, woConclusion: "xử trí 1 phần" } as any)}
+                                className="w-4 h-4 text-orange-600"
+                              />
+                              <span className="text-sm text-slate-700">Xử trí 1 phần</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Sign Button */}
+                        <button
+                          className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 flex items-center justify-center gap-2"
+                        >
+                          <Edit size={18} /> Ký và hoàn tất
+                        </button>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                        <button
+                          onClick={() => setShowWorkOrderForm(false)}
+                          className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          onClick={() => {
+                            // Save work order logic would go here
+                            success("Thành công", "Đã lưu công việc");
+                            setShowWorkOrderForm(false);
+                            setWorkOrderCounter(workOrderCounter + 1);
+                          }}
+                          className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
+                        >
+                          Lưu
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -3131,15 +3591,197 @@ export default function DeviceProfileTab() {
               {calibrationModalTab === "schedule" && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-800">Lịch hiệu chuẩn</h3>
+                    <h3 className="font-semibold text-slate-800">Lịch hiệu chuẩn - BM.08.QL.TC.018</h3>
+                    <button
+                      onClick={() => setShowScheduleForm(true)}
+                      className="px-3 py-1.5 bg-purple-500 text-white text-sm rounded-lg hover:bg-purple-600 flex items-center gap-1"
+                    >
+                      <Plus size={16} /> Lên lịch
+                    </button>
                   </div>
                   
-                  {/* Calibration Schedule List - showing schedules for this device */}
-                  <div className="text-center py-8 text-slate-500">
-                    <Calendar className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                    <p>Chưa có lịch hiệu chuẩn nào</p>
-                    <p className="text-sm text-slate-400 mt-1">Lịch hiệu chuẩn sẽ hiển thị sau khi yêu cầu được phê duyệt</p>
-                  </div>
+                  {/* Schedule Table */}
+                  {calibrationSchedules.filter(s => s.deviceId === selectedDeviceForAction.id).length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">
+                      <Calendar className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                      <p>Chưa có lịch hiệu chuẩn nào</p>
+                      <p className="text-sm text-slate-400 mt-1">Lịch hiệu chuẩn sẽ hiển thị sau khi yêu cầu được phê duyệt</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">STT</th>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Tên thiết bị</th>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã thiết bị</th>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày HC</th>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Nội dung</th>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
+                            <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {calibrationSchedules
+                            .filter(s => s.deviceId === selectedDeviceForAction.id)
+                            .map((s, idx) => (
+                              <tr key={s.id} className="hover:bg-slate-50">
+                                <td className="px-4 py-3">{idx + 1}</td>
+                                <td className="px-4 py-3">{s.deviceName}</td>
+                                <td className="px-4 py-3 font-mono">{s.deviceCode}</td>
+                                <td className="px-4 py-3">{s.scheduledDate}</td>
+                                <td className="px-4 py-3">{s.content}</td>
+                                <td className="px-4 py-3">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    s.status === 'Đã hoàn thành' ? 'bg-green-100 text-green-700' :
+                                    s.status === 'Quá hạn' ? 'bg-red-100 text-red-700' :
+                                    'bg-amber-100 text-amber-700'
+                                  }`}>
+                                    {s.status}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
+                                    <Eye size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Schedule Form Modal */}
+                  {showScheduleForm && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowScheduleForm(false)}>
+                      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-bold text-slate-800">Lên lịch hiệu chuẩn</h3>
+                            <p className="text-sm text-slate-500">BM.08.QL.TC.018</p>
+                          </div>
+                          <button onClick={() => setShowScheduleForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                            <X size={20} />
+                          </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          {/* Device Info */}
+                          <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                            <h4 className="font-semibold text-purple-800">{selectedDeviceForAction.name}</h4>
+                            <p className="text-sm text-purple-600">{selectedDeviceForAction.code} - {selectedDeviceForAction.serial}</p>
+                          </div>
+
+                          {/* Date and Time */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Ngày hiệu chuẩn</label>
+                              <input
+                                type="date"
+                                value={scheduleForm.scheduledDate}
+                                onChange={(e) => setScheduleForm({ ...scheduleForm, scheduledDate: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Giờ hiệu chuẩn</label>
+                              <input
+                                type="time"
+                                value={scheduleForm.scheduledTime}
+                                onChange={(e) => setScheduleForm({ ...scheduleForm, scheduledTime: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Reminder */}
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Nhắc lịch trước</label>
+                            <select
+                              value={scheduleForm.reminderDays}
+                              onChange={(e) => setScheduleForm({ ...scheduleForm, reminderDays: parseInt(e.target.value) })}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                            >
+                              <option value={1}>1 ngày</option>
+                              <option value={3}>3 ngày</option>
+                              <option value={5}>5 ngày</option>
+                              <option value={7}>7 ngày</option>
+                            </select>
+                          </div>
+
+                          {/* Content */}
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung</label>
+                            <textarea
+                              value={scheduleForm.content}
+                              onChange={(e) => setScheduleForm({ ...scheduleForm, content: e.target.value })}
+                              rows={2}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                              placeholder="Nội dung hiệu chuẩn..."
+                            />
+                          </div>
+
+                          {/* Related Users */}
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Người liên quan</label>
+                            <div className="flex flex-wrap gap-2">
+                              {MOCK_USERS_LIST.map(u => (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = scheduleForm.relatedUsers || [];
+                                    const newList = current.includes(u.fullName)
+                                      ? current.filter(name => name !== u.fullName)
+                                      : [...current, u.fullName];
+                                    setScheduleForm({ ...scheduleForm, relatedUsers: newList });
+                                  }}
+                                  className={`px-3 py-1 rounded-full text-sm transition-all ${
+                                    (scheduleForm.relatedUsers || []).includes(u.fullName)
+                                      ? "bg-purple-500 text-white"
+                                      : "bg-white border border-slate-300 text-slate-700 hover:bg-purple-50"
+                                  }`}
+                                >
+                                  {u.fullName}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                            <button
+                              onClick={() => setShowScheduleForm(false)}
+                              className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newSchedule = {
+                                  id: `schedule-${Date.now()}`,
+                                  deviceId: selectedDeviceForAction.id,
+                                  deviceName: selectedDeviceForAction.name,
+                                  deviceCode: selectedDeviceForAction.code,
+                                  scheduledDate: `${scheduleForm.scheduledDate} ${scheduleForm.scheduledTime}`,
+                                  content: scheduleForm.content,
+                                  status: "Chờ thực hiện" as const,
+                                  notes: `Nhắc trước ${scheduleForm.reminderDays} ngày`,
+                                };
+                                setCalibrationSchedules([...calibrationSchedules, newSchedule]);
+                                success("Thành công", "Đã thêm lịch hiệu chuẩn");
+                                setShowScheduleForm(false);
+                              }}
+                              disabled={!scheduleForm.scheduledDate}
+                              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50"
+                            >
+                              Lưu
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -3147,15 +3789,236 @@ export default function DeviceProfileTab() {
               {calibrationModalTab === "result" && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-800">Kết quả hiệu chuẩn</h3>
+                    <h3 className="font-semibold text-slate-800">Xem xét kết quả hiệu chuẩn - BM.09.QL.TC.018</h3>
+                    <button
+                      onClick={() => setShowResultForm(true)}
+                      className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 flex items-center gap-1"
+                    >
+                      <Plus size={16} /> Xem xét kết quả
+                    </button>
                   </div>
                   
-                  {/* Calibration Results List */}
-                  <div className="text-center py-8 text-slate-500">
-                    <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                    <p>Chưa có kết quả hiệu chuẩn nào</p>
-                    <p className="text-sm text-slate-400 mt-1">Kết quả hiệu chuẩn sẽ hiển thị sau khi hoàn thành</p>
-                  </div>
+                  {/* Results Table */}
+                  {calibrationResults.filter(r => r.deviceId === selectedDeviceForAction.id).length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">
+                      <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                      <p>Chưa có kết quả hiệu chuẩn nào</p>
+                      <p className="text-sm text-slate-400 mt-1">Kết quả hiệu chuẩn sẽ hiển thị sau khi hoàn thành</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Tên thiết bị</th>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã TB</th>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Serial</th>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày thực hiện</th>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Kết quả</th>
+                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Kết luận</th>
+                            <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {calibrationResults
+                            .filter(r => r.deviceId === selectedDeviceForAction.id)
+                            .map(r => (
+                              <tr key={r.id} className="hover:bg-slate-50">
+                                <td className="px-4 py-3">{r.deviceName}</td>
+                                <td className="px-4 py-3 font-mono">{r.deviceCode}</td>
+                                <td className="px-4 py-3">{r.serialNumber}</td>
+                                <td className="px-4 py-3">{r.executionDate}</td>
+                                <td className="px-4 py-3">{r.result}</td>
+                                <td className="px-4 py-3">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    r.conclusion === 'Đạt' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                  }`}>
+                                    {r.conclusion}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
+                                    <Eye size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Result Form Modal */}
+                  {showResultForm && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowResultForm(false)}>
+                      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-bold text-slate-800">Phiếu đánh giá kết quả hiệu chuẩn</h3>
+                            <p className="text-sm text-slate-500">BM.09.QL.TC.018</p>
+                          </div>
+                          <button onClick={() => setShowResultForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                            <X size={20} />
+                          </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          {/* Device Info */}
+                          <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                            <h4 className="font-semibold text-green-800">{selectedDeviceForAction.name}</h4>
+                            <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-green-700">
+                              <div>Mã: {selectedDeviceForAction.code}</div>
+                              <div>Serial: {selectedDeviceForAction.serial}</div>
+                              <div>Hãng: {selectedDeviceForAction.manufacturer}</div>
+                            </div>
+                          </div>
+
+                          {/* Execution Date */}
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Ngày thực hiện</label>
+                            <input
+                              type="date"
+                              value={resultForm.executionDate}
+                              onChange={(e) => setResultForm({ ...resultForm, executionDate: e.target.value })}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                            />
+                          </div>
+
+                          {/* Content */}
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung thực hiện</label>
+                            <textarea
+                              value={resultForm.content}
+                              onChange={(e) => setResultForm({ ...resultForm, content: e.target.value })}
+                              rows={2}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                              placeholder="Nội dung hiệu chuẩn đã thực hiện..."
+                            />
+                          </div>
+
+                          {/* Unit and Result */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Đơn vị thực hiện</label>
+                              <input
+                                type="text"
+                                value={resultForm.unit}
+                                onChange={(e) => setResultForm({ ...resultForm, unit: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                placeholder="Tên đơn vị..."
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Kết quả hiệu chuẩn</label>
+                              <input
+                                type="text"
+                                value={resultForm.result}
+                                onChange={(e) => setResultForm({ ...resultForm, result: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                placeholder="Kết quả..."
+                              />
+                            </div>
+                          </div>
+
+                          {/* Standard */}
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Tiêu chuẩn</label>
+                            <input
+                              type="text"
+                              value={resultForm.standard}
+                              onChange={(e) => setResultForm({ ...resultForm, standard: e.target.value })}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                              placeholder="Tiêu chuẩn áp dụng..."
+                            />
+                          </div>
+
+                          {/* Conclusion */}
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Kết luận</label>
+                            <div className="flex gap-4">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="conclusion"
+                                  checked={resultForm.conclusion === "Đạt"}
+                                  onChange={() => setResultForm({ ...resultForm, conclusion: "Đạt" })}
+                                  className="w-4 h-4 text-green-600"
+                                />
+                                <span className="text-sm text-slate-700">Đạt</span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="conclusion"
+                                  checked={resultForm.conclusion === "Không đạt"}
+                                  onChange={() => setResultForm({ ...resultForm, conclusion: "Không đạt" })}
+                                  className="w-4 h-4 text-red-600"
+                                />
+                                <span className="text-sm text-slate-700">Không đạt</span>
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* Attachments */}
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Đính kèm file hiệu chuẩn có dấu</label>
+                            <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 text-center">
+                              <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+                              <p className="text-sm text-slate-500">Kéo thả file hoặc click để tải lên</p>
+                              <p className="text-xs text-slate-400 mt-1">File PDF có dấu đỏ</p>
+                            </div>
+                          </div>
+
+                          {/* Report Incident Button (show when not passed) */}
+                          {resultForm.conclusion === "Không đạt" && (
+                            <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                              <p className="text-sm text-red-700 mb-3">Thiết bị không đạt, bạn có muốn báo cáo sự cố không?</p>
+                              <button
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2"
+                              >
+                                <AlertTriangle size={18} /> Báo cáo sự cố
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                            <button
+                              onClick={() => setShowResultForm(false)}
+                              className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newResult = {
+                                  id: `result-${Date.now()}`,
+                                  deviceId: selectedDeviceForAction.id,
+                                  deviceName: selectedDeviceForAction.name,
+                                  deviceCode: selectedDeviceForAction.code,
+                                  serialNumber: selectedDeviceForAction.serial,
+                                  manufacturer: selectedDeviceForAction.manufacturer,
+                                  executionDate: resultForm.executionDate,
+                                  content: resultForm.content,
+                                  unit: resultForm.unit,
+                                  result: resultForm.result,
+                                  standard: resultForm.standard,
+                                  conclusion: resultForm.conclusion,
+                                  attachments: resultForm.attachments,
+                                };
+                                setCalibrationResults([...calibrationResults, newResult]);
+                                success("Thành công", "Đã lưu kết quả hiệu chuẩn");
+                                setShowResultForm(false);
+                              }}
+                              disabled={!resultForm.executionDate || !resultForm.conclusion}
+                              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
+                            >
+                              Hoàn tất
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
