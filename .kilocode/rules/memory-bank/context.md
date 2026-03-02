@@ -25,6 +25,7 @@ LabHouse is a laboratory equipment management system for medical laboratories wi
 - [x] **Rebuild HistoryTab with advanced filters** - Time range (today/yesterday/week/month/custom), Device filter, User filter, Module filter, Column filters, Pagination (20 items)
 - [x] **Completed DeviceProfileTab workflows for Điều chuyển / Thanh lý / Đào tạo** - Create draft/send approval, list tracking by status, edit/view/export PDF & Excel actions with mock data
 - [x] **Fixed incident report action buttons inside DeviceProfileTab** - Edit/View/Attachment/PDF/Excel now wired with real handlers and supplier work order save logic
+- [x] **Rebuilt Tiếp nhận workflow in DeviceProfileTab** - One acceptance modal with 2 main tabs (Tiếp nhận mới / Tiếp nhận trở lại), BM.05 survey flow, BM.07 transport records, attachment upload/view/download/remove, configurable list columns/filter/export, and complete-status gating
 
 ## Current Structure
 
@@ -45,6 +46,7 @@ LabHouse is a laboratory equipment management system for medical laboratories wi
 | 2026-03-01 | Built Tab Hồ sơ thiết bị (DeviceProfileTab) with thumbnail/table views |
 | 2026-03-02 | **Integrated Incident Report & Calibration modals into DeviceProfileTab** |
 | 2026-03-02 | **Added DeviceProfileTab transfer/liquidation/training workflows + fixed incident action buttons in report list** |
+| 2026-03-02 | **Rebuilt DeviceProfileTab acceptance modal to tab-first flow (new/return) with BM.05/BM.07 + attachment actions + list/filter/export** |
 
 ## Current Focus
 
@@ -113,3 +115,4 @@ export async function GET() {
 | 2026-03-02 | **Built AdminTab with full User/Profile/Department/Position/Supplier/HistoryConfig** - User management with CRUD, export CSV, column config, filters; Profile management with permission categories (Quản lý chung, Thiết bị mới, Hồ sơ thiết bị, Quản trị, Lịch sử); Branch/Department management; Position management; Country management; Supplier management; History auto-delete config |
 | 2026-03-02 | **Rebuilt HistoryTab with advanced filters** - Time range (hôm nay/hôm qua/1 tuần/1 tháng/tùy chọn), multi-select Device filter, multi-select User filter, multi-select Module filter (Thiết bị mới/Hồ sơ thiết bị/Quản trị/Quản lý chung), column filters, pagination (20 items per page) |
 | 2026-03-02 | **Enhanced DeviceProfileTab** - Incident actions in report list are fully wired; added Điều chuyển, Thanh lý, Đào tạo modals with draft/approval tracking, status management, and per-record PDF/Excel export using mock data |
+| 2026-03-02 | **Enhanced DeviceProfileTab Acceptance flow** - Unified Tiếp nhận modal now opens tab-first UX (Tiếp nhận mới / Tiếp nhận trở lại), includes checklist state tracking, BM.05 survey actions (draft/send/approve), return acceptance form lifecycle, BM.07 transport list filters/export, and end-to-end attachment interactions |
