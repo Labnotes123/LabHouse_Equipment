@@ -180,12 +180,12 @@ export default function DeviceProfileTab() {
   const [selectedDeviceForAction, setSelectedDeviceForAction] = useState<Device | null>(null);
   const [deviceCounter, setDeviceCounter] = useState(0);
   
-  // Incident Report states
+  // Incident Report Modal States
   const [incidentReports, setIncidentReports] = useState<IncidentReport[]>(mockIncidents);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [showSupplierContact, setShowSupplierContact] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
-  const [incidentTab, setIncidentTab] = useState<"reports" | "work-orders">("reports");
+  const [incidentModalTab, setIncidentModalTab] = useState<"reports" | "work-orders">("reports");
   const [incidentCounter, setIncidentCounter] = useState(2); // Current max number for PSC-XXXX-XXX
   const [workOrderCounter, setWorkOrderCounter] = useState(1); // Current max number for WO-XXX
   
@@ -263,6 +263,10 @@ export default function DeviceProfileTab() {
     requestedBy: "",
   });
   const [calibrationCounter, setCalibrationCounter] = useState(1);
+  const [calibrationModalTab, setCalibrationModalTab] = useState<"request" | "schedule" | "result">("request");
+  const [calibrationRequests, setCalibrationRequests] = useState<any[]>([]);
+  const [calibrationSearchTerm, setCalibrationSearchTerm] = useState("");
+  const [calibrationFilterStatus, setCalibrationFilterStatus] = useState<string>("all");
   
   // Device registration form
   const [form, setForm] = useState<Partial<Device>>({
@@ -2474,8 +2478,39 @@ export default function DeviceProfileTab() {
                 <X size={20} />
               </button>
             </div>
+
+            {/* Tabs */}
+            <div className="border-b border-slate-200 px-6">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setIncidentModalTab("reports")}
+                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    incidentModalTab === "reports"
+                      ? "border-red-500 text-red-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <AlertTriangle className="w-4 h-4 inline-block mr-2" />
+                  Báo cáo sự cố
+                </button>
+                <button
+                  onClick={() => setIncidentModalTab("work-orders")}
+                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    incidentModalTab === "work-orders"
+                      ? "border-red-500 text-red-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <ClipboardList className="w-4 h-4 inline-block mr-2" />
+                  Lệnh công việc
+                </button>
+              </div>
+            </div>
             
             <div className="p-6 space-y-6">
+              {/* Tab Content: Báo cáo sự cố */}
+              {incidentModalTab === "reports" && (
+                <>
               {/* Header Info - Auto-filled from device */}
               <div className="bg-red-50 rounded-xl p-4 border border-red-100">
                 <h3 className="font-semibold text-red-800 text-lg">{selectedDeviceForAction.name}</h3>
@@ -2799,6 +2834,64 @@ export default function DeviceProfileTab() {
                   )}
                 </div>
               </div>
+            </>
+              )}
+
+              {/* Tab Content: Lệnh công việc */}
+              {incidentModalTab === "work-orders" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-slate-800">Danh sách lệnh công việc</h3>
+                    <button
+                      onClick={() => {
+                        // Add new work order logic
+                      }}
+                      className="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 flex items-center gap-1"
+                    >
+                      <Plus size={16} /> Thêm lệnh
+                    </button>
+                  </div>
+                  
+                  {/* Work Orders List */}
+                  {incidentReports
+                    .filter(i => i.deviceId === selectedDeviceForAction.id)
+                    .flatMap(i => i.workOrders || [])
+                    .length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">
+                      <ClipboardList className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                      <p>Chưa có lệnh công việc nào</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {incidentReports
+                        .filter(i => i.deviceId === selectedDeviceForAction.id)
+                        .flatMap(i => i.workOrders || [])
+                        .map(wo => (
+                          <div key={wo.id} className="bg-white border border-slate-200 rounded-lg p-4">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="font-medium text-slate-800">{wo.workOrderCode}</p>
+                                <p className="text-sm text-slate-600">{wo.actionDescription}</p>
+                                <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
+                                  <span>Người liên hệ: {wo.contactPerson}</span>
+                                  <span>Phương thức: {wo.contactMethod}</span>
+                                  <span>Ngày bắt đầu: {wo.startDateTime}</span>
+                                </div>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                wo.status === "Đóng" ? "bg-green-100 text-green-700" :
+                                wo.status === "Mở" ? "bg-amber-100 text-amber-700" :
+                                "bg-slate-100 text-slate-700"
+                              }`}>
+                                {wo.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2819,8 +2912,50 @@ export default function DeviceProfileTab() {
                 <X size={20} />
               </button>
             </div>
+
+            {/* Tabs */}
+            <div className="border-b border-slate-200 px-6">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setCalibrationModalTab("request")}
+                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    calibrationModalTab === "request"
+                      ? "border-purple-500 text-purple-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <FileText className="w-4 h-4 inline-block mr-2" />
+                  Yêu cầu hiệu chuẩn
+                </button>
+                <button
+                  onClick={() => setCalibrationModalTab("schedule")}
+                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    calibrationModalTab === "schedule"
+                      ? "border-purple-500 text-purple-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 inline-block mr-2" />
+                  Lịch hiệu chuẩn
+                </button>
+                <button
+                  onClick={() => setCalibrationModalTab("result")}
+                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    calibrationModalTab === "result"
+                      ? "border-purple-500 text-purple-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4 inline-block mr-2" />
+                  Kết quả hiệu chuẩn
+                </button>
+              </div>
+            </div>
             
             <div className="p-6 space-y-6">
+              {/* Tab Content: Yêu cầu hiệu chuẩn */}
+              {calibrationModalTab === "request" && (
+                <>
               {/* Device Info */}
               <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
                 <h3 className="font-semibold text-purple-800 text-lg">{selectedDeviceForAction.name}</h3>
@@ -2989,6 +3124,40 @@ export default function DeviceProfileTab() {
                   </button>
                 </div>
               </div>
+            </>
+              )}
+
+              {/* Tab Content: Lịch hiệu chuẩn */}
+              {calibrationModalTab === "schedule" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-slate-800">Lịch hiệu chuẩn</h3>
+                  </div>
+                  
+                  {/* Calibration Schedule List - showing schedules for this device */}
+                  <div className="text-center py-8 text-slate-500">
+                    <Calendar className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                    <p>Chưa có lịch hiệu chuẩn nào</p>
+                    <p className="text-sm text-slate-400 mt-1">Lịch hiệu chuẩn sẽ hiển thị sau khi yêu cầu được phê duyệt</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab Content: Kết quả hiệu chuẩn */}
+              {calibrationModalTab === "result" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-slate-800">Kết quả hiệu chuẩn</h3>
+                  </div>
+                  
+                  {/* Calibration Results List */}
+                  <div className="text-center py-8 text-slate-500">
+                    <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                    <p>Chưa có kết quả hiệu chuẩn nào</p>
+                    <p className="text-sm text-slate-400 mt-1">Kết quả hiệu chuẩn sẽ hiển thị sau khi hoàn thành</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
