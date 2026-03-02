@@ -234,6 +234,36 @@ export default function DeviceProfileTab() {
   const [incidentSearchTerm, setIncidentSearchTerm] = useState("");
   const [incidentFilterStatus, setIncidentFilterStatus] = useState<string>("all");
   
+  // Calibration form state
+  const [calibrationForm, setCalibrationForm] = useState<{
+    deviceId: string;
+    deviceName: string;
+    deviceCode: string;
+    serialNumber: string;
+    quantity: number;
+    expectedDate: string;
+    content: string;
+    notes: string;
+    approver: string;
+    relatedUsers: string[];
+    status: "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Hoàn thành";
+    requestedBy: string;
+  }>({
+    deviceId: "",
+    deviceName: "",
+    deviceCode: "",
+    serialNumber: "",
+    quantity: 1,
+    expectedDate: "",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189, Sở ban ngành.",
+    notes: "",
+    approver: "",
+    relatedUsers: [],
+    status: "Nháp",
+    requestedBy: "",
+  });
+  const [calibrationCounter, setCalibrationCounter] = useState(1);
+  
   // Device registration form
   const [form, setForm] = useState<Partial<Device>>({
     code: "",
@@ -2423,6 +2453,541 @@ export default function DeviceProfileTab() {
                   <Save size={18} />
                   Lưu thiết bị
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================
+      /* INCIDENT REPORT MODAL - BM.11.QL.TC.018 */
+      /* ============================================ */}
+      {activeModal === "incident" && selectedDeviceForAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Phiếu báo cáo sự cố thiết bị</h2>
+                <p className="text-sm text-slate-500">BM.11.QL.TC.018</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Header Info - Auto-filled from device */}
+              <div className="bg-red-50 rounded-xl p-4 border border-red-100">
+                <h3 className="font-semibold text-red-800 text-lg">{selectedDeviceForAction.name}</h3>
+                <p className="text-sm text-red-600">{selectedDeviceForAction.code} - {selectedDeviceForAction.model} - Serial: {selectedDeviceForAction.serial}</p>
+                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  <div><span className="text-red-500">Bộ phận:</span> <span className="font-medium">{selectedDeviceForAction.specialty}</span></div>
+                  <div><span className="text-red-500">Nhà cung ứng:</span> <span className="font-medium">{selectedDeviceForAction.distributor || '—'}</span></div>
+                </div>
+              </div>
+
+              {/* Incident Code */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Mã phiếu báo cáo sự cố</label>
+                  <input
+                    type="text"
+                    value={`PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`}
+                    readOnly
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Ngày giờ phát hiện sự cố <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={incidentForm.incidentDateTime || ''}
+                    onChange={(e) => setIncidentForm({ ...incidentForm, incidentDateTime: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-red-500"
+                  />
+                </div>
+              </div>
+
+              {/* Discovered By */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Người phát hiện sự cố <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={incidentForm.discoveredBy || user?.fullName || ''}
+                    onChange={(e) => setIncidentForm({ ...incidentForm, discoveredBy: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-red-500"
+                    placeholder="Nhập tên người phát hiện"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Chức vụ</label>
+                  <input
+                    type="text"
+                    value={incidentForm.discoveredByRole || user?.role || ''}
+                    onChange={(e) => setIncidentForm({ ...incidentForm, discoveredByRole: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-red-500"
+                    placeholder="Nhập chức vụ"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Mô tả chi tiết sự cố <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={incidentForm.description || ''}
+                  onChange={(e) => setIncidentForm({ ...incidentForm, description: e.target.value })}
+                  rows={4}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-red-500 resize-none"
+                  placeholder="Mô tả chi tiết sự cố..."
+                />
+              </div>
+
+              {/* Immediate Action */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Hành động xử trí tức thì <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={incidentForm.immediateAction || ''}
+                  onChange={(e) => setIncidentForm({ ...incidentForm, immediateAction: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-red-500 resize-none"
+                  placeholder="Hành động xử trí tức thì..."
+                />
+              </div>
+
+              {/* Conclusion Section */}
+              <div className="border-t border-slate-200 pt-4">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Kết luận</label>
+                <div className="flex gap-4 mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="conclusion"
+                      checked={incidentForm.conclusion === "đã khắc phục"}
+                      onChange={() => setIncidentForm({ ...incidentForm, conclusion: "đã khắc phục" })}
+                      className="w-4 h-4 text-green-600"
+                    />
+                    <span className="text-sm text-slate-700">Sự cố đã được khắc phục</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="conclusion"
+                      checked={incidentForm.conclusion === "chưa khắc phục"}
+                      onChange={() => setIncidentForm({ ...incidentForm, conclusion: "chưa khắc phục" })}
+                      className="w-4 h-4 text-red-600"
+                    />
+                    <span className="text-sm text-slate-700">Sự cố chưa được khắc phục</span>
+                  </label>
+                </div>
+
+                {/* Resolution Options */}
+                {incidentForm.conclusion === "đã khắc phục" && (
+                  <div className="bg-green-50 rounded-xl p-4 border border-green-200 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-green-800 mb-2">Người khắc phục</label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="resolvedByType"
+                            checked={incidentForm.resolvedByType === "nhân viên lab"}
+                            onChange={() => setIncidentForm({ ...incidentForm, resolvedByType: "nhân viên lab", linkedWorkOrderCode: undefined })}
+                            className="w-4 h-4 text-green-600"
+                          />
+                          <span className="text-sm text-slate-700">Nhân viên trong lab</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="resolvedByType"
+                            checked={incidentForm.resolvedByType === "nhà sản xuất"}
+                            onChange={() => setIncidentForm({ ...incidentForm, resolvedByType: "nhà sản xuất" })}
+                            className="w-4 h-4 text-green-600"
+                          />
+                          <span className="text-sm text-slate-700">Nhà sản xuất/NCC</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {incidentForm.resolvedByType === "nhân viên lab" && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Chọn người khắc phục (dùng tag để chọn nhiều)</label>
+                        <div className="flex flex-wrap gap-2">
+                          {MOCK_USERS_LIST.filter(u => ["Kỹ thuật viên", "Quản lý trang thiết bị", "Trưởng phòng"].includes(u.role)).map(staff => (
+                            <button
+                              key={staff.id}
+                              type="button"
+                              onClick={() => {
+                                const current = incidentForm.resolvedBy || "";
+                                const newList = current.includes(staff.fullName) 
+                                  ? current.replace(staff.fullName, "").trim()
+                                  : current ? `${current}, ${staff.fullName}` : staff.fullName;
+                                setIncidentForm({ ...incidentForm, resolvedBy: newList });
+                              }}
+                              className={`px-3 py-1 rounded-full text-sm transition-all ${
+                                (incidentForm.resolvedBy || "").includes(staff.fullName)
+                                  ? "bg-green-500 text-white"
+                                  : "bg-white border border-slate-300 text-slate-700 hover:bg-green-50"
+                              }`}
+                            >
+                              {staff.fullName}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {incidentForm.resolvedByType === "nhà sản xuất" && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Mã công việc NCC</label>
+                        <select
+                          value={incidentForm.linkedWorkOrderCode || ""}
+                          onChange={(e) => setIncidentForm({ ...incidentForm, linkedWorkOrderCode: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                        >
+                          <option value="">Chọn mã công việc</option>
+                          {incidentReports
+                            .filter(i => i.deviceId === selectedDeviceForAction.id && i.workOrders && i.workOrders.length > 0)
+                            .flatMap(i => i.workOrders || [])
+                            .map(wo => (
+                              <option key={wo.id} value={wo.workOrderCode}>{wo.workOrderCode}</option>
+                            ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Completion DateTime for resolved incidents */}
+              {incidentForm.conclusion === "đã khắc phục" && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian hoàn thành</label>
+                  <input
+                    type="datetime-local"
+                    value={incidentForm.completionDateTime || ''}
+                    onChange={(e) => setIncidentForm({ ...incidentForm, completionDateTime: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                  />
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-between pt-4 border-t border-slate-200">
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                >
+                  Hủy
+                </button>
+                <div className="flex gap-2">
+                  {incidentForm.conclusion === "chưa khắc phục" && (
+                    <button
+                      onClick={() => {
+                        const newIncident: IncidentReport = {
+                          id: `incident-${Date.now()}`,
+                          reportCode: `PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`,
+                          deviceId: selectedDeviceForAction.id,
+                          deviceName: selectedDeviceForAction.name,
+                          deviceCode: selectedDeviceForAction.code,
+                          specialty: selectedDeviceForAction.specialty,
+                          incidentDateTime: incidentForm.incidentDateTime || new Date().toISOString(),
+                          discoveredBy: incidentForm.discoveredBy || user?.fullName || "",
+                          discoveredByRole: incidentForm.discoveredByRole || user?.role || "",
+                          supplier: selectedDeviceForAction.distributor || "",
+                          description: incidentForm.description || "",
+                          immediateAction: incidentForm.immediateAction || "",
+                          supplierAction: "",
+                          affectsPatientResult: false,
+                          affectedPatientSid: "",
+                          howAffected: "",
+                          requiresDeviceStop: false,
+                          stopFrom: "",
+                          stopTo: "",
+                          hasProposal: false,
+                          proposal: "",
+                          reportedBy: user?.fullName || "",
+                          deviceManager: "",
+                          relatedUsers: [],
+                          status: "Đang khắc phục",
+                          workOrders: [],
+                          createdAt: new Date().toISOString(),
+                          conclusion: "chưa khắc phục",
+                          resolvedBy: "",
+                          resolvedByType: undefined,
+                          linkedWorkOrderCode: undefined,
+                          completionDateTime: undefined,
+                        };
+                        setIncidentReports([...incidentReports, newIncident]);
+                        setIncidentCounter(incidentCounter + 1);
+                        setIncidentForm({
+                          deviceId: "", deviceName: "", deviceCode: "", specialty: "",
+                          incidentDateTime: "", discoveredBy: "", discoveredByRole: "", supplier: "",
+                          description: "", immediateAction: "", supplierAction: "", affectsPatientResult: false,
+                          affectedPatientSid: "", howAffected: "", requiresDeviceStop: false,
+                          stopFrom: "", stopTo: "", hasProposal: false, proposal: "",
+                          reportedBy: "", deviceManager: "", relatedUsers: [], status: "Nháp", workOrders: [],
+                        });
+                        success("Thành công", "Đã lưu báo cáo sự cố với trạng thái Đang khắc phục");
+                        setActiveModal(null);
+                      }}
+                      className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
+                    >
+                      <Save size={18} /> Lưu & Đóng
+                    </button>
+                  )}
+                  {incidentForm.conclusion === "đã khắc phục" && (
+                    <button
+                      onClick={() => {
+                        const newIncident: IncidentReport = {
+                          id: `incident-${Date.now()}`,
+                          reportCode: `PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`,
+                          deviceId: selectedDeviceForAction.id,
+                          deviceName: selectedDeviceForAction.name,
+                          deviceCode: selectedDeviceForAction.code,
+                          specialty: selectedDeviceForAction.specialty,
+                          incidentDateTime: incidentForm.incidentDateTime || new Date().toISOString(),
+                          discoveredBy: incidentForm.discoveredBy || user?.fullName || "",
+                          discoveredByRole: incidentForm.discoveredByRole || user?.role || "",
+                          supplier: selectedDeviceForAction.distributor || "",
+                          description: incidentForm.description || "",
+                          immediateAction: incidentForm.immediateAction || "",
+                          supplierAction: incidentForm.supplierAction || "",
+                          affectsPatientResult: incidentForm.affectsPatientResult || false,
+                          affectedPatientSid: incidentForm.affectedPatientSid || "",
+                          howAffected: incidentForm.howAffected || "",
+                          requiresDeviceStop: incidentForm.requiresDeviceStop || false,
+                          stopFrom: incidentForm.stopFrom || "",
+                          stopTo: incidentForm.stopTo || "",
+                          hasProposal: incidentForm.hasProposal || false,
+                          proposal: incidentForm.proposal || "",
+                          reportedBy: user?.fullName || "",
+                          deviceManager: "",
+                          relatedUsers: [],
+                          status: "Hoàn thành",
+                          workOrders: [],
+                          createdAt: new Date().toISOString(),
+                          conclusion: "đã khắc phục",
+                          resolvedBy: incidentForm.resolvedBy || "",
+                          resolvedByType: incidentForm.resolvedByType as "nhân viên lab" | "nhà sản xuất" | undefined,
+                          linkedWorkOrderCode: incidentForm.linkedWorkOrderCode,
+                          completionDateTime: incidentForm.completionDateTime,
+                        };
+                        setIncidentReports([...incidentReports, newIncident]);
+                        setIncidentCounter(incidentCounter + 1);
+                        // If device was paused, resume it
+                        if (selectedDeviceForAction.status === "Tạm dừng") {
+                          updateDeviceStatus(selectedDeviceForAction.id, "Đang vận hành");
+                        }
+                        success("Thành công", "Đã hoàn thành báo cáo sự cố");
+                        setActiveModal(null);
+                      }}
+                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2"
+                    >
+                      <CheckCircle2 size={18} /> Hoàn thành
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================
+      /* CALIBRATION MODAL */
+      /* ============================================ */}
+      {activeModal === "calibration" && selectedDeviceForAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Yêu cầu hiệu chuẩn thiết bị</h2>
+                <p className="text-sm text-slate-500">PHC-{new Date().getFullYear()}-{String(calibrationCounter || 1).padStart(3, '0')}</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Device Info */}
+              <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                <h3 className="font-semibold text-purple-800 text-lg">{selectedDeviceForAction.name}</h3>
+                <p className="text-sm text-purple-600">{selectedDeviceForAction.code} - {selectedDeviceForAction.model} - Serial: {selectedDeviceForAction.serial}</p>
+                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  <div><span className="text-purple-500">Bộ phận:</span> <span className="font-medium">{selectedDeviceForAction.specialty}</span></div>
+                  <div><span className="text-purple-500">Nhà sản xuất:</span> <span className="font-medium">{selectedDeviceForAction.manufacturer}</span></div>
+                  <div><span className="text-purple-500">Tần suất HC:</span> <span className="font-medium">{selectedDeviceForAction.calibrationFrequency || '—'}</span></div>
+                </div>
+              </div>
+
+              {/* Calibration Request Form */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Mã yêu cầu hiệu chuẩn</label>
+                  <input
+                    type="text"
+                    value={`PHC-${new Date().getFullYear()}-${String(calibrationCounter || 1).padStart(3, '0')}`}
+                    readOnly
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Ngày dự kiến hiệu chuẩn <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={calibrationForm.expectedDate || ''}
+                    onChange={(e) => setCalibrationForm({ ...calibrationForm, expectedDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Người đề xuất</label>
+                  <input
+                    type="text"
+                    value={calibrationForm.requestedBy || user?.fullName || ''}
+                    onChange={(e) => setCalibrationForm({ ...calibrationForm, requestedBy: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Số lượng</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={calibrationForm.quantity || 1}
+                    onChange={(e) => setCalibrationForm({ ...calibrationForm, quantity: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung đề xuất</label>
+                <textarea
+                  value={calibrationForm.content || "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189, Sở ban ngành."}
+                  onChange={(e) => setCalibrationForm({ ...calibrationForm, content: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Ghi chú</label>
+                <textarea
+                  value={calibrationForm.notes || ''}
+                  onChange={(e) => setCalibrationForm({ ...calibrationForm, notes: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                  placeholder="Ghi chú thêm..."
+                />
+              </div>
+
+              {/* Approver Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Người phê duyệt <span className="text-red-500">*</span></label>
+                <div className="flex flex-wrap gap-2">
+                  {MOCK_USERS_LIST.filter(u => ["Quản lý trang thiết bị", "Trưởng phòng xét nghiệm", "Admin"].includes(u.role)).map(approver => (
+                    <button
+                      key={approver.id}
+                      type="button"
+                      onClick={() => setCalibrationForm({ ...calibrationForm, approver: approver.fullName })}
+                      className={`px-3 py-1 rounded-full text-sm transition-all ${
+                        calibrationForm.approver === approver.fullName
+                          ? "bg-purple-500 text-white"
+                          : "bg-white border border-slate-300 text-slate-700 hover:bg-purple-50"
+                      }`}
+                    >
+                      {approver.fullName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Related Users */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Người liên quan</label>
+                <div className="flex flex-wrap gap-2">
+                  {MOCK_USERS_LIST.map(u => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => {
+                        const current = calibrationForm.relatedUsers || [];
+                        const newList = current.includes(u.fullName) 
+                          ? current.filter(name => name !== u.fullName)
+                          : [...current, u.fullName];
+                        setCalibrationForm({ ...calibrationForm, relatedUsers: newList });
+                      }}
+                      className={`px-3 py-1 rounded-full text-sm transition-all ${
+                        (calibrationForm.relatedUsers || []).includes(u.fullName)
+                          ? "bg-blue-500 text-white"
+                          : "bg-white border border-slate-300 text-slate-700 hover:bg-blue-50"
+                      }`}
+                    >
+                      {u.fullName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-between pt-4 border-t border-slate-200">
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                >
+                  Hủy
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      // Save as draft
+                      success("Thành công", "Đã lưu bản nháp yêu cầu hiệu chuẩn");
+                      setActiveModal(null);
+                    }}
+                    className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+                  >
+                    <Save size={18} /> Lưu bản nháp
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!calibrationForm.expectedDate || !calibrationForm.approver) {
+                        error("Lỗi", "Vui lòng chọn ngày dự kiến và người phê duyệt");
+                        return;
+                      }
+                      // Create calibration request
+                      success("Thành công", `Đã gửi yêu cầu hiệu chuẩn PHC-${new Date().getFullYear()}-${String(calibrationCounter || 1).padStart(3, '0')}`);
+                      setCalibrationCounter((calibrationCounter || 1) + 1);
+                      setCalibrationForm({
+                        deviceId: "", deviceName: "", deviceCode: "", serialNumber: "",
+                        quantity: 1, expectedDate: "", content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189, Sở ban ngành.",
+                        notes: "", approver: "", relatedUsers: [], status: "Nháp", requestedBy: "",
+                      });
+                      setActiveModal(null);
+                    }}
+                    disabled={!calibrationForm.expectedDate || !calibrationForm.approver}
+                    className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Send size={18} /> Hoàn tất & Gửi phê duyệt
+                  </button>
+                </div>
               </div>
             </div>
           </div>
