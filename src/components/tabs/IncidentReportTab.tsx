@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   AlertTriangle,
   Plus,
@@ -31,6 +31,12 @@ import {
   Check,
   Square,
   User,
+  PhoneCall,
+  FileCheck,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Bell,
 } from "lucide-react";
 import {
   IncidentReport,
@@ -44,23 +50,28 @@ import {
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Generate incident report code
+// Generate incident report code: PSC-năm-SNN
 function generateIncidentCode(year: number, counter: number): string {
   return `PSC-${year}-${String(counter).padStart(3, "0")}`;
 }
 
-// Generate work order code
+// Generate work order code: PSC-2024-001-WO-001
 function generateWorkOrderCode(incidentCode: string, counter: number): string {
   return `${incidentCode}-WO-${String(counter).padStart(3, "0")}`;
 }
 
 const contactMethods = [
-  { value: "zalo", label: "Zalo" },
-  { value: "điện thoại", label: "Điện thoại" },
-  { value: "email", label: "Email" },
-  { value: "tin nhắn", label: "Tin nhắn" },
-  { value: "trao đổi trực tiếp", label: "Trao đổi trực tiếp" },
+  { value: "zalo", label: "Zalo", icon: MessageSquare },
+  { value: "điện thoại", label: "Điện thoại", icon: PhoneCall },
+  { value: "email", label: "Email", icon: Mail },
+  { value: "tin nhắn", label: "Tin nhắn", icon: Phone },
+  { value: "trao đổi trực tiếp", label: "Trao đổi trực tiếp", icon: Users },
 ];
+
+// Staff list for lab employees
+const LAB_STAFF = MOCK_USERS_LIST.filter(u => 
+  ["Kỹ thuật viên", "Quản lý trang thiết bị", "Trưởng phòng"].includes(u.role)
+);
 
 export default function IncidentReportTab() {
   const { user } = useAuth();
@@ -71,10 +82,11 @@ export default function IncidentReportTab() {
   const [devices] = useState<Device[]>(mockDevices);
   const [showForm, setShowForm] = useState(false);
   const [showSupplierContact, setShowSupplierContact] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
   const [activeTab, setActiveTab] = useState<"reports" | "work-orders">("reports");
   const [incidentCounter, setIncidentCounter] = useState(2);
-  const [workOrderCounter, setWorkOrderCounter] = useState(1);
+  const [workOrderCounters, setWorkOrderCounters] = useState<Record<string, number>>({});
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -106,6 +118,10 @@ export default function IncidentReportTab() {
     relatedUsers: [],
     status: "Nháp",
     workOrders: [],
+    conclusion: undefined,
+    resolvedBy: undefined,
+    resolvedByType: undefined,
+    linkedWorkOrderCode: undefined,
   });
 
   // Work order form state
@@ -123,13 +139,13 @@ export default function IncidentReportTab() {
 
   // Filtered incidents
   const filteredIncidents = useMemo(() => {
-    const currentYear = new Date().getFullYear();
     return incidentReports.filter((incident) => {
       const matchesSearch =
         !searchTerm ||
         incident.reportCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
         incident.deviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        incident.discoveredBy.toLowerCase().includes(searchTerm.toLowerCase());
+        incident.discoveredBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        incident.reportedBy?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
         filterStatus === "all" || incident.status === filterStatus;
@@ -140,7 +156,7 @@ export default function IncidentReportTab() {
 
   // All work orders from all incidents
   const allWorkOrders = useMemo(() => {
-    const orders: any[] = [];
+    const orders: (WorkOrder & { incidentReportCode: string })[] = [];
     incidentReports.forEach((incident) => {
       incident.workOrders?.forEach((wo) => {
         orders.push({ ...wo, incidentReportCode: incident.reportCode });
@@ -155,7 +171,8 @@ export default function IncidentReportTab() {
       const matchesSearch =
         !searchTerm ||
         wo.workOrderCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        wo.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
+        wo.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        wo.incidentReportCode.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
         filterStatus === "all" || wo.status === filterStatus;
@@ -193,7 +210,7 @@ export default function IncidentReportTab() {
     }
   };
 
-  // Handle create new incident
+  // Handle create new incident (draft)
   const handleCreateIncident = () => {
     if (!form.deviceId || !form.description || !form.immediateAction) {
       error("Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc");
@@ -234,6 +251,85 @@ export default function IncidentReportTab() {
 
     setIncidentReports([newIncident, ...incidentReports]);
     setIncidentCounter(newCounter);
+    setWorkOrderCounters({ ...workOrderCounters, [newIncident.reportCode]: 0 });
+    
+    setForm({
+      deviceId: "",
+      deviceName: "",
+      deviceCode: "",
+      specialty: "",
+      incidentDateTime: "",
+      discoveredBy: "",
+      discoveredByRole: "",
+      supplier: "",
+      description: "",
+      immediateAction: "",
+      supplierAction: "",
+      affectsPatientResult: false,
+      affectedPatientSid: "",
+      howAffected: "",
+      requiresDeviceStop: false,
+      stopFrom: "",
+      stopTo: "",
+      hasProposal: false,
+      proposal: "",
+      reportedBy: "",
+      deviceManager: "",
+      relatedUsers: [],
+      status: "Nháp",
+      workOrders: [],
+      conclusion: undefined,
+      resolvedBy: undefined,
+      resolvedByType: undefined,
+      linkedWorkOrderCode: undefined,
+    });
+    
+    success("Thành công", "Đã tạo phiếu báo cáo sự cố");
+  };
+
+  // Handle save as draft with "Đang khắc phục" status
+  const handleSaveAsInProgress = () => {
+    if (!form.deviceId || !form.description || !form.immediateAction) {
+      error("Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc");
+      return;
+    }
+
+    const currentYear = new Date().getFullYear();
+    const newCounter = incidentCounter + 1;
+    const newIncident: IncidentReport = {
+      id: `i${Date.now()}`,
+      reportCode: generateIncidentCode(currentYear, newCounter),
+      deviceId: form.deviceId || "",
+      deviceName: form.deviceName || "",
+      deviceCode: form.deviceCode || "",
+      specialty: form.specialty || "",
+      incidentDateTime: form.incidentDateTime || "",
+      discoveredBy: form.discoveredBy || "",
+      discoveredByRole: form.discoveredByRole || "",
+      supplier: form.supplier || "",
+      description: form.description || "",
+      immediateAction: form.immediateAction || "",
+      supplierAction: "",
+      affectsPatientResult: form.affectsPatientResult || false,
+      affectedPatientSid: form.affectedPatientSid,
+      howAffected: form.howAffected,
+      requiresDeviceStop: form.requiresDeviceStop || false,
+      stopFrom: form.stopFrom,
+      stopTo: form.stopTo,
+      hasProposal: form.hasProposal || false,
+      proposal: form.proposal,
+      reportedBy: form.reportedBy || "",
+      deviceManager: form.deviceManager || "",
+      relatedUsers: form.relatedUsers || [],
+      status: "Đang khắc phục",
+      conclusion: "chưa khắc phục",
+      createdAt: new Date().toISOString(),
+      workOrders: [],
+    };
+
+    setIncidentReports([newIncident, ...incidentReports]);
+    setIncidentCounter(newCounter);
+    setWorkOrderCounters({ ...workOrderCounters, [newIncident.reportCode]: 0 });
     setShowForm(false);
     setForm({
       deviceId: "",
@@ -260,19 +356,47 @@ export default function IncidentReportTab() {
       relatedUsers: [],
       status: "Nháp",
       workOrders: [],
+      conclusion: undefined,
+      resolvedBy: undefined,
+      resolvedByType: undefined,
+      linkedWorkOrderCode: undefined,
     });
-    success("Thành công", "Đã tạo phiếu báo cáo sự cố");
+    
+    success("Thành công", "Đã lưu phiếu báo cáo sự cố với trạng thái Đang khắc phục");
   };
 
-  // Handle send for approval
-  const handleSendForApproval = (incident: IncidentReport) => {
+  // Handle final submission (complete incident)
+  const handleFinalSubmit = (incident: IncidentReport) => {
+    // Validate required fields
+    if (!incident.reportedBy || !incident.deviceManager) {
+      error("Lỗi", "Vui lòng chọn người báo cáo và quản lý trang thiết bị");
+      return;
+    }
+
+    if (incident.affectsPatientResult && (!incident.affectedPatientSid || !incident.howAffected)) {
+      error("Lỗi", "Vui lòng nhập SID bệnh nhân và mô tả ảnh hưởng");
+      return;
+    }
+
+    if (incident.requiresDeviceStop && (!incident.stopFrom || !incident.stopTo)) {
+      error("Lỗi", "Vui lòng nhập thời gian dừng hoạt động");
+      return;
+    }
+
     setIncidentReports(
       incidentReports.map((i) =>
         i.id === incident.id
-          ? { ...i, status: "Chờ duyệt" as const, updatedAt: new Date().toISOString() }
+          ? { 
+              ...i, 
+              status: "Chờ duyệt" as const, 
+              updatedAt: new Date().toISOString() 
+            }
           : i
       )
     );
+    
+    // Send notification (simulated)
+    info("Thông báo", `Đã gửi thông báo tới ${incident.deviceManager} và ${incident.reportedBy}`);
     success("Thành công", "Đã gửi phiếu báo cáo sự cố để phê duyệt");
   };
 
@@ -283,7 +407,7 @@ export default function IncidentReportTab() {
         i.id === incident.id
           ? {
               ...i,
-              status: "Đã duyệt" as const,
+              status: "Hoàn thành" as const,
               approvedBy: user?.fullName || "",
               approvedDate: new Date().toLocaleString("vi-VN"),
               updatedAt: new Date().toISOString(),
@@ -301,7 +425,9 @@ export default function IncidentReportTab() {
       return;
     }
 
-    const newCounter = workOrderCounter + 1;
+    const currentWO = workOrderCounters[selectedIncident.reportCode] || 0;
+    const newCounter = currentWO + 1;
+    
     const newWorkOrder: WorkOrder = {
       id: `wo${Date.now()}`,
       workOrderCode: generateWorkOrderCode(selectedIncident.reportCode, newCounter),
@@ -326,7 +452,7 @@ export default function IncidentReportTab() {
       )
     );
 
-    setWorkOrderCounter(newCounter);
+    setWorkOrderCounters({ ...workOrderCounters, [selectedIncident.reportCode]: newCounter });
     setWorkOrderForm({
       contactPerson: "",
       contactMethod: "điện thoại",
@@ -341,14 +467,65 @@ export default function IncidentReportTab() {
     success("Thành công", "Đã thêm công việc mới");
   };
 
+  // Handle engineer signature on work order
+  const handleEngineerSign = (workOrderId: string) => {
+    if (!selectedIncident || !workOrderForm.engineerName || !workOrderForm.conclusion) {
+      error("Lỗi", "Vui lòng nhập tên người sửa chữa và kết luận");
+      return;
+    }
+
+    const updatedWorkOrders = selectedIncident.workOrders?.map((wo) => {
+      if (wo.id === workOrderId) {
+        return {
+          ...wo,
+          engineerName: workOrderForm.engineerName,
+          conclusion: workOrderForm.conclusion as "hoàn thành" | "xử trí 1 phần",
+          isCompleted: true,
+          status: workOrderForm.conclusion === "hoàn thành" ? "Đóng" as const : "Mở" as const,
+          endDateTime: workOrderForm.endDateTime || wo.startDateTime,
+        };
+      }
+      return wo;
+    });
+
+    setIncidentReports(
+      incidentReports.map((i) =>
+        i.id === selectedIncident.id
+          ? { ...i, workOrders: updatedWorkOrders || [] }
+          : i
+      )
+    );
+
+    // Update selected incident to reflect changes
+    const updated = incidentReports.find(i => i.id === selectedIncident.id);
+    if (updated) {
+      setSelectedIncident({ ...updated, workOrders: updatedWorkOrders || [] });
+    }
+
+    setWorkOrderForm({
+      ...workOrderForm,
+      engineerName: "",
+      conclusion: undefined,
+    });
+    success("Thành công", "Đã lưu xác nhận của kỹ sư");
+  };
+
   // Handle complete repair (hoàn thành sửa chữa)
   const handleCompleteRepair = (incident: IncidentReport) => {
     // Generate supplier action summary from work orders
     const supplierActions = incident.workOrders
-      ?.map((wo) => {
-        return `${wo.endDateTime || wo.startDateTime}, ${wo.engineerName || wo.contactPerson} - ${wo.actionDescription}. ${wo.conclusion === "hoàn thành" ? "Hoàn thành." : "Xử trí 1 phần."}`;
+      ?.filter(wo => wo.status === "Đóng")
+      .map((wo) => {
+        return `${wo.startDateTime}${wo.endDateTime ? ` - ${wo.endDateTime}` : ''}, ${wo.engineerName || wo.contactPerson} - ${wo.actionDescription}. ${wo.conclusion === "hoàn thành" ? "Hoàn thành." : "Xử trí 1 phần."}`;
       })
       .join(" ");
+
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear();
 
     setIncidentReports(
       incidentReports.map((i) =>
@@ -356,14 +533,16 @@ export default function IncidentReportTab() {
           ? {
               ...i,
               supplierAction: supplierActions || "",
-              status: "Hoàn thành" as const,
+              status: "Nháp" as const,
+              conclusion: "đã khắc phục",
+              completionDateTime: `${hours}:${minutes} ${day}/${month}/${year}`,
               updatedAt: new Date().toISOString(),
             }
           : i
       )
     );
     setShowSupplierContact(false);
-    success("Thành công", "Đã hoàn tất sửa chữa");
+    success("Thành công", "Đã hoàn tất sửa chữa. Vui lòng hoàn tất phiếu báo cáo sự cố.");
   };
 
   // Get status color
@@ -379,6 +558,8 @@ export default function IncidentReportTab() {
         return "bg-emerald-100 text-emerald-700";
       case "Từ chối":
         return "bg-red-100 text-red-700";
+      case "Đang khắc phục":
+        return "bg-orange-100 text-orange-700";
       default:
         return "bg-slate-100 text-slate-700";
     }
@@ -400,12 +581,12 @@ export default function IncidentReportTab() {
   const exportToExcel = () => {
     const data = activeTab === "reports" ? filteredIncidents : filteredWorkOrders;
     const headers = activeTab === "reports"
-      ? ["Mã phiếu", "Thiết bị", "Người phát hiện", "Thời gian phát hiện", "Trạng thái"]
-      : ["Mã công việc", "Người liên hệ", "Thời gian bắt đầu", "Thời gian kết thúc", "Trạng thái"];
+      ? ["Mã phiếu", "Thiết bị", "Người báo cáo", "Thời gian phát hiện", "Thời gian kết thúc", "Trạng thái"]
+      : ["Mã công việc", "Mã báo cáo", "Người thực hiện", "Thời gian bắt đầu", "Thời gian kết thúc", "Trạng thái"];
 
     const rows = activeTab === "reports"
-      ? data.map((i: any) => [i.reportCode, i.deviceName, i.discoveredBy, i.incidentDateTime, i.status])
-      : data.map((wo: any) => [wo.workOrderCode, wo.contactPerson, wo.startDateTime, wo.endDateTime || "—", wo.status]);
+      ? data.map((i: any) => [i.reportCode, i.deviceName, i.reportedBy || i.discoveredBy, i.incidentDateTime, i.completionDateTime || "—", i.status])
+      : data.map((wo: any) => [wo.workOrderCode, wo.incidentReportCode, wo.contactPerson, wo.startDateTime, wo.endDateTime || "—", wo.status]);
 
     const csvContent = [headers.join(","), ...rows.map((row: any) => row.map((cell: any) => `"${cell}"`).join(","))].join("\n");
 
@@ -416,6 +597,46 @@ export default function IncidentReportTab() {
     link.setAttribute("download", `Bao_cao_su_co_${new Date().toISOString().split("T")[0]}.csv`);
     link.click();
     success("Thành công", "Đã xuất file Excel");
+  };
+
+  // Open edit form
+  const handleEditIncident = (incident: IncidentReport) => {
+    setForm(incident);
+    setShowEditForm(true);
+  };
+
+  // Open supplier contact for an incident
+  const handleOpenSupplierContact = (incident: IncidentReport) => {
+    setSelectedIncident(incident);
+    setWorkOrderCounters({ ...workOrderCounters, [incident.reportCode]: incident.workOrders?.length || 0 });
+    setShowSupplierContact(true);
+  };
+
+  // Update form state when editing
+  const handleUpdateIncident = () => {
+    if (!selectedIncident) return;
+
+    setIncidentReports(
+      incidentReports.map((i) =>
+        i.id === selectedIncident.id
+          ? { ...i, ...form, updatedAt: new Date().toISOString() }
+          : i
+      )
+    );
+    setShowEditForm(false);
+    success("Thành công", "Đã cập nhật phiếu báo cáo sự cố");
+  };
+
+  // Auto-generate supplier action from linked work orders
+  const generateSupplierAction = (incident: IncidentReport) => {
+    if (!incident.workOrders || incident.workOrders.length === 0) return "";
+    
+    return incident.workOrders
+      .filter(wo => wo.status === "Đóng")
+      .map((wo) => {
+        return `Từ ${wo.startDateTime}${wo.endDateTime ? ` đến ${wo.endDateTime}` : ''}, Kỹ sư ${wo.engineerName || wo.contactPerson} - ${wo.actionDescription}. Kết luận: ${wo.conclusion === "hoàn thành" ? "Hoàn thành" : "Xử trí 1 phần"}.`;
+      })
+      .join("\n");
   };
 
   return (
@@ -462,7 +683,7 @@ export default function IncidentReportTab() {
           }`}
         >
           <Briefcase className="w-4 h-4 inline-block mr-2" />
-          Công việc NCC
+          Theo dõi công việc NCC
         </button>
       </div>
 
@@ -485,8 +706,8 @@ export default function IncidentReportTab() {
         >
           <option value="all">Tất cả trạng thái</option>
           <option value="Nháp">Nháp</option>
+          <option value="Đang khắc phục">Đang khắc phục</option>
           <option value="Chờ duyệt">Chờ duyệt</option>
-          <option value="Đã duyệt">Đã duyệt</option>
           <option value="Hoàn thành">Hoàn thành</option>
           <option value="Từ chối">Từ chối</option>
         </select>
@@ -506,9 +727,9 @@ export default function IncidentReportTab() {
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mã phiếu</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thiết bị</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Người phát hiện</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Người báo cáo</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thời gian phát hiện</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thời gian kết thúc</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Trạng thái</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thao tác</th>
               </tr>
@@ -518,40 +739,65 @@ export default function IncidentReportTab() {
                 <tr key={incident.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 text-sm font-medium text-red-600">{incident.reportCode}</td>
                   <td className="px-4 py-3 text-sm">
-                    <div className="font-medium text-slate-800">{incident.deviceName}</div>
-                    <div className="text-xs text-slate-500">{incident.deviceCode}</div>
+                    <div className="font-medium text-slate-800">{incident.reportedBy || incident.discoveredBy}</div>
+                    <div className="text-xs text-slate-500">{incident.deviceName}</div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{incident.discoveredBy}</td>
                   <td className="px-4 py-3 text-sm text-slate-600">{incident.incidentDateTime}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{incident.completionDateTime || "—"}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(incident.status)}`}>
                       {incident.status}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      {/* Contact Supplier Button - Show for Đang khắc phục status */}
+                      {(incident.status === "Đang khắc phục" || incident.status === "Nháp") && (
+                        <button
+                          onClick={() => handleOpenSupplierContact(incident)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                          title="Liên hệ nhà cung cấp"
+                        >
+                          <Contact size={16} />
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setSelectedIncident(incident);
                           setShowSupplierContact(true);
                         }}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                        title="Liên hệ NCC"
+                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                        title="Xem/Cập nhật công việc NCC"
                       >
-                        <Contact size={16} />
+                        <Briefcase size={16} />
                       </button>
                       <button
-                        onClick={() => setSelectedIncident(incident)}
+                        onClick={() => {
+                          setSelectedIncident(incident);
+                          setShowEditForm(true);
+                        }}
+                        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
+                        title="Chỉnh sửa"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
                         className="p-1.5 text-slate-600 hover:bg-slate-100 rounded"
                         title="Xem chi tiết"
                       >
                         <Eye size={16} />
                       </button>
-                      {incident.status === "Nháp" && (
+                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Đính kèm">
+                        <Paperclip size={16} />
+                      </button>
+                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xuất PDF">
+                        <Printer size={16} />
+                      </button>
+                      {incident.status === "Nháp" && incident.conclusion === "đã khắc phục" && (
                         <button
-                          onClick={() => handleSendForApproval(incident)}
-                          className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
-                          title="Gửi duyệt"
+                          onClick={() => handleFinalSubmit(incident)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                          title="Gửi báo cáo sự cố"
                         >
                           <Send size={16} />
                         </button>
@@ -565,9 +811,6 @@ export default function IncidentReportTab() {
                           <CheckCircle2 size={16} />
                         </button>
                       )}
-                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="In PDF">
-                        <Printer size={16} />
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -609,12 +852,15 @@ export default function IncidentReportTab() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xem chi tiết">
                         <Eye size={16} />
                       </button>
-                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="In PDF">
+                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xuất PDF">
                         <Printer size={16} />
+                      </button>
+                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Đính kèm">
+                        <Paperclip size={16} />
                       </button>
                     </div>
                   </td>
@@ -767,29 +1013,204 @@ export default function IncidentReportTab() {
                 />
               </div>
 
-              {/* Contact Supplier Button */}
-              <div className="flex justify-center">
+              {/* Action Buttons at bottom */}
+              <div className="flex justify-between pt-4 border-t border-slate-200">
                 <button
-                  onClick={() => {
-                    if (!form.deviceId) {
-                      error("Lỗi", "Vui lòng chọn thiết bị trước");
-                      return;
-                    }
-                    handleCreateIncident();
-                    const newIncident = incidentReports[0];
-                    if (newIncident) {
-                      setSelectedIncident({ ...newIncident, id: `temp-${Date.now()}` });
-                      setShowSupplierContact(true);
-                    }
-                  }}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                  onClick={() => setShowForm(false)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
                 >
-                  <Contact size={18} />
-                  Liên hệ nhà cung ứng
+                  Hủy
                 </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleCreateIncident}
+                    className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    Lưu nháp
+                  </button>
+                  <button
+                    onClick={handleSaveAsInProgress}
+                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    Lưu & Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Incident Form Modal */}
+      {showEditForm && selectedIncident && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800">Chỉnh sửa phiếu báo cáo sự cố</h3>
+                <p className="text-sm text-slate-500">{selectedIncident.reportCode}</p>
+              </div>
+              <button onClick={() => setShowEditForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Device Info (Read-only) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Mã thiết bị</label>
+                  <input
+                    type="text"
+                    value={selectedIncident.deviceCode}
+                    readOnly
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tên thiết bị</label>
+                  <input
+                    type="text"
+                    value={selectedIncident.deviceName}
+                    readOnly
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50"
+                  />
+                </div>
               </div>
 
-              {/* Required fields before sending */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Bộ phận xét nghiệm</label>
+                  <input
+                    type="text"
+                    value={selectedIncident.specialty}
+                    readOnly
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nhà cung ứng</label>
+                  <input
+                    type="text"
+                    value={selectedIncident.supplier}
+                    readOnly
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50"
+                  />
+                </div>
+              </div>
+
+              {/* Kết luận Section - Only show when not in progress */}
+              {selectedIncident.status !== "Đang khắc phục" && (
+                <div className="border-t border-slate-200 pt-6">
+                  <h4 className="font-medium text-slate-800 mb-4">Kết luận</h4>
+                  <div className="space-y-4">
+                    <div className="flex gap-6">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="conclusion"
+                          checked={form.conclusion === "đã khắc phục" || selectedIncident.conclusion === "đã khắc phục"}
+                          onChange={() => setForm({ ...form, conclusion: "đã khắc phục" })}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-sm text-slate-700">Sự cố đã được khắc phục</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="conclusion"
+                          checked={form.conclusion === "chưa khắc phục" || selectedIncident.conclusion === "chưa khắc phục"}
+                          onChange={() => setForm({ ...form, conclusion: "chưa khắc phục" })}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-sm text-slate-700">Sự cố chưa được khắc phục</span>
+                      </label>
+                    </div>
+
+                    {(form.conclusion === "đã khắc phục" || selectedIncident.conclusion === "đã khắc phục") && (
+                      <div className="ml-4 space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Người khắc phục <span className="text-red-500">*</span>
+                          </label>
+                          <div className="space-y-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="resolvedByType"
+                                checked={form.resolvedByType === "nhân viên lab" || selectedIncident.resolvedByType === "nhân viên lab"}
+                                onChange={() => setForm({ ...form, resolvedByType: "nhân viên lab", resolvedBy: "" })}
+                                className="w-4 h-4 text-blue-600"
+                              />
+                              <span className="text-sm text-slate-700">Nhân viên trong lab</span>
+                            </label>
+                            {form.resolvedByType === "nhân viên lab" || selectedIncident.resolvedByType === "nhân viên lab" ? (
+                              <div className="ml-6">
+                                <select
+                                  value={form.resolvedBy?.split(",") || []}
+                                  onChange={(e) => setForm({ ...form, resolvedBy: Array.from(e.target.selectedOptions).map(o => o.value).join(",") })}
+                                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                                >
+                                  {LAB_STAFF.map((staff) => (
+                                    <option key={staff.id} value={staff.fullName}>
+                                      {staff.fullName} - {staff.role}
+                                    </option>
+                                  ))}
+                                </select>
+                                <p className="text-xs text-slate-500 mt-1">Giữ Ctrl/Cmd để chọn nhiều người</p>
+                              </div>
+                            ) : null}
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="resolvedByType"
+                                checked={form.resolvedByType === "nhà sản xuất" || selectedIncident.resolvedByType === "nhà sản xuất"}
+                                onChange={() => setForm({ ...form, resolvedByType: "nhà sản xuất", resolvedBy: "" })}
+                                className="w-4 h-4 text-blue-600"
+                              />
+                              <span className="text-sm text-slate-700">Nhà sản xuất/Nhà cung cấp</span>
+                            </label>
+                            {form.resolvedByType === "nhà sản xuất" || selectedIncident.resolvedByType === "nhà sản xuất" ? (
+                              <div className="ml-6">
+                                <select
+                                  value={form.linkedWorkOrderCode || selectedIncident.linkedWorkOrderCode || ""}
+                                  onChange={(e) => setForm({ ...form, linkedWorkOrderCode: e.target.value })}
+                                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                                >
+                                  <option value="">-- Chọn phiếu công việc NCC --</option>
+                                  {selectedIncident.workOrders?.filter(wo => wo.status === "Đóng").map((wo) => (
+                                    <option key={wo.id} value={wo.workOrderCode}>
+                                      {wo.workOrderCode} - {wo.contactPerson}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {/* Auto-generated supplier action */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Hành động khắc phục của nhà cung ứng/nhà sản xuất
+                          </label>
+                          <textarea
+                            value={form.supplierAction || generateSupplierAction(selectedIncident) || selectedIncident.supplierAction}
+                            onChange={(e) => setForm({ ...form, supplierAction: e.target.value })}
+                            rows={3}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50"
+                            placeholder="Tự động điền từ phiếu công việc NCC..."
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Required fields before submitting */}
               <div className="border-t border-slate-200 pt-6 space-y-4">
                 <h4 className="font-medium text-slate-800">Thông tin bắt buộc trước khi gửi</h4>
 
@@ -798,7 +1219,7 @@ export default function IncidentReportTab() {
                     <input
                       type="checkbox"
                       id="affectsPatient"
-                      checked={form.affectsPatientResult}
+                      checked={form.affectsPatientResult ?? selectedIncident.affectsPatientResult}
                       onChange={(e) => setForm({ ...form, affectsPatientResult: e.target.checked })}
                       className="w-4 h-4"
                     />
@@ -806,18 +1227,18 @@ export default function IncidentReportTab() {
                       Có ảnh hưởng tới kết quả bệnh nhân không?
                     </label>
                   </div>
-                  {form.affectsPatientResult && (
+                  {(form.affectsPatientResult ?? selectedIncident.affectsPatientResult) && (
                     <div className="ml-7 space-y-2">
                       <input
                         type="text"
-                        value={form.affectedPatientSid}
+                        value={form.affectedPatientSid ?? selectedIncident.affectedPatientSid}
                         onChange={(e) => setForm({ ...form, affectedPatientSid: e.target.value })}
                         placeholder="SID bệnh nhân"
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                       />
                       <input
                         type="text"
-                        value={form.howAffected}
+                        value={form.howAffected ?? selectedIncident.howAffected}
                         onChange={(e) => setForm({ ...form, howAffected: e.target.value })}
                         placeholder="Bị ảnh hưởng như thế nào?"
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
@@ -831,7 +1252,7 @@ export default function IncidentReportTab() {
                     <input
                       type="checkbox"
                       id="requiresStop"
-                      checked={form.requiresDeviceStop}
+                      checked={form.requiresDeviceStop ?? selectedIncident.requiresDeviceStop}
                       onChange={(e) => setForm({ ...form, requiresDeviceStop: e.target.checked })}
                       className="w-4 h-4"
                     />
@@ -839,18 +1260,18 @@ export default function IncidentReportTab() {
                       Có phải dừng hoạt động của máy không?
                     </label>
                   </div>
-                  {form.requiresDeviceStop && (
+                  {(form.requiresDeviceStop ?? selectedIncident.requiresDeviceStop) && (
                     <div className="ml-7 grid grid-cols-2 gap-4">
                       <input
                         type="text"
-                        value={form.stopFrom}
+                        value={form.stopFrom ?? selectedIncident.stopFrom}
                         onChange={(e) => setForm({ ...form, stopFrom: e.target.value })}
                         placeholder="Từ (hh:mm dd/mm/yyyy)"
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                       />
                       <input
                         type="text"
-                        value={form.stopTo}
+                        value={form.stopTo ?? selectedIncident.stopTo}
                         onChange={(e) => setForm({ ...form, stopTo: e.target.value })}
                         placeholder="Đến (hh:mm dd/mm/yyyy)"
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
@@ -864,7 +1285,7 @@ export default function IncidentReportTab() {
                     <input
                       type="checkbox"
                       id="hasProposal"
-                      checked={form.hasProposal}
+                      checked={form.hasProposal ?? selectedIncident.hasProposal}
                       onChange={(e) => setForm({ ...form, hasProposal: e.target.checked })}
                       className="w-4 h-4"
                     />
@@ -872,11 +1293,11 @@ export default function IncidentReportTab() {
                       Có đề xuất gì thêm không?
                     </label>
                   </div>
-                  {form.hasProposal && (
+                  {(form.hasProposal ?? selectedIncident.hasProposal) && (
                     <div className="ml-7">
                       <input
                         type="text"
-                        value={form.proposal}
+                        value={form.proposal ?? selectedIncident.proposal}
                         onChange={(e) => setForm({ ...form, proposal: e.target.value })}
                         placeholder="Đề xuất của bạn..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
@@ -893,7 +1314,7 @@ export default function IncidentReportTab() {
                     Người báo cáo <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={form.reportedBy}
+                    value={form.reportedBy ?? selectedIncident.reportedBy}
                     onChange={(e) => setForm({ ...form, reportedBy: e.target.value })}
                     className="w-full px-4 py-2 border border-slate-200 rounded-lg"
                   >
@@ -910,7 +1331,7 @@ export default function IncidentReportTab() {
                     Quản lý trang thiết bị <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={form.deviceManager}
+                    value={form.deviceManager ?? selectedIncident.deviceManager}
                     onChange={(e) => setForm({ ...form, deviceManager: e.target.value })}
                     className="w-full px-4 py-2 border border-slate-200 rounded-lg"
                   >
@@ -927,32 +1348,31 @@ export default function IncidentReportTab() {
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
-                  onClick={() => setShowForm(false)}
+                  onClick={() => setShowEditForm(false)}
                   className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
                 >
-                  Hủy
+                  Đóng
                 </button>
                 <button
-                  onClick={handleCreateIncident}
+                  onClick={handleUpdateIncident}
                   className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 flex items-center gap-2"
                 >
                   <Save size={18} />
-                  Lưu nháp
+                  Lưu thay đổi
                 </button>
-                <button
-                  onClick={() => {
-                    handleCreateIncident();
-                    const lastIncident = incidentReports[0];
-                    if (lastIncident) {
-                      handleSendForApproval(lastIncident);
-                    }
-                  }}
-                  disabled={!form.reportedBy || !form.deviceManager}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Send size={18} />
-                  Gửi báo cáo sự cố
-                </button>
+                {selectedIncident.conclusion === "đã khắc phục" && selectedIncident.status === "Nháp" && (
+                  <button
+                    onClick={() => {
+                      handleUpdateIncident();
+                      setTimeout(() => handleFinalSubmit({ ...selectedIncident, ...form }), 100);
+                    }}
+                    disabled={!form.reportedBy || !form.deviceManager}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Send size={18} />
+                    Gửi báo cáo sự cố
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -962,11 +1382,12 @@ export default function IncidentReportTab() {
       {/* Supplier Contact Modal */}
       {showSupplierContact && selectedIncident && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-800">Liên hệ nhà cung ứng</h3>
-                <p className="text-sm text-slate-500">Mã báo cáo: {selectedIncident.reportCode}</p>
+                <h3 className="text-lg font-semibold text-slate-800">Phiếu liên hệ nhà cung ứng</h3>
+                <p className="text-sm text-slate-500">Mã báo cáo sự cố: {selectedIncident.reportCode}</p>
+                <p className="text-sm text-slate-500">Thiết bị: {selectedIncident.deviceName} ({selectedIncident.deviceCode})</p>
               </div>
               <button
                 onClick={() => {
@@ -980,6 +1401,51 @@ export default function IncidentReportTab() {
             </div>
 
             <div className="p-6 space-y-6">
+              {/* Contact Info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nhà cung ứng</label>
+                  <input
+                    type="text"
+                    value={selectedIncident.supplier}
+                    readOnly
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Người liên hệ</label>
+                  <input
+                    type="text"
+                    value={workOrderForm.contactPerson}
+                    onChange={(e) => setWorkOrderForm({ ...workOrderForm, contactPerson: e.target.value })}
+                    placeholder="Tên người liên hệ"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Hình thức liên hệ</label>
+                  <select
+                    value={workOrderForm.contactMethod}
+                    onChange={(e) => setWorkOrderForm({ ...workOrderForm, contactMethod: e.target.value as any })}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg"
+                  >
+                    {contactMethods.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Status Display (not editable) */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-700">Trạng thái:</span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getWorkOrderStatusColor(selectedIncident.workOrders?.some(wo => wo.status === "Mở") ? "Mở" : "Đóng")}`}>
+                  {selectedIncident.workOrders?.some(wo => wo.status === "Mở") ? "Mở" : "Đóng"}
+                </span>
+              </div>
+
               {/* Work Orders Table */}
               <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                 <table className="w-full">
@@ -988,11 +1454,12 @@ export default function IncidentReportTab() {
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mã công việc</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Người liên hệ</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Hình thức</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Bắt đầu</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Kết thúc</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mô tả</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Trạng thái</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thời gian bắt đầu</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thời gian kết thúc</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mô tả hành động</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Ghi chú</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Kết luận</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Hành động</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1004,11 +1471,7 @@ export default function IncidentReportTab() {
                         <td className="px-4 py-3 text-sm text-slate-600">{wo.startDateTime}</td>
                         <td className="px-4 py-3 text-sm text-slate-600">{wo.endDateTime || "—"}</td>
                         <td className="px-4 py-3 text-sm text-slate-600 max-w-xs truncate">{wo.actionDescription}</td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getWorkOrderStatusColor(wo.status)}`}>
-                            {wo.status}
-                          </span>
-                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600 max-w-xs truncate">{wo.notes || "—"}</td>
                         <td className="px-4 py-3 text-sm">
                           {wo.conclusion === "hoàn thành" && (
                             <span className="text-emerald-600">Hoàn thành</span>
@@ -1017,6 +1480,28 @@ export default function IncidentReportTab() {
                             <span className="text-amber-600">Xử trí 1 phần</span>
                           )}
                           {!wo.conclusion && <span className="text-slate-400">—</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {wo.isCompleted ? (
+                            <span className="text-emerald-600 flex items-center gap-1">
+                              <CheckCircle2 size={14} /> Đã ký
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setWorkOrderForm({
+                                  ...workOrderForm,
+                                  contactPerson: wo.contactPerson,
+                                  contactMethod: wo.contactMethod,
+                                  startDateTime: wo.startDateTime,
+                                });
+                              }}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                              title="Chỉnh sửa"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1029,7 +1514,10 @@ export default function IncidentReportTab() {
 
               {/* Add Work Order Form */}
               <div className="border-t border-slate-200 pt-6">
-                <h4 className="font-medium text-slate-800 mb-4">Thêm công việc mới</h4>
+                <h4 className="font-medium text-slate-800 mb-4 flex items-center gap-2">
+                  <Plus size={18} />
+                  Thêm công việc mới
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Người liên hệ NCC</label>
@@ -1056,7 +1544,7 @@ export default function IncidentReportTab() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian bắt đầu</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian bắt đầu <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       value={workOrderForm.startDateTime}
@@ -1099,13 +1587,16 @@ export default function IncidentReportTab() {
 
                 {/* Engineer Signature Section */}
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <h5 className="font-medium text-slate-800 mb-3">Ký xác nhận hoàn tất (Dành cho kỹ sư NCC)</h5>
+                  <h5 className="font-medium text-slate-800 mb-3 flex items-center gap-2">
+                    <FileCheck size={18} />
+                    Ký xác nhận hoàn tất (Dành cho kỹ sư NCC)
+                  </h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Tên người sửa chữa</label>
                       <input
                         type="text"
-                        value={workOrderForm.engineerName}
+                        value={workOrderForm.engineerName || ""}
                         onChange={(e) => setWorkOrderForm({ ...workOrderForm, engineerName: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg"
                         placeholder="Họ tên kỹ sư"
@@ -1114,7 +1605,7 @@ export default function IncidentReportTab() {
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Kết luận</label>
                       <select
-                        value={workOrderForm.conclusion}
+                        value={workOrderForm.conclusion || ""}
                         onChange={(e) => setWorkOrderForm({ ...workOrderForm, conclusion: e.target.value as any })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg"
                       >
@@ -1126,17 +1617,23 @@ export default function IncidentReportTab() {
                   </div>
                   <div className="mt-4 flex items-center gap-4">
                     <button
-                      onClick={() =>
-                        setWorkOrderForm({
-                          ...workOrderForm,
-                          isCompleted: true,
-                          status: workOrderForm.conclusion === "hoàn thành" ? "Đóng" : "Mở",
-                        })
-                      }
+                      onClick={() => {
+                        if (!workOrderForm.engineerName || !workOrderForm.conclusion) {
+                          error("Lỗi", "Vui lòng nhập tên người sửa chữa và kết luận");
+                          return;
+                        }
+                        
+                        // Find the work order to sign (the last one added)
+                        const lastWorkOrder = selectedIncident.workOrders?.[selectedIncident.workOrders.length - 1];
+                        if (lastWorkOrder) {
+                          handleEngineerSign(lastWorkOrder.id);
+                        }
+                      }}
                       disabled={!workOrderForm.engineerName || !workOrderForm.conclusion}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      Xác nhận hoàn tất
+                      <CheckCircle2 size={18} />
+                      Lưu và ký
                     </button>
                   </div>
                 </div>
@@ -1149,7 +1646,7 @@ export default function IncidentReportTab() {
                     <Plus size={18} />
                     Thêm công việc
                   </button>
-                  {selectedIncident.workOrders && selectedIncident.workOrders.length > 0 && (
+                  {selectedIncident.workOrders && selectedIncident.workOrders.length > 0 && selectedIncident.workOrders.every(wo => wo.status === "Đóng") && (
                     <button
                       onClick={() => handleCompleteRepair(selectedIncident)}
                       className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2"
@@ -1159,6 +1656,19 @@ export default function IncidentReportTab() {
                     </button>
                   )}
                 </div>
+              </div>
+
+              {/* Close Button */}
+              <div className="flex justify-end pt-4 border-t border-slate-200">
+                <button
+                  onClick={() => {
+                    setShowSupplierContact(false);
+                    setSelectedIncident(null);
+                  }}
+                  className="px-6 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                >
+                  Đóng
+                </button>
               </div>
             </div>
           </div>

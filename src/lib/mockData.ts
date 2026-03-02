@@ -101,7 +101,15 @@ export interface IncidentReport {
   relatedUsers: string[]; // Người liên quan
   
   // Status
-  status: "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành";
+  status: "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành" | "Đang khắc phục";
+  
+  // Resolution fields
+  conclusion?: "đã khắc phục" | "chưa khắc phục";
+  resolvedBy?: string;
+  resolvedByType?: "nhân viên lab" | "nhà sản xuất";
+  linkedWorkOrderCode?: string; // Link to supplier work order
+  completionDateTime?: string; // When incident was resolved
+  
   createdAt: string;
   updatedAt?: string;
   approvedBy?: string;
