@@ -1,10 +1,10 @@
-# Active Context: Next.js Starter Template
+# Active Context: LabHouse Equipment Management System
 
 ## Current State
 
-**Template Status**: ✅ Ready for development
+**Project Status**: ✅ Active Development
 
-The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
+LabHouse is a laboratory equipment management system for medical laboratories with Vietnamese UI.
 
 ## Recently Completed
 
@@ -14,15 +14,30 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] ESLint configuration
 - [x] Memory bank documentation
 - [x] Recipe system for common features
+- [x] Device management system (Phần mềm quản lý thiết bị)
+- [x] Tab Hồ sơ thiết bị (DeviceProfileTab) with thumbnail/table views
+- [x] Tab Báo cáo sự cố (IncidentReportTab) with BM.11.QL.TC.018 workflow
+- [x] Tab Hiệu chuẩn (CalibrationTab) with PHC request workflow
+- [x] **Integrate Incident Report & Calibration modals into DeviceProfileTab** (latest)
 
 ## Current Structure
 
 | File/Directory | Purpose | Status |
 |----------------|---------|--------|
-| `src/app/page.tsx` | Home page | ✅ Ready |
-| `src/app/layout.tsx` | Root layout | ✅ Ready |
-| `src/app/globals.css` | Global styles | ✅ Ready |
-| `.kilocode/` | AI context & recipes | ✅ Ready |
+| `src/components/tabs/DeviceProfileTab.tsx` | Device management with actions | ✅ Active |
+| `src/components/tabs/IncidentReportTab.tsx` | Incident reports (separate tab) | ✅ Active |
+| `src/components/tabs/CalibrationTab.tsx` | Calibration (separate tab) | ✅ Active |
+| `src/lib/mockData.ts` | Mock data for devices, incidents, calibrations | ✅ Active |
+
+## Session History
+
+| Date | Changes |
+|------|---------|
+| Initial | Template created with base setup |
+| 2024-03-01 | Built complete device management system (Phần mềm quản lý thiết bị) |
+| 2026-03-01 | Built Tab Thiết bị mới (NewDeviceTab) with PDX proposal workflow |
+| 2026-03-01 | Built Tab Hồ sơ thiết bị (DeviceProfileTab) with thumbnail/table views |
+| 2026-03-02 | **Integrated Incident Report & Calibration modals into DeviceProfileTab** |
 
 ## Current Focus
 
