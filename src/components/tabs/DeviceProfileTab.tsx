@@ -398,6 +398,15 @@ export default function DeviceProfileTab() {
   const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrder | null>(null);
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
   const [currentIncidentForWorkOrder, setCurrentIncidentForWorkOrder] = useState<IncidentReport | null>(null);
+  const [attachmentViewer, setAttachmentViewer] = useState<{
+    open: boolean;
+    title: string;
+    files: AttachedFile[];
+  }>({
+    open: false,
+    title: "",
+    files: [],
+  });
 
   // Transfer and liquidation workflow state
   const [transferRecords, setTransferRecords] = useState<TransferProposal[]>(mockTransferProposals);
@@ -822,6 +831,36 @@ export default function DeviceProfileTab() {
     });
     setShowSupplierContactModal(true);
     setShowWorkOrderForm(true);
+  };
+
+  const handleOpenAttachments = (files: AttachedFile[], title: string) => {
+    if (!files || files.length === 0) {
+      info("Đính kèm", "Chưa có tài liệu đính kèm");
+      return;
+    }
+    setAttachmentViewer({ open: true, title, files });
+  };
+
+  const handlePreviewAttachment = (file: AttachedFile) => {
+    if (!file.url) {
+      error("Lỗi", "Không tìm thấy đường dẫn tệp đính kèm");
+      return;
+    }
+    window.open(file.url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDownloadAttachment = (file: AttachedFile) => {
+    if (!file.url) {
+      error("Lỗi", "Không tìm thấy đường dẫn tệp đính kèm");
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = file.url;
+    link.download = file.name || `attachment-${Date.now()}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const saveTransferProposal = (status: WorkflowStatus) => {
@@ -3113,7 +3152,10 @@ export default function DeviceProfileTab() {
                                         <Eye size={16} />
                                       </button>
                                       <button
-                                        onClick={() => info("Đính kèm", `Phiếu ${incident.reportCode} hiện có ${incident.workOrders.flatMap(wo => wo.attachments || []).length} tệp đính kèm từ công việc NCC`)}
+                                        onClick={() => handleOpenAttachments(
+                                          incident.workOrders.flatMap((wo) => wo.attachments || []),
+                                          `Tài liệu đính kèm - ${incident.reportCode}`
+                                        )}
                                         className="p-1.5 text-green-600 hover:bg-green-50 rounded"
                                         title="Đính kèm"
                                       >
@@ -3216,7 +3258,7 @@ export default function DeviceProfileTab() {
                                           <FileText size={16} />
                                         </button>
                                         <button
-                                          onClick={() => info("Đính kèm", `${wo.workOrderCode} có ${wo.attachments?.length || 0} tệp đính kèm`)}
+                                          onClick={() => handleOpenAttachments(wo.attachments || [], `Tài liệu đính kèm - ${wo.workOrderCode}`)}
                                           className="p-1.5 text-green-600 hover:bg-green-50 rounded"
                                           title="Đính kèm"
                                         >
@@ -4540,6 +4582,53 @@ export default function DeviceProfileTab() {
             <p className="text-sm">Giảng viên: {selectedTraining.trainer}</p>
             <p className="text-sm">Nhóm học viên: {selectedTraining.traineeGroup}</p>
             <p className="text-sm">Trạng thái: {selectedTraining.status}</p>
+          </div>
+        </div>
+      )}
+
+      {attachmentViewer.open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80] p-4" onClick={() => setAttachmentViewer({ open: false, title: "", files: [] })}>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">{attachmentViewer.title}</h3>
+                <p className="text-sm text-slate-500">{attachmentViewer.files.length} tài liệu đính kèm</p>
+              </div>
+              <button
+                onClick={() => setAttachmentViewer({ open: false, title: "", files: [] })}
+                className="p-2 hover:bg-slate-100 rounded-lg"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-3">
+              {attachmentViewer.files.map((file) => (
+                <div key={file.id} className="border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Paperclip className="w-4 h-4 text-slate-500 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{file.name}</p>
+                      <p className="text-xs text-slate-500 uppercase">{file.type}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handlePreviewAttachment(file)}
+                      className="px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center gap-1"
+                    >
+                      <Eye size={14} /> Xem
+                    </button>
+                    <button
+                      onClick={() => handleDownloadAttachment(file)}
+                      className="px-3 py-1.5 text-sm text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 flex items-center gap-1"
+                    >
+                      <Download size={14} /> Tải về
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

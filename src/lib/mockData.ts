@@ -792,7 +792,22 @@ export const mockIncidents: IncidentReport[] = [
         endDateTime: "12:00 02/03/2024",
         actionDescription: "Thay sensor huyết học, vệ sinh đầu đọc, hiệu chuẩn máy",
         notes: "Máy hoạt động bình thường sau khi sửa chữa",
-        attachments: [],
+        attachments: [
+          {
+            id: "att-wo1-1",
+            name: "Bien_ban_sua_chua_WO001.txt",
+            type: "doc",
+            url: "data:text/plain;charset=utf-8,Bien%20ban%20sua%20chua%20WO001%0ANgay%20thuc%20hien%3A%2002%2F03%2F2024%0ANoi%20dung%3A%20Thay%20sensor%20huyet%20hoc%20va%20hieu%20chuan%20lai%20may.",
+            size: 1520,
+          },
+          {
+            id: "att-wo1-2",
+            name: "Anh_hien_trang_thiet_bi.png",
+            type: "image",
+            url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='360'><rect width='100%25' height='100%25' fill='%23f8fafc'/><text x='50%25' y='45%25' font-size='24' text-anchor='middle' fill='%23334155'>MOCK ATTACHMENT</text><text x='50%25' y='58%25' font-size='18' text-anchor='middle' fill='%2364748b'>WO001 - Device Snapshot</text></svg>",
+            size: 2840,
+          },
+        ],
         status: "Đóng",
         engineerName: "Nguyễn Văn A",
         isCompleted: true,

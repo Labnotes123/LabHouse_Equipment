@@ -87,6 +87,11 @@ export default function IncidentReportTab() {
   const [activeTab, setActiveTab] = useState<"reports" | "work-orders">("reports");
   const [incidentCounter, setIncidentCounter] = useState(2);
   const [workOrderCounters, setWorkOrderCounters] = useState<Record<string, number>>({});
+  const [attachmentViewer, setAttachmentViewer] = useState<{
+    open: boolean;
+    title: string;
+    files: AttachedFile[];
+  }>({ open: false, title: "", files: [] });
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -639,6 +644,36 @@ export default function IncidentReportTab() {
       .join("\n");
   };
 
+  const handleOpenAttachments = (files: AttachedFile[], title: string) => {
+    if (!files || files.length === 0) {
+      info("Đính kèm", "Chưa có tài liệu đính kèm");
+      return;
+    }
+    setAttachmentViewer({ open: true, title, files });
+  };
+
+  const handlePreviewAttachment = (file: AttachedFile) => {
+    if (!file.url) {
+      error("Lỗi", "Không tìm thấy đường dẫn tệp đính kèm");
+      return;
+    }
+    window.open(file.url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDownloadAttachment = (file: AttachedFile) => {
+    if (!file.url) {
+      error("Lỗi", "Không tìm thấy đường dẫn tệp đính kèm");
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = file.url;
+    link.download = file.name || `attachment-${Date.now()}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -787,7 +822,14 @@ export default function IncidentReportTab() {
                       >
                         <Eye size={16} />
                       </button>
-                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Đính kèm">
+                      <button
+                        onClick={() => handleOpenAttachments(
+                          incident.workOrders.flatMap((wo) => wo.attachments || []),
+                          `Tài liệu đính kèm - ${incident.reportCode}`
+                        )}
+                        className="p-1.5 text-slate-600 hover:bg-slate-100 rounded"
+                        title="Đính kèm"
+                      >
                         <Paperclip size={16} />
                       </button>
                       <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xuất PDF">
@@ -859,7 +901,11 @@ export default function IncidentReportTab() {
                       <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xuất PDF">
                         <Printer size={16} />
                       </button>
-                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Đính kèm">
+                      <button
+                        onClick={() => handleOpenAttachments(wo.attachments || [], `Tài liệu đính kèm - ${wo.workOrderCode}`)}
+                        className="p-1.5 text-slate-600 hover:bg-slate-100 rounded"
+                        title="Đính kèm"
+                      >
                         <Paperclip size={16} />
                       </button>
                     </div>
@@ -873,6 +919,53 @@ export default function IncidentReportTab() {
           )}
         </div>
       )}
+
+          {attachmentViewer.open && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={() => setAttachmentViewer({ open: false, title: "", files: [] })}>
+              <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{attachmentViewer.title}</h3>
+                    <p className="text-sm text-slate-500">{attachmentViewer.files.length} tài liệu đính kèm</p>
+                  </div>
+                  <button
+                    onClick={() => setAttachmentViewer({ open: false, title: "", files: [] })}
+                    className="p-2 hover:bg-slate-100 rounded-lg"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-3">
+                  {attachmentViewer.files.map((file) => (
+                    <div key={file.id} className="border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Paperclip className="w-4 h-4 text-slate-500 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-800 truncate">{file.name}</p>
+                          <p className="text-xs text-slate-500 uppercase">{file.type}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handlePreviewAttachment(file)}
+                          className="px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center gap-1"
+                        >
+                          <Eye size={14} /> Xem
+                        </button>
+                        <button
+                          onClick={() => handleDownloadAttachment(file)}
+                          className="px-3 py-1.5 text-sm text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 flex items-center gap-1"
+                        >
+                          <Download size={14} /> Tải về
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
       {/* Create Incident Form Modal */}
       {showForm && (
