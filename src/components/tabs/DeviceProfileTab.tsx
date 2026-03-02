@@ -101,6 +101,158 @@ interface Column {
   width?: number;
 }
 
+type WorkflowStatus = "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành";
+
+interface TransferProposal {
+  id: string;
+  transferCode: string;
+  deviceId: string;
+  deviceCode: string;
+  deviceName: string;
+  fromLocation: string;
+  toLocation: string;
+  reason: string;
+  plannedTransferDate: string;
+  requestedBy: string;
+  approver: string;
+  status: WorkflowStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface LiquidationProposal {
+  id: string;
+  liquidationCode: string;
+  deviceId: string;
+  deviceCode: string;
+  deviceName: string;
+  reason: string;
+  method: string;
+  estimatedValue: string;
+  plannedDate: string;
+  requestedBy: string;
+  approver: string;
+  status: WorkflowStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface TrainingProposal {
+  id: string;
+  trainingCode: string;
+  deviceId: string;
+  deviceCode: string;
+  deviceName: string;
+  topic: string;
+  trainer: string;
+  traineeGroup: string;
+  plannedDate: string;
+  approver: string;
+  status: WorkflowStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+const mockTransferProposals: TransferProposal[] = [
+  {
+    id: "tr1",
+    transferCode: "DC-2026-001",
+    deviceId: "d1",
+    deviceCode: "TB-001",
+    deviceName: "Máy phân tích huyết học tự động",
+    fromLocation: "Phòng hóa sinh – Huyết học",
+    toLocation: "Phòng xét nghiệm vệ tinh - Cơ sở 2",
+    reason: "Điều phối khối lượng mẫu theo năng lực vận hành giữa hai cơ sở.",
+    plannedTransferDate: "2026-03-05",
+    requestedBy: "Phạm Thị Kỹ Thuật",
+    approver: "Lê Văn Trưởng Phòng",
+    status: "Chờ duyệt",
+    createdAt: "2026-03-01T08:30:00",
+  },
+  {
+    id: "tr2",
+    transferCode: "DC-2026-002",
+    deviceId: "d3",
+    deviceCode: "TB-003",
+    deviceName: "Máy miễn dịch tự động",
+    fromLocation: "Phòng nuôi cấy vi sinh",
+    toLocation: "Kho lưu thiết bị chờ tái phân bổ",
+    reason: "Tạm điều chuyển chờ bảo trì tổng quát và tái phân bổ.",
+    plannedTransferDate: "2026-02-25",
+    requestedBy: "Vũ Thị Thiết Bị",
+    approver: "Nguyễn Văn Admin",
+    status: "Đã duyệt",
+    createdAt: "2026-02-20T10:15:00",
+    updatedAt: "2026-02-21T15:00:00",
+  },
+];
+
+const mockLiquidationProposals: LiquidationProposal[] = [
+  {
+    id: "tl1",
+    liquidationCode: "TL-2026-001",
+    deviceId: "d6",
+    deviceCode: "TB-006",
+    deviceName: "Tủ an toàn sinh học cấp II",
+    reason: "Thiết bị xuống cấp, chi phí sửa chữa vượt ngưỡng đầu tư mới.",
+    method: "Thanh lý bán đấu giá",
+    estimatedValue: "35000000",
+    plannedDate: "2026-03-10",
+    requestedBy: "Vũ Thị Thiết Bị",
+    approver: "Trần Thị Giám Đốc",
+    status: "Chờ duyệt",
+    createdAt: "2026-03-01T09:00:00",
+  },
+  {
+    id: "tl2",
+    liquidationCode: "TL-2026-002",
+    deviceId: "d8",
+    deviceCode: "TB-008",
+    deviceName: "Máy đo đông máu tự động",
+    reason: "Ngừng sử dụng theo kế hoạch thay thế thiết bị mới.",
+    method: "Hủy theo quy định chất thải y tế",
+    estimatedValue: "0",
+    plannedDate: "2026-02-20",
+    requestedBy: "Nguyễn Văn Admin",
+    approver: "Trần Thị Giám Đốc",
+    status: "Hoàn thành",
+    createdAt: "2026-02-15T08:00:00",
+    updatedAt: "2026-02-22T17:30:00",
+  },
+];
+
+const mockTrainingProposals: TrainingProposal[] = [
+  {
+    id: "dt1",
+    trainingCode: "DT-2026-001",
+    deviceId: "d1",
+    deviceCode: "TB-001",
+    deviceName: "Máy phân tích huyết học tự động",
+    topic: "Đào tạo vận hành chuẩn và xử trí lỗi thường gặp",
+    trainer: "Kỹ sư Nguyễn Văn A",
+    traineeGroup: "KTV Huyết học - Ca sáng",
+    plannedDate: "2026-03-08",
+    approver: "Lê Văn Trưởng Phòng",
+    status: "Chờ duyệt",
+    createdAt: "2026-03-01T10:00:00",
+  },
+  {
+    id: "dt2",
+    trainingCode: "DT-2026-002",
+    deviceId: "d4",
+    deviceCode: "TB-004",
+    deviceName: "Máy PCR Real-time",
+    topic: "Đào tạo kiểm soát chất lượng nội bộ theo CLSI EP23",
+    trainer: "Hoàng Văn Chất Lượng",
+    traineeGroup: "Nhóm PCR - QA",
+    plannedDate: "2026-02-18",
+    approver: "Nguyễn Văn Admin",
+    status: "Hoàn thành",
+    createdAt: "2026-02-10T14:00:00",
+    updatedAt: "2026-02-18T17:30:00",
+  },
+];
+
 // Action button configuration with icons and colors
 const actionButtons = [
   { key: "accept", label: "Tiếp nhận", icon: ClipboardCheck, color: "emerald", bg: "bg-emerald-500", hover: "hover:bg-emerald-600" },
@@ -187,6 +339,7 @@ export default function DeviceProfileTab() {
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [showSupplierContact, setShowSupplierContact] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
+  const [editingIncidentId, setEditingIncidentId] = useState<string | null>(null);
   const [incidentModalTab, setIncidentModalTab] = useState<"reports" | "work-orders">("reports");
   const [incidentCounter, setIncidentCounter] = useState(2); // Current max number for PSC-XXXX-XXX
   const [workOrderCounter, setWorkOrderCounter] = useState(1); // Current max number for WO-XXX
@@ -245,6 +398,52 @@ export default function DeviceProfileTab() {
   const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrder | null>(null);
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
   const [currentIncidentForWorkOrder, setCurrentIncidentForWorkOrder] = useState<IncidentReport | null>(null);
+
+  // Transfer and liquidation workflow state
+  const [transferRecords, setTransferRecords] = useState<TransferProposal[]>(mockTransferProposals);
+  const [liquidationRecords, setLiquidationRecords] = useState<LiquidationProposal[]>(mockLiquidationProposals);
+  const [trainingRecords, setTrainingRecords] = useState<TrainingProposal[]>(mockTrainingProposals);
+  const [transferCounter, setTransferCounter] = useState(3);
+  const [liquidationCounter, setLiquidationCounter] = useState(3);
+  const [trainingCounter, setTrainingCounter] = useState(3);
+  const [transferViewMode, setTransferViewMode] = useState<"list" | "form">("list");
+  const [liquidationViewMode, setLiquidationViewMode] = useState<"list" | "form">("list");
+  const [trainingViewMode, setTrainingViewMode] = useState<"list" | "form">("list");
+  const [transferFilterStatus, setTransferFilterStatus] = useState<string>("all");
+  const [liquidationFilterStatus, setLiquidationFilterStatus] = useState<string>("all");
+  const [trainingFilterStatus, setTrainingFilterStatus] = useState<string>("all");
+  const [editingTransferId, setEditingTransferId] = useState<string | null>(null);
+  const [editingLiquidationId, setEditingLiquidationId] = useState<string | null>(null);
+  const [editingTrainingId, setEditingTrainingId] = useState<string | null>(null);
+  const [selectedTransfer, setSelectedTransfer] = useState<TransferProposal | null>(null);
+  const [selectedLiquidation, setSelectedLiquidation] = useState<LiquidationProposal | null>(null);
+  const [selectedTraining, setSelectedTraining] = useState<TrainingProposal | null>(null);
+  const [transferForm, setTransferForm] = useState<Partial<TransferProposal>>({
+    fromLocation: "",
+    toLocation: "",
+    reason: "",
+    plannedTransferDate: "",
+    requestedBy: "",
+    approver: "",
+    status: "Nháp",
+  });
+  const [liquidationForm, setLiquidationForm] = useState<Partial<LiquidationProposal>>({
+    reason: "",
+    method: "",
+    estimatedValue: "",
+    plannedDate: "",
+    requestedBy: "",
+    approver: "",
+    status: "Nháp",
+  });
+  const [trainingForm, setTrainingForm] = useState<Partial<TrainingProposal>>({
+    topic: "",
+    trainer: "",
+    traineeGroup: "",
+    plannedDate: "",
+    approver: "",
+    status: "Nháp",
+  });
   
   // Calibration form state
   const [calibrationForm, setCalibrationForm] = useState<{
@@ -558,6 +757,258 @@ export default function DeviceProfileTab() {
     
     success('Xuất file thành công', 'Danh sách thiết bị đã được xuất ra file Excel');
   };
+
+  const formatDateTimeLabel = (value?: string) => {
+    if (!value) return "—";
+    if (value.includes("/")) return value;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleString("vi-VN");
+  };
+
+  const downloadCsvFile = (filename: string, headers: string[], rows: string[][], successMessage: string) => {
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    success("Xuất file thành công", successMessage);
+  };
+
+  const openPrintableWindow = (title: string, lines: string[]) => {
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) {
+      error("Lỗi", "Trình duyệt đã chặn cửa sổ in. Vui lòng cho phép popup và thử lại.");
+      return;
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
+            h1 { font-size: 20px; margin-bottom: 16px; }
+            p { margin: 6px 0; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          ${lines.map((line) => `<p>${line}</p>`).join("")}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  const getWorkflowStatusClass = (status: WorkflowStatus) => {
+    if (status === "Hoàn thành") return "bg-green-100 text-green-700";
+    if (status === "Đã duyệt") return "bg-blue-100 text-blue-700";
+    if (status === "Chờ duyệt") return "bg-amber-100 text-amber-700";
+    if (status === "Từ chối") return "bg-red-100 text-red-700";
+    return "bg-slate-100 text-slate-700";
+  };
+
+  const handleEditIncidentRecord = (incident: IncidentReport) => {
+    setEditingIncidentId(incident.id);
+    setIncidentForm({ ...incident });
+    setIncidentViewMode("form");
+  };
+
+  const handleExportIncidentPdf = (incident: IncidentReport) => {
+    openPrintableWindow(`Phiếu sự cố ${incident.reportCode}`, [
+      `Mã phiếu: ${incident.reportCode}`,
+      `Thiết bị: ${incident.deviceCode} - ${incident.deviceName}`,
+      `Người báo cáo: ${incident.discoveredBy}`,
+      `Thời gian phát hiện: ${formatDateTimeLabel(incident.incidentDateTime)}`,
+      `Trạng thái: ${incident.status}`,
+      `Mô tả: ${incident.description}`,
+      `Xử trí tức thì: ${incident.immediateAction}`,
+    ]);
+    success("Thành công", `Đã mở chế độ in/PDF cho ${incident.reportCode}`);
+  };
+
+  const handleExportIncidentExcel = (incident: IncidentReport) => {
+    downloadCsvFile(
+      `${incident.reportCode}.csv`,
+      ["Mã phiếu", "Thiết bị", "Người báo cáo", "Thời gian phát hiện", "Thời gian kết thúc", "Trạng thái"],
+      [[incident.reportCode, `${incident.deviceCode} - ${incident.deviceName}`, incident.discoveredBy, formatDateTimeLabel(incident.incidentDateTime), formatDateTimeLabel(incident.completionDateTime), incident.status]],
+      `Đã xuất dữ liệu phiếu ${incident.reportCode}`
+    );
+  };
+
+  const handleExportWorkOrderPdf = (workOrder: WorkOrder) => {
+    openPrintableWindow(`Công việc NCC ${workOrder.workOrderCode}`, [
+      `Mã công việc: ${workOrder.workOrderCode}`,
+      `Người thực hiện: ${workOrder.contactPerson}`,
+      `Bắt đầu: ${formatDateTimeLabel(workOrder.startDateTime)}`,
+      `Kết thúc: ${formatDateTimeLabel(workOrder.endDateTime)}`,
+      `Trạng thái: ${workOrder.status}`,
+      `Mô tả: ${workOrder.actionDescription}`,
+      `Ghi chú: ${workOrder.notes || "—"}`,
+    ]);
+    success("Thành công", `Đã mở chế độ in/PDF cho ${workOrder.workOrderCode}`);
+  };
+
+  const handleExportWorkOrderExcel = (workOrder: WorkOrder) => {
+    downloadCsvFile(
+      `${workOrder.workOrderCode}.csv`,
+      ["Mã công việc", "Người thực hiện", "Liên hệ", "Bắt đầu", "Kết thúc", "Trạng thái"],
+      [[workOrder.workOrderCode, workOrder.contactPerson, workOrder.contactMethod, formatDateTimeLabel(workOrder.startDateTime), formatDateTimeLabel(workOrder.endDateTime), workOrder.status]],
+      `Đã xuất dữ liệu công việc ${workOrder.workOrderCode}`
+    );
+  };
+
+  const handleEditWorkOrderFromList = (workOrder: WorkOrder) => {
+    const ownerIncident = incidentReports.find((incident) => incident.workOrders?.some((wo) => wo.id === workOrder.id));
+    setCurrentIncidentForWorkOrder(ownerIncident || null);
+    setEditingWorkOrder(workOrder);
+    setWorkOrderForm({
+      contactPerson: workOrder.contactPerson,
+      contactMethod: workOrder.contactMethod,
+      startDateTime: workOrder.startDateTime,
+      endDateTime: workOrder.endDateTime || "",
+      actionDescription: workOrder.actionDescription,
+      notes: workOrder.notes,
+      attachments: workOrder.attachments,
+      status: workOrder.status,
+      isCompleted: workOrder.isCompleted,
+      woConclusion: workOrder.conclusion,
+    });
+    setShowSupplierContactModal(true);
+    setShowWorkOrderForm(true);
+  };
+
+  const saveTransferProposal = (status: WorkflowStatus) => {
+    if (!selectedDeviceForAction || !transferForm.toLocation || !transferForm.reason || !transferForm.approver) {
+      error("Lỗi", "Vui lòng nhập nơi điều chuyển, lý do và người phê duyệt");
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    const baseData: TransferProposal = {
+      id: editingTransferId || `transfer-${Date.now()}`,
+      transferCode: editingTransferId
+        ? transferRecords.find((record) => record.id === editingTransferId)?.transferCode || `DC-${new Date().getFullYear()}-${String(transferCounter).padStart(3, "0")}`
+        : `DC-${new Date().getFullYear()}-${String(transferCounter).padStart(3, "0")}`,
+      deviceId: selectedDeviceForAction.id,
+      deviceCode: selectedDeviceForAction.code,
+      deviceName: selectedDeviceForAction.name,
+      fromLocation: transferForm.fromLocation || selectedDeviceForAction.location,
+      toLocation: transferForm.toLocation || "",
+      reason: transferForm.reason || "",
+      plannedTransferDate: transferForm.plannedTransferDate || "",
+      requestedBy: transferForm.requestedBy || user?.fullName || "",
+      approver: transferForm.approver || "",
+      status,
+      createdAt: editingTransferId
+        ? transferRecords.find((record) => record.id === editingTransferId)?.createdAt || nowIso
+        : nowIso,
+      updatedAt: nowIso,
+    };
+
+    if (editingTransferId) {
+      setTransferRecords(transferRecords.map((record) => (record.id === editingTransferId ? baseData : record)));
+    } else {
+      setTransferRecords([baseData, ...transferRecords]);
+      setTransferCounter((prev) => prev + 1);
+    }
+
+    setTransferViewMode("list");
+    setEditingTransferId(null);
+    success("Thành công", status === "Chờ duyệt" ? "Đã gửi phiếu điều chuyển phê duyệt" : "Đã lưu phiếu điều chuyển");
+  };
+
+  const saveLiquidationProposal = (status: WorkflowStatus) => {
+    if (!selectedDeviceForAction || !liquidationForm.reason || !liquidationForm.method || !liquidationForm.approver) {
+      error("Lỗi", "Vui lòng nhập lý do, phương thức và người phê duyệt");
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    const baseData: LiquidationProposal = {
+      id: editingLiquidationId || `liquidation-${Date.now()}`,
+      liquidationCode: editingLiquidationId
+        ? liquidationRecords.find((record) => record.id === editingLiquidationId)?.liquidationCode || `TL-${new Date().getFullYear()}-${String(liquidationCounter).padStart(3, "0")}`
+        : `TL-${new Date().getFullYear()}-${String(liquidationCounter).padStart(3, "0")}`,
+      deviceId: selectedDeviceForAction.id,
+      deviceCode: selectedDeviceForAction.code,
+      deviceName: selectedDeviceForAction.name,
+      reason: liquidationForm.reason || "",
+      method: liquidationForm.method || "",
+      estimatedValue: liquidationForm.estimatedValue || "0",
+      plannedDate: liquidationForm.plannedDate || "",
+      requestedBy: liquidationForm.requestedBy || user?.fullName || "",
+      approver: liquidationForm.approver || "",
+      status,
+      createdAt: editingLiquidationId
+        ? liquidationRecords.find((record) => record.id === editingLiquidationId)?.createdAt || nowIso
+        : nowIso,
+      updatedAt: nowIso,
+    };
+
+    if (editingLiquidationId) {
+      setLiquidationRecords(liquidationRecords.map((record) => (record.id === editingLiquidationId ? baseData : record)));
+    } else {
+      setLiquidationRecords([baseData, ...liquidationRecords]);
+      setLiquidationCounter((prev) => prev + 1);
+    }
+
+    setLiquidationViewMode("list");
+    setEditingLiquidationId(null);
+    success("Thành công", status === "Chờ duyệt" ? "Đã gửi phiếu thanh lý phê duyệt" : "Đã lưu phiếu thanh lý");
+  };
+
+  const saveTrainingProposal = (status: WorkflowStatus) => {
+    if (!selectedDeviceForAction || !trainingForm.topic || !trainingForm.trainer || !trainingForm.approver) {
+      error("Lỗi", "Vui lòng nhập nội dung, giảng viên và người phê duyệt");
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    const baseData: TrainingProposal = {
+      id: editingTrainingId || `training-${Date.now()}`,
+      trainingCode: editingTrainingId
+        ? trainingRecords.find((record) => record.id === editingTrainingId)?.trainingCode || `DT-${new Date().getFullYear()}-${String(trainingCounter).padStart(3, "0")}`
+        : `DT-${new Date().getFullYear()}-${String(trainingCounter).padStart(3, "0")}`,
+      deviceId: selectedDeviceForAction.id,
+      deviceCode: selectedDeviceForAction.code,
+      deviceName: selectedDeviceForAction.name,
+      topic: trainingForm.topic || "",
+      trainer: trainingForm.trainer || "",
+      traineeGroup: trainingForm.traineeGroup || "",
+      plannedDate: trainingForm.plannedDate || "",
+      approver: trainingForm.approver || "",
+      status,
+      createdAt: editingTrainingId
+        ? trainingRecords.find((record) => record.id === editingTrainingId)?.createdAt || nowIso
+        : nowIso,
+      updatedAt: nowIso,
+    };
+
+    if (editingTrainingId) {
+      setTrainingRecords(trainingRecords.map((record) => (record.id === editingTrainingId ? baseData : record)));
+    } else {
+      setTrainingRecords([baseData, ...trainingRecords]);
+      setTrainingCounter((prev) => prev + 1);
+    }
+
+    setTrainingViewMode("list");
+    setEditingTrainingId(null);
+    success("Thành công", status === "Chờ duyệt" ? "Đã gửi phiếu đào tạo phê duyệt" : "Đã lưu phiếu đào tạo");
+  };
   
   const paginatedDevices = useMemo(() => {
     if (viewMode !== "list" || pageSize === -1) return sortedDevices;
@@ -660,6 +1111,7 @@ export default function DeviceProfileTab() {
         break;
       case "dispose":
         setDisposalViewMode("list");
+        setLiquidationViewMode("list");
         setActiveModal("dispose");
         break;
       case "training":
@@ -2640,6 +3092,7 @@ export default function DeviceProfileTab() {
                         </div>
                         <button
                           onClick={() => {
+                            setEditingIncidentId(null);
                             setIncidentForm({
                               deviceId: selectedDeviceForAction.id,
                               deviceName: selectedDeviceForAction.name,
@@ -2700,8 +3153,8 @@ export default function DeviceProfileTab() {
                                 <tr key={incident.id} className="hover:bg-slate-50">
                                   <td className="px-4 py-3 font-mono text-red-600">{incident.reportCode}</td>
                                   <td className="px-4 py-3">{incident.discoveredBy}</td>
-                                  <td className="px-4 py-3">{incident.incidentDateTime ? new Date(incident.incidentDateTime).toLocaleString('vi-VN') : '—'}</td>
-                                  <td className="px-4 py-3">{incident.completionDateTime ? new Date(incident.completionDateTime).toLocaleString('vi-VN') : '—'}</td>
+                                  <td className="px-4 py-3">{formatDateTimeLabel(incident.incidentDateTime)}</td>
+                                  <td className="px-4 py-3">{formatDateTimeLabel(incident.completionDateTime)}</td>
                                   <td className="px-4 py-3">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                       incident.status === 'Hoàn thành' ? 'bg-green-100 text-green-700' :
@@ -2713,29 +3166,29 @@ export default function DeviceProfileTab() {
                                   </td>
                                   <td className="px-4 py-3 text-center">
                                     <div className="flex justify-center gap-2">
-                                      <button 
-                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" 
+                                      <button
+                                        onClick={() => handleEditIncidentRecord(incident)}
+                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
                                         title="Cập nhật"
-                                        onClick={() => {
-                                          // Handle edit incident
-                                        }}
                                       >
                                         <Edit size={16} />
                                       </button>
-                                      <button 
-                                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" 
+                                      <button
+                                        onClick={() => setSelectedIncident(incident)}
+                                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
                                         title="Xem chi tiết"
                                       >
                                         <Eye size={16} />
                                       </button>
-                                      <button 
-                                        className="p-1.5 text-green-600 hover:bg-green-50 rounded" 
+                                      <button
+                                        onClick={() => info("Đính kèm", `Phiếu ${incident.reportCode} hiện có ${incident.workOrders.flatMap(wo => wo.attachments || []).length} tệp đính kèm từ công việc NCC`)}
+                                        className="p-1.5 text-green-600 hover:bg-green-50 rounded"
                                         title="Đính kèm"
                                       >
                                         <Paperclip size={16} />
                                       </button>
-                                      <button 
-                                        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded" 
+                                      <button
+                                        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
                                         title="Tạo/Liên kết công việc kỹ sư"
                                         onClick={() => {
                                           setCurrentIncidentForWorkOrder(incident);
@@ -2745,11 +3198,19 @@ export default function DeviceProfileTab() {
                                       >
                                         <Phone size={16} />
                                       </button>
-                                      <button 
-                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded" 
+                                      <button
+                                        onClick={() => handleExportIncidentPdf(incident)}
+                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded"
                                         title="Xuất PDF"
                                       >
                                         <FileText size={16} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleExportIncidentExcel(incident)}
+                                        className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
+                                        title="Xuất Excel"
+                                      >
+                                        <Download size={16} />
                                       </button>
                                     </div>
                                   </td>
@@ -2801,17 +3262,40 @@ export default function DeviceProfileTab() {
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                       <div className="flex justify-center gap-2">
-                                        <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Cập nhật">
+                                        <button
+                                          onClick={() => handleEditWorkOrderFromList(wo)}
+                                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                          title="Cập nhật"
+                                        >
                                           <Edit size={16} />
                                         </button>
-                                        <button className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Xem chi tiết">
+                                        <button
+                                          onClick={() => info("Chi tiết công việc", `${wo.workOrderCode} - ${wo.actionDescription || "Chưa cập nhật mô tả"}`)}
+                                          className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                                          title="Xem chi tiết"
+                                        >
                                           <Eye size={16} />
                                         </button>
-                                        <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Xuất PDF">
+                                        <button
+                                          onClick={() => handleExportWorkOrderPdf(wo)}
+                                          className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                                          title="Xuất PDF"
+                                        >
                                           <FileText size={16} />
                                         </button>
-                                        <button className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Đính kèm">
+                                        <button
+                                          onClick={() => info("Đính kèm", `${wo.workOrderCode} có ${wo.attachments?.length || 0} tệp đính kèm`)}
+                                          className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+                                          title="Đính kèm"
+                                        >
                                           <Paperclip size={16} />
+                                        </button>
+                                        <button
+                                          onClick={() => handleExportWorkOrderExcel(wo)}
+                                          className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
+                                          title="Xuất Excel"
+                                        >
+                                          <Download size={16} />
                                         </button>
                                       </div>
                                     </td>
@@ -2851,7 +3335,9 @@ export default function DeviceProfileTab() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Mã phiếu báo cáo sự cố</label>
                   <input
                     type="text"
-                    value={`PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`}
+                    value={editingIncidentId
+                      ? incidentReports.find((incident) => incident.id === editingIncidentId)?.reportCode || ""
+                      : `PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`}
                     readOnly
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
                   />
@@ -3164,9 +3650,12 @@ export default function DeviceProfileTab() {
                   {incidentForm.conclusion === "chưa khắc phục" && (
                     <button
                       onClick={() => {
-                        const newIncident: IncidentReport = {
-                          id: `incident-${Date.now()}`,
-                          reportCode: `PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`,
+                        const existingIncident = editingIncidentId
+                          ? incidentReports.find((incident) => incident.id === editingIncidentId)
+                          : null;
+                        const incidentPayload: IncidentReport = {
+                          id: existingIncident?.id || `incident-${Date.now()}`,
+                          reportCode: existingIncident?.reportCode || `PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`,
                           deviceId: selectedDeviceForAction.id,
                           deviceName: selectedDeviceForAction.name,
                           deviceCode: selectedDeviceForAction.code,
@@ -3190,16 +3679,24 @@ export default function DeviceProfileTab() {
                           deviceManager: "",
                           relatedUsers: [],
                           status: "Đang khắc phục",
-                          workOrders: [],
-                          createdAt: new Date().toISOString(),
+                          workOrders: existingIncident?.workOrders || [],
+                          createdAt: existingIncident?.createdAt || new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
                           conclusion: "chưa khắc phục",
                           resolvedBy: "",
                           resolvedByType: undefined,
                           linkedWorkOrderCode: undefined,
                           completionDateTime: undefined,
                         };
-                        setIncidentReports([...incidentReports, newIncident]);
-                        setIncidentCounter(incidentCounter + 1);
+
+                        if (editingIncidentId) {
+                          setIncidentReports(incidentReports.map((incident) => incident.id === editingIncidentId ? incidentPayload : incident));
+                        } else {
+                          setIncidentReports([...incidentReports, incidentPayload]);
+                          setIncidentCounter(incidentCounter + 1);
+                        }
+
+                        setEditingIncidentId(null);
                         setIncidentForm({
                           deviceId: "", deviceName: "", deviceCode: "", specialty: "",
                           incidentDateTime: "", discoveredBy: "", discoveredByRole: "", supplier: "",
@@ -3208,7 +3705,7 @@ export default function DeviceProfileTab() {
                           stopFrom: "", stopTo: "", hasProposal: false, proposal: "",
                           reportedBy: "", deviceManager: "", relatedUsers: [], status: "Nháp", workOrders: [],
                         });
-                        success("Thành công", "Đã lưu báo cáo sự cố với trạng thái Đang khắc phục");
+                        success("Thành công", editingIncidentId ? "Đã cập nhật phiếu báo cáo sự cố" : "Đã lưu báo cáo sự cố với trạng thái Đang khắc phục");
                         setActiveModal(null);
                       }}
                       className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
@@ -3219,9 +3716,12 @@ export default function DeviceProfileTab() {
                   {incidentForm.conclusion === "đã khắc phục" && (
                     <button
                       onClick={() => {
-                        const newIncident: IncidentReport = {
-                          id: `incident-${Date.now()}`,
-                          reportCode: `PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`,
+                        const existingIncident = editingIncidentId
+                          ? incidentReports.find((incident) => incident.id === editingIncidentId)
+                          : null;
+                        const incidentPayload: IncidentReport = {
+                          id: existingIncident?.id || `incident-${Date.now()}`,
+                          reportCode: existingIncident?.reportCode || `PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`,
                           deviceId: selectedDeviceForAction.id,
                           deviceName: selectedDeviceForAction.name,
                           deviceCode: selectedDeviceForAction.code,
@@ -3245,21 +3745,29 @@ export default function DeviceProfileTab() {
                           deviceManager: "",
                           relatedUsers: [],
                           status: "Hoàn thành",
-                          workOrders: [],
-                          createdAt: new Date().toISOString(),
+                          workOrders: existingIncident?.workOrders || [],
+                          createdAt: existingIncident?.createdAt || new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
                           conclusion: "đã khắc phục",
                           resolvedBy: incidentForm.resolvedBy || "",
                           resolvedByType: incidentForm.resolvedByType as "nhân viên lab" | "nhà sản xuất" | undefined,
                           linkedWorkOrderCode: incidentForm.linkedWorkOrderCode,
                           completionDateTime: incidentForm.completionDateTime,
                         };
-                        setIncidentReports([...incidentReports, newIncident]);
-                        setIncidentCounter(incidentCounter + 1);
+
+                        if (editingIncidentId) {
+                          setIncidentReports(incidentReports.map((incident) => incident.id === editingIncidentId ? incidentPayload : incident));
+                        } else {
+                          setIncidentReports([...incidentReports, incidentPayload]);
+                          setIncidentCounter(incidentCounter + 1);
+                        }
+
+                        setEditingIncidentId(null);
                         // If device was paused, resume it
                         if (selectedDeviceForAction.status === "Tạm dừng") {
                           updateDeviceStatus(selectedDeviceForAction.id, "Đang vận hành");
                         }
-                        success("Thành công", "Đã hoàn thành báo cáo sự cố");
+                        success("Thành công", editingIncidentId ? "Đã cập nhật và hoàn thành phiếu sự cố" : "Đã hoàn thành báo cáo sự cố");
                         setActiveModal(null);
                       }}
                       className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2"
@@ -3334,6 +3842,776 @@ export default function DeviceProfileTab() {
         </div>
       )}
 
+      {selectedIncident && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={() => setSelectedIncident(null)}>
+          <div className="bg-white rounded-2xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Chi tiết phiếu sự cố</h3>
+                <p className="text-sm text-slate-500">{selectedIncident.reportCode}</p>
+              </div>
+              <button onClick={() => setSelectedIncident(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-3 text-sm">
+              <p><span className="font-medium text-slate-700">Thiết bị:</span> {selectedIncident.deviceCode} - {selectedIncident.deviceName}</p>
+              <p><span className="font-medium text-slate-700">Người báo cáo:</span> {selectedIncident.discoveredBy}</p>
+              <p><span className="font-medium text-slate-700">Thời gian phát hiện:</span> {formatDateTimeLabel(selectedIncident.incidentDateTime)}</p>
+              <p><span className="font-medium text-slate-700">Trạng thái:</span> {selectedIncident.status}</p>
+              <p><span className="font-medium text-slate-700">Mô tả:</span> {selectedIncident.description || "—"}</p>
+              <p><span className="font-medium text-slate-700">Xử trí tức thì:</span> {selectedIncident.immediateAction || "—"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================
+      /* TRANSFER MODAL */
+      /* ============================================ */}
+      {activeModal === "transfer" && selectedDeviceForAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
+          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Điều chuyển thiết bị</h2>
+                <p className="text-sm text-slate-500">Theo dõi phiếu điều chuyển và trạng thái phê duyệt</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {transferViewMode === "list" ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-slate-800">Danh sách phiếu điều chuyển</h3>
+                      <p className="text-sm text-slate-500">{selectedDeviceForAction.name} - {selectedDeviceForAction.code}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={transferFilterStatus}
+                        onChange={(e) => setTransferFilterStatus(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      >
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="Nháp">Nháp</option>
+                        <option value="Chờ duyệt">Chờ duyệt</option>
+                        <option value="Đã duyệt">Đã duyệt</option>
+                        <option value="Hoàn thành">Hoàn thành</option>
+                      </select>
+                      <button
+                        onClick={() => {
+                          setEditingTransferId(null);
+                          setTransferForm({
+                            fromLocation: selectedDeviceForAction.location,
+                            toLocation: "",
+                            reason: "",
+                            plannedTransferDate: "",
+                            requestedBy: user?.fullName || "",
+                            approver: "",
+                            status: "Nháp",
+                          });
+                          setTransferViewMode("form");
+                        }}
+                        className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 flex items-center gap-2"
+                      >
+                        <Plus size={18} /> Tạo phiếu điều chuyển
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã phiếu</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Từ</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Đến</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày dự kiến</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
+                          <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {transferRecords
+                          .filter((record) => record.deviceId === selectedDeviceForAction.id)
+                          .filter((record) => transferFilterStatus === "all" || record.status === transferFilterStatus)
+                          .map((record) => (
+                            <tr key={record.id} className="hover:bg-slate-50">
+                              <td className="px-4 py-3 font-mono text-cyan-700">{record.transferCode}</td>
+                              <td className="px-4 py-3">{record.fromLocation}</td>
+                              <td className="px-4 py-3">{record.toLocation}</td>
+                              <td className="px-4 py-3">{record.plannedTransferDate || "—"}</td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getWorkflowStatusClass(record.status)}`}>
+                                  {record.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <div className="flex justify-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingTransferId(record.id);
+                                      setTransferForm({ ...record });
+                                      setTransferViewMode("form");
+                                    }}
+                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                    title="Chỉnh sửa"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => setSelectedTransfer(record)}
+                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                                    title="Xem"
+                                  >
+                                    <Eye size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => openPrintableWindow(`Phiếu điều chuyển ${record.transferCode}`, [
+                                      `Thiết bị: ${record.deviceCode} - ${record.deviceName}`,
+                                      `Từ: ${record.fromLocation}`,
+                                      `Đến: ${record.toLocation}`,
+                                      `Lý do: ${record.reason}`,
+                                      `Người đề nghị: ${record.requestedBy}`,
+                                      `Người duyệt: ${record.approver}`,
+                                      `Trạng thái: ${record.status}`,
+                                    ])}
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                                    title="Xuất PDF"
+                                  >
+                                    <FileText size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => downloadCsvFile(
+                                      `${record.transferCode}.csv`,
+                                      ["Mã phiếu", "Thiết bị", "Từ", "Đến", "Ngày dự kiến", "Trạng thái"],
+                                      [[record.transferCode, `${record.deviceCode} - ${record.deviceName}`, record.fromLocation, record.toLocation, record.plannedTransferDate, record.status]],
+                                      `Đã xuất phiếu ${record.transferCode}`
+                                    )}
+                                    className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
+                                    title="Xuất Excel"
+                                  >
+                                    <Download size={16} />
+                                  </button>
+                                  {record.status === "Chờ duyệt" && (
+                                    <button
+                                      onClick={() => {
+                                        setTransferRecords(transferRecords.map((item) => item.id === record.id ? { ...item, status: "Đã duyệt", updatedAt: new Date().toISOString() } : item));
+                                        handleTransferApproval(record.deviceId);
+                                      }}
+                                      className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+                                      title="Phê duyệt"
+                                    >
+                                      <Check size={16} />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        {transferRecords.filter((record) => record.deviceId === selectedDeviceForAction.id).length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Chưa có phiếu điều chuyển</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setTransferViewMode("list")} className="flex items-center gap-2 text-slate-600 hover:text-slate-800">
+                    <ChevronRight className="rotate-180" size={20} /> Quay lại danh sách
+                  </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Mã phiếu</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={editingTransferId
+                          ? transferRecords.find((record) => record.id === editingTransferId)?.transferCode || ""
+                          : `DC-${new Date().getFullYear()}-${String(transferCounter).padStart(3, "0")}`}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Ngày dự kiến điều chuyển</label>
+                      <input
+                        type="date"
+                        value={transferForm.plannedTransferDate || ""}
+                        onChange={(e) => setTransferForm({ ...transferForm, plannedTransferDate: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Từ vị trí</label>
+                      <input
+                        type="text"
+                        value={transferForm.fromLocation || selectedDeviceForAction.location}
+                        onChange={(e) => setTransferForm({ ...transferForm, fromLocation: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Đến vị trí</label>
+                      <input
+                        type="text"
+                        value={transferForm.toLocation || ""}
+                        onChange={(e) => setTransferForm({ ...transferForm, toLocation: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Lý do điều chuyển</label>
+                    <textarea
+                      value={transferForm.reason || ""}
+                      onChange={(e) => setTransferForm({ ...transferForm, reason: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Người đề nghị</label>
+                      <input
+                        type="text"
+                        value={transferForm.requestedBy || user?.fullName || ""}
+                        onChange={(e) => setTransferForm({ ...transferForm, requestedBy: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Người phê duyệt</label>
+                      <input
+                        type="text"
+                        value={transferForm.approver || ""}
+                        onChange={(e) => setTransferForm({ ...transferForm, approver: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                    <button onClick={() => saveTransferProposal("Nháp")} className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Lưu nháp</button>
+                    <button onClick={() => saveTransferProposal("Chờ duyệt")} className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600">Gửi phê duyệt</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================
+      /* LIQUIDATION MODAL */
+      /* ============================================ */}
+      {activeModal === "dispose" && selectedDeviceForAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
+          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Thanh lý thiết bị</h2>
+                <p className="text-sm text-slate-500">Quản lý phiếu thanh lý và phê duyệt</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {liquidationViewMode === "list" ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-slate-800">Danh sách phiếu thanh lý</h3>
+                      <p className="text-sm text-slate-500">{selectedDeviceForAction.name} - {selectedDeviceForAction.code}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={liquidationFilterStatus}
+                        onChange={(e) => setLiquidationFilterStatus(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      >
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="Nháp">Nháp</option>
+                        <option value="Chờ duyệt">Chờ duyệt</option>
+                        <option value="Đã duyệt">Đã duyệt</option>
+                        <option value="Hoàn thành">Hoàn thành</option>
+                      </select>
+                      <button
+                        onClick={() => {
+                          setEditingLiquidationId(null);
+                          setLiquidationForm({
+                            reason: "",
+                            method: "",
+                            estimatedValue: "",
+                            plannedDate: "",
+                            requestedBy: user?.fullName || "",
+                            approver: "",
+                            status: "Nháp",
+                          });
+                          setLiquidationViewMode("form");
+                        }}
+                        className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"
+                      >
+                        <Plus size={18} /> Tạo phiếu thanh lý
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã phiếu</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Lý do</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Phương thức</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày dự kiến</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
+                          <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {liquidationRecords
+                          .filter((record) => record.deviceId === selectedDeviceForAction.id)
+                          .filter((record) => liquidationFilterStatus === "all" || record.status === liquidationFilterStatus)
+                          .map((record) => (
+                            <tr key={record.id} className="hover:bg-slate-50">
+                              <td className="px-4 py-3 font-mono text-slate-700">{record.liquidationCode}</td>
+                              <td className="px-4 py-3">{record.reason}</td>
+                              <td className="px-4 py-3">{record.method}</td>
+                              <td className="px-4 py-3">{record.plannedDate || "—"}</td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getWorkflowStatusClass(record.status)}`}>
+                                  {record.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <div className="flex justify-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingLiquidationId(record.id);
+                                      setLiquidationForm({ ...record });
+                                      setLiquidationViewMode("form");
+                                    }}
+                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                    title="Chỉnh sửa"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => setSelectedLiquidation(record)}
+                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                                    title="Xem"
+                                  >
+                                    <Eye size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => openPrintableWindow(`Phiếu thanh lý ${record.liquidationCode}`, [
+                                      `Thiết bị: ${record.deviceCode} - ${record.deviceName}`,
+                                      `Lý do: ${record.reason}`,
+                                      `Phương thức: ${record.method}`,
+                                      `Giá trị ước tính: ${record.estimatedValue}`,
+                                      `Người đề nghị: ${record.requestedBy}`,
+                                      `Người duyệt: ${record.approver}`,
+                                      `Trạng thái: ${record.status}`,
+                                    ])}
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                                    title="Xuất PDF"
+                                  >
+                                    <FileText size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => downloadCsvFile(
+                                      `${record.liquidationCode}.csv`,
+                                      ["Mã phiếu", "Thiết bị", "Lý do", "Phương thức", "Giá trị", "Trạng thái"],
+                                      [[record.liquidationCode, `${record.deviceCode} - ${record.deviceName}`, record.reason, record.method, record.estimatedValue, record.status]],
+                                      `Đã xuất phiếu ${record.liquidationCode}`
+                                    )}
+                                    className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
+                                    title="Xuất Excel"
+                                  >
+                                    <Download size={16} />
+                                  </button>
+                                  {record.status === "Chờ duyệt" && (
+                                    <button
+                                      onClick={() => {
+                                        setLiquidationRecords(liquidationRecords.map((item) => item.id === record.id ? { ...item, status: "Đã duyệt", updatedAt: new Date().toISOString() } : item));
+                                        handleLiquidationApproval(record.deviceId);
+                                      }}
+                                      className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+                                      title="Phê duyệt"
+                                    >
+                                      <Check size={16} />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        {liquidationRecords.filter((record) => record.deviceId === selectedDeviceForAction.id).length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Chưa có phiếu thanh lý</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setLiquidationViewMode("list")} className="flex items-center gap-2 text-slate-600 hover:text-slate-800">
+                    <ChevronRight className="rotate-180" size={20} /> Quay lại danh sách
+                  </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Mã phiếu</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={editingLiquidationId
+                          ? liquidationRecords.find((record) => record.id === editingLiquidationId)?.liquidationCode || ""
+                          : `TL-${new Date().getFullYear()}-${String(liquidationCounter).padStart(3, "0")}`}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Ngày dự kiến thanh lý</label>
+                      <input
+                        type="date"
+                        value={liquidationForm.plannedDate || ""}
+                        onChange={(e) => setLiquidationForm({ ...liquidationForm, plannedDate: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Lý do thanh lý</label>
+                    <textarea
+                      value={liquidationForm.reason || ""}
+                      onChange={(e) => setLiquidationForm({ ...liquidationForm, reason: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Phương thức thanh lý</label>
+                      <input
+                        type="text"
+                        value={liquidationForm.method || ""}
+                        onChange={(e) => setLiquidationForm({ ...liquidationForm, method: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Giá trị ước tính (VND)</label>
+                      <input
+                        type="number"
+                        value={liquidationForm.estimatedValue || ""}
+                        onChange={(e) => setLiquidationForm({ ...liquidationForm, estimatedValue: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Người đề nghị</label>
+                      <input
+                        type="text"
+                        value={liquidationForm.requestedBy || user?.fullName || ""}
+                        onChange={(e) => setLiquidationForm({ ...liquidationForm, requestedBy: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Người phê duyệt</label>
+                      <input
+                        type="text"
+                        value={liquidationForm.approver || ""}
+                        onChange={(e) => setLiquidationForm({ ...liquidationForm, approver: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                    <button onClick={() => saveLiquidationProposal("Nháp")} className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Lưu nháp</button>
+                    <button onClick={() => saveLiquidationProposal("Chờ duyệt")} className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800">Gửi phê duyệt</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================
+      /* TRAINING MODAL */
+      /* ============================================ */}
+      {activeModal === "training" && selectedDeviceForAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
+          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Đào tạo vận hành thiết bị</h2>
+                <p className="text-sm text-slate-500">Lập và theo dõi phiếu đào tạo người sử dụng</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {trainingViewMode === "list" ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-slate-800">Danh sách phiếu đào tạo</h3>
+                      <p className="text-sm text-slate-500">{selectedDeviceForAction.name} - {selectedDeviceForAction.code}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={trainingFilterStatus}
+                        onChange={(e) => setTrainingFilterStatus(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      >
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="Nháp">Nháp</option>
+                        <option value="Chờ duyệt">Chờ duyệt</option>
+                        <option value="Đã duyệt">Đã duyệt</option>
+                        <option value="Hoàn thành">Hoàn thành</option>
+                      </select>
+                      <button
+                        onClick={() => {
+                          setEditingTrainingId(null);
+                          setTrainingForm({
+                            topic: "",
+                            trainer: "",
+                            traineeGroup: "",
+                            plannedDate: "",
+                            approver: "",
+                            status: "Nháp",
+                          });
+                          setTrainingViewMode("form");
+                        }}
+                        className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 flex items-center gap-2"
+                      >
+                        <Plus size={18} /> Tạo phiếu đào tạo
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã phiếu</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Nội dung</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Giảng viên</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày dự kiến</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
+                          <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {trainingRecords
+                          .filter((record) => record.deviceId === selectedDeviceForAction.id)
+                          .filter((record) => trainingFilterStatus === "all" || record.status === trainingFilterStatus)
+                          .map((record) => (
+                            <tr key={record.id} className="hover:bg-slate-50">
+                              <td className="px-4 py-3 font-mono text-indigo-700">{record.trainingCode}</td>
+                              <td className="px-4 py-3">{record.topic}</td>
+                              <td className="px-4 py-3">{record.trainer}</td>
+                              <td className="px-4 py-3">{record.plannedDate || "—"}</td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getWorkflowStatusClass(record.status)}`}>
+                                  {record.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <div className="flex justify-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingTrainingId(record.id);
+                                      setTrainingForm({ ...record });
+                                      setTrainingViewMode("form");
+                                    }}
+                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                    title="Chỉnh sửa"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => setSelectedTraining(record)}
+                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                                    title="Xem"
+                                  >
+                                    <Eye size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => openPrintableWindow(`Phiếu đào tạo ${record.trainingCode}`, [
+                                      `Thiết bị: ${record.deviceCode} - ${record.deviceName}`,
+                                      `Nội dung: ${record.topic}`,
+                                      `Giảng viên: ${record.trainer}`,
+                                      `Nhóm học viên: ${record.traineeGroup}`,
+                                      `Ngày dự kiến: ${record.plannedDate}`,
+                                      `Người duyệt: ${record.approver}`,
+                                      `Trạng thái: ${record.status}`,
+                                    ])}
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                                    title="Xuất PDF"
+                                  >
+                                    <FileText size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => downloadCsvFile(
+                                      `${record.trainingCode}.csv`,
+                                      ["Mã phiếu", "Thiết bị", "Nội dung", "Giảng viên", "Học viên", "Trạng thái"],
+                                      [[record.trainingCode, `${record.deviceCode} - ${record.deviceName}`, record.topic, record.trainer, record.traineeGroup, record.status]],
+                                      `Đã xuất phiếu ${record.trainingCode}`
+                                    )}
+                                    className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
+                                    title="Xuất Excel"
+                                  >
+                                    <Download size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        {trainingRecords.filter((record) => record.deviceId === selectedDeviceForAction.id).length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Chưa có phiếu đào tạo</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setTrainingViewMode("list")} className="flex items-center gap-2 text-slate-600 hover:text-slate-800">
+                    <ChevronRight className="rotate-180" size={20} /> Quay lại danh sách
+                  </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Mã phiếu</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={editingTrainingId
+                          ? trainingRecords.find((record) => record.id === editingTrainingId)?.trainingCode || ""
+                          : `DT-${new Date().getFullYear()}-${String(trainingCounter).padStart(3, "0")}`}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Ngày dự kiến đào tạo</label>
+                      <input
+                        type="date"
+                        value={trainingForm.plannedDate || ""}
+                        onChange={(e) => setTrainingForm({ ...trainingForm, plannedDate: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung đào tạo</label>
+                    <textarea
+                      value={trainingForm.topic || ""}
+                      onChange={(e) => setTrainingForm({ ...trainingForm, topic: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Giảng viên</label>
+                      <input
+                        type="text"
+                        value={trainingForm.trainer || ""}
+                        onChange={(e) => setTrainingForm({ ...trainingForm, trainer: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Nhóm học viên</label>
+                      <input
+                        type="text"
+                        value={trainingForm.traineeGroup || ""}
+                        onChange={(e) => setTrainingForm({ ...trainingForm, traineeGroup: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Người phê duyệt</label>
+                    <input
+                      type="text"
+                      value={trainingForm.approver || ""}
+                      onChange={(e) => setTrainingForm({ ...trainingForm, approver: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                    <button onClick={() => saveTrainingProposal("Nháp")} className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Lưu nháp</button>
+                    <button onClick={() => saveTrainingProposal("Chờ duyệt")} className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">Gửi phê duyệt</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedTransfer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={() => setSelectedTransfer(null)}>
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-2" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-slate-800">Chi tiết phiếu điều chuyển</h3>
+            <p className="text-sm text-slate-500">{selectedTransfer.transferCode}</p>
+            <p className="text-sm">Thiết bị: {selectedTransfer.deviceCode} - {selectedTransfer.deviceName}</p>
+            <p className="text-sm">Từ: {selectedTransfer.fromLocation}</p>
+            <p className="text-sm">Đến: {selectedTransfer.toLocation}</p>
+            <p className="text-sm">Lý do: {selectedTransfer.reason}</p>
+            <p className="text-sm">Trạng thái: {selectedTransfer.status}</p>
+          </div>
+        </div>
+      )}
+
+      {selectedLiquidation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={() => setSelectedLiquidation(null)}>
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-2" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-slate-800">Chi tiết phiếu thanh lý</h3>
+            <p className="text-sm text-slate-500">{selectedLiquidation.liquidationCode}</p>
+            <p className="text-sm">Thiết bị: {selectedLiquidation.deviceCode} - {selectedLiquidation.deviceName}</p>
+            <p className="text-sm">Lý do: {selectedLiquidation.reason}</p>
+            <p className="text-sm">Phương thức: {selectedLiquidation.method}</p>
+            <p className="text-sm">Giá trị ước tính: {selectedLiquidation.estimatedValue}</p>
+            <p className="text-sm">Trạng thái: {selectedLiquidation.status}</p>
+          </div>
+        </div>
+      )}
+
+      {selectedTraining && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={() => setSelectedTraining(null)}>
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-2" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-slate-800">Chi tiết phiếu đào tạo</h3>
+            <p className="text-sm text-slate-500">{selectedTraining.trainingCode}</p>
+            <p className="text-sm">Thiết bị: {selectedTraining.deviceCode} - {selectedTraining.deviceName}</p>
+            <p className="text-sm">Nội dung: {selectedTraining.topic}</p>
+            <p className="text-sm">Giảng viên: {selectedTraining.trainer}</p>
+            <p className="text-sm">Nhóm học viên: {selectedTraining.traineeGroup}</p>
+            <p className="text-sm">Trạng thái: {selectedTraining.status}</p>
+          </div>
+        </div>
+      )}
+
       {/* ============================================
       /* SUPPLIER CONTACT MODAL */
       /* ============================================ */}
@@ -3361,6 +4639,8 @@ export default function DeviceProfileTab() {
               <div className="flex justify-end">
                 <button
                   onClick={() => {
+                    const defaultIncident = incidentReports.find((incident) => incident.deviceId === selectedDeviceForAction.id) || null;
+                    setCurrentIncidentForWorkOrder(defaultIncident);
                     setEditingWorkOrder(null);
                     setWorkOrderForm({
                       contactPerson: "",
@@ -3633,10 +4913,67 @@ export default function DeviceProfileTab() {
                         </button>
                         <button
                           onClick={() => {
-                            // Save work order logic would go here
-                            success("Thành công", "Đã lưu công việc");
+                            if (!selectedDeviceForAction) {
+                              error("Lỗi", "Không tìm thấy thiết bị đang thao tác");
+                              return;
+                            }
+
+                            const targetIncident = currentIncidentForWorkOrder
+                              || incidentReports.find((incident) => incident.deviceId === selectedDeviceForAction.id)
+                              || null;
+
+                            if (!targetIncident) {
+                              error("Lỗi", "Cần có ít nhất một phiếu sự cố để gắn công việc nhà cung ứng");
+                              return;
+                            }
+
+                            const newWorkOrder: WorkOrder = {
+                              id: editingWorkOrder?.id || `wo-${Date.now()}`,
+                              workOrderCode: editingWorkOrder?.workOrderCode || `${targetIncident.reportCode}-WO-${String(workOrderCounter).padStart(3, "0")}`,
+                              incidentReportCode: targetIncident.reportCode,
+                              contactPerson: workOrderForm.contactPerson || "",
+                              contactMethod: (workOrderForm.contactMethod || "điện thoại") as WorkOrder["contactMethod"],
+                              startDateTime: workOrderForm.startDateTime || "",
+                              endDateTime: workOrderForm.endDateTime,
+                              actionDescription: workOrderForm.actionDescription || "",
+                              notes: workOrderForm.notes || "",
+                              attachments: workOrderForm.attachments || [],
+                              status: workOrderForm.status || "Mở",
+                              isCompleted: workOrderForm.isCompleted || false,
+                              conclusion: workOrderForm.woConclusion,
+                              createdAt: editingWorkOrder?.createdAt || new Date().toISOString(),
+                            };
+
+                            setIncidentReports(
+                              incidentReports.map((incident) => {
+                                if (incident.id !== targetIncident.id) return incident;
+                                const existingWorkOrders = incident.workOrders || [];
+                                const updatedWorkOrders = editingWorkOrder
+                                  ? existingWorkOrders.map((workOrder) => workOrder.id === editingWorkOrder.id ? newWorkOrder : workOrder)
+                                  : [...existingWorkOrders, newWorkOrder];
+                                return { ...incident, workOrders: updatedWorkOrders, updatedAt: new Date().toISOString() };
+                              })
+                            );
+
+                            setEditingWorkOrder(null);
+                            setCurrentIncidentForWorkOrder(null);
+                            setWorkOrderForm({
+                              contactPerson: "",
+                              contactMethod: "điện thoại",
+                              startDateTime: "",
+                              endDateTime: "",
+                              actionDescription: "",
+                              notes: "",
+                              attachments: [],
+                              status: "Mở",
+                              isCompleted: false,
+                              woConclusion: undefined,
+                            });
+                            success("Thành công", editingWorkOrder ? "Đã cập nhật công việc" : "Đã thêm công việc mới");
                             setShowWorkOrderForm(false);
-                            setWorkOrderCounter(workOrderCounter + 1);
+                            if (!editingWorkOrder) {
+                              setWorkOrderCounter(workOrderCounter + 1);
+                            }
                           }}
                           className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
                         >
