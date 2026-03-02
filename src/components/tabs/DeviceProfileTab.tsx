@@ -2522,7 +2522,7 @@ export default function DeviceProfileTab() {
                   }`}
                 >
                   <AlertTriangle className="w-4 h-4 inline-block mr-2" />
-                  Báo cáo sự cố
+                  Danh sách phiếu báo cáo sự cố
                 </button>
                 <button
                   onClick={() => setIncidentModalTab("work-orders")}
@@ -2533,7 +2533,7 @@ export default function DeviceProfileTab() {
                   }`}
                 >
                   <ClipboardList className="w-4 h-4 inline-block mr-2" />
-                  Lệnh công việc
+                  Danh sách công việc của kỹ sư
                 </button>
               </div>
             </div>
@@ -2983,7 +2983,7 @@ export default function DeviceProfileTab() {
               {incidentModalTab === "work-orders" && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-800">Danh sách lệnh công việc</h3>
+                    <h3 className="font-semibold text-slate-800">Danh sách công việc của kỹ sư</h3>
                     <button
                       onClick={() => {
                         // Add new work order logic
