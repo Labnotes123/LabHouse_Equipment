@@ -189,6 +189,9 @@ export default function DeviceProfileTab() {
   const [incidentCounter, setIncidentCounter] = useState(2); // Current max number for PSC-XXXX-XXX
   const [workOrderCounter, setWorkOrderCounter] = useState(1); // Current max number for WO-XXX
   
+  // View mode: 'list' shows the list first, 'form' shows the create form
+  const [incidentViewMode, setIncidentViewMode] = useState<"list" | "form">("list");
+  
   // Incident form state
   const [incidentForm, setIncidentForm] = useState<Partial<IncidentReport>>({
     deviceId: "",
@@ -274,6 +277,11 @@ export default function DeviceProfileTab() {
   const [calibrationRequests, setCalibrationRequests] = useState<any[]>([]);
   const [calibrationSearchTerm, setCalibrationSearchTerm] = useState("");
   const [calibrationFilterStatus, setCalibrationFilterStatus] = useState<string>("all");
+  
+  // View mode for each calibration tab: 'list' shows list first, 'form' shows create form
+  const [calibrationRequestViewMode, setCalibrationRequestViewMode] = useState<"list" | "form">("list");
+  const [calibrationScheduleViewMode, setCalibrationScheduleViewMode] = useState<"list" | "form">("list");
+  const [calibrationResultViewMode, setCalibrationResultViewMode] = useState<"list" | "form">("list");
   
   // Calibration schedule state
   const [showScheduleForm, setShowScheduleForm] = useState(false);
@@ -565,9 +573,13 @@ export default function DeviceProfileTab() {
         setShowInfoDropdown(null);
         break;
       case "incident":
+        setIncidentViewMode("list");
         setActiveModal("incident");
         break;
       case "calibration":
+        setCalibrationRequestViewMode("list");
+        setCalibrationScheduleViewMode("list");
+        setCalibrationResultViewMode("list");
         setActiveModal("calibration");
         break;
       case "maintenance":
@@ -2539,10 +2551,190 @@ export default function DeviceProfileTab() {
             </div>
             
             <div className="p-6 space-y-6">
-              {/* Tab Content: Báo cáo sự cố */}
+              {/* TAB REPORTS CONTENT */}
               {incidentModalTab === "reports" && (
                 <>
-              {/* Header Info - Auto-filled from device */}
+                  {incidentViewMode === "list" ? (
+                    // ==================== LIST VIEW FIRST ====================
+                    <div className="space-y-6">
+                      {/* Header with Create Button */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-slate-800 text-lg">Danh sách phiếu báo cáo sự cố</h3>
+                          <p className="text-sm text-slate-500">{selectedDeviceForAction.name} - {selectedDeviceForAction.code}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setIncidentForm({
+                              deviceId: selectedDeviceForAction.id,
+                              deviceName: selectedDeviceForAction.name,
+                              deviceCode: selectedDeviceForAction.code,
+                              specialty: selectedDeviceForAction.specialty,
+                              incidentDateTime: "",
+                              discoveredBy: user?.fullName || "",
+                              discoveredByRole: user?.role || "",
+                              supplier: selectedDeviceForAction.distributor || "",
+                              description: "",
+                              immediateAction: "",
+                              supplierAction: "",
+                              affectsPatientResult: false,
+                              affectedPatientSid: "",
+                              howAffected: "",
+                              requiresDeviceStop: false,
+                              stopFrom: "",
+                              stopTo: "",
+                              hasProposal: false,
+                              proposal: "",
+                              reportedBy: "",
+                              deviceManager: "",
+                              relatedUsers: [],
+                              status: "Nháp",
+                              workOrders: [],
+                            });
+                            setIncidentViewMode("form");
+                          }}
+                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2"
+                        >
+                          <Plus size={18} /> Tạo báo cáo sự cố
+                        </button>
+                      </div>
+
+                      {/* Reports Table */}
+                      <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table className="w-full text-sm">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã phiếu</th>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Người báo cáo</th>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian phát hiện</th>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian kết thúc</th>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
+                              <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {incidentReports.filter(i => i.deviceId === selectedDeviceForAction.id).length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                                  <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                                  <p>Chưa có phiếu báo cáo sự cố nào</p>
+                                </td>
+                              </tr>
+                            ) : (
+                              incidentReports.filter(i => i.deviceId === selectedDeviceForAction.id).map(incident => (
+                                <tr key={incident.id} className="hover:bg-slate-50">
+                                  <td className="px-4 py-3 font-mono text-red-600">{incident.reportCode}</td>
+                                  <td className="px-4 py-3">{incident.discoveredBy}</td>
+                                  <td className="px-4 py-3">{incident.incidentDateTime ? new Date(incident.incidentDateTime).toLocaleString('vi-VN') : '—'}</td>
+                                  <td className="px-4 py-3">{incident.completionDateTime ? new Date(incident.completionDateTime).toLocaleString('vi-VN') : '—'}</td>
+                                  <td className="px-4 py-3">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      incident.status === 'Hoàn thành' ? 'bg-green-100 text-green-700' :
+                                      incident.status === 'Đang khắc phục' ? 'bg-amber-100 text-amber-700' :
+                                      'bg-slate-100 text-slate-700'
+                                    }`}>
+                                      {incident.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <div className="flex justify-center gap-2">
+                                      <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Cập nhật">
+                                        <Edit size={16} />
+                                      </button>
+                                      <button className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Xem chi tiết">
+                                        <Eye size={16} />
+                                      </button>
+                                      <button className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Đính kèm">
+                                        <Paperclip size={16} />
+                                      </button>
+                                      <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Xuất PDF">
+                                        <FileText size={16} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Work Orders Table (Bảng theo dõi công việc của NCC) */}
+                      <div>
+                        <h4 className="font-semibold text-slate-800 mb-3">Danh sách công việc của nhà cung ứng</h4>
+                        <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                          <table className="w-full text-sm">
+                            <thead className="bg-amber-50">
+                              <tr>
+                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã công việc</th>
+                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Người thực hiện</th>
+                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian bắt đầu</th>
+                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian kết thúc</th>
+                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
+                                <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {incidentReports.filter(i => i.deviceId === selectedDeviceForAction.id).flatMap(i => i.workOrders || []).length === 0 ? (
+                                <tr>
+                                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                                    <ClipboardList className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                                    <p>Chưa có công việc nào</p>
+                                  </td>
+                                </tr>
+                              ) : (
+                                incidentReports.filter(i => i.deviceId === selectedDeviceForAction.id).flatMap(i => i.workOrders || []).map(wo => (
+                                  <tr key={wo.id} className="hover:bg-slate-50">
+                                    <td className="px-4 py-3 font-mono text-amber-600">{wo.workOrderCode}</td>
+                                    <td className="px-4 py-3">{wo.contactPerson || '—'}</td>
+                                    <td className="px-4 py-3">{wo.startDateTime || '—'}</td>
+                                    <td className="px-4 py-3">{wo.endDateTime || '—'}</td>
+                                    <td className="px-4 py-3">
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        wo.status === 'Đóng' ? 'bg-green-100 text-green-700' :
+                                        wo.status === 'Mở' ? 'bg-amber-100 text-amber-700' :
+                                        'bg-slate-100 text-slate-700'
+                                      }`}>
+                                        {wo.status}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <div className="flex justify-center gap-2">
+                                        <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Cập nhật">
+                                          <Edit size={16} />
+                                        </button>
+                                        <button className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Xem chi tiết">
+                                          <Eye size={16} />
+                                        </button>
+                                        <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Xuất PDF">
+                                          <FileText size={16} />
+                                        </button>
+                                        <button className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Đính kèm">
+                                          <Paperclip size={16} />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // ==================== FORM VIEW ====================
+                    <>
+                      {/* Back button */}
+                      <button
+                        onClick={() => setIncidentViewMode("list")}
+                        className="flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-4"
+                      >
+                        <ChevronRight className="rotate-180" size={20} />
+                        Quay lại danh sách
+                      </button>
+
+                      {/* Header Info - Auto-filled from device */}
               <div className="bg-red-50 rounded-xl p-4 border border-red-100">
                 <h3 className="font-semibold text-red-800 text-lg">{selectedDeviceForAction.name}</h3>
                 <p className="text-sm text-red-600">{selectedDeviceForAction.code} - {selectedDeviceForAction.model} - Serial: {selectedDeviceForAction.serial}</p>
@@ -2976,7 +3168,9 @@ export default function DeviceProfileTab() {
                   )}
                 </div>
               </div>
-            </>
+                    </>
+                  )}
+                </>
               )}
 
               {/* Tab Content: Lệnh công việc */}
@@ -3416,7 +3610,114 @@ export default function DeviceProfileTab() {
               {/* Tab Content: Yêu cầu hiệu chuẩn */}
               {calibrationModalTab === "request" && (
                 <>
-              {/* Device Info */}
+                  {calibrationRequestViewMode === "list" ? (
+                    // ==================== LIST VIEW FIRST ====================
+                    <div className="space-y-6">
+                      {/* Header with Create Button */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-slate-800 text-lg">Danh sách yêu cầu hiệu chuẩn</h3>
+                          <p className="text-sm text-slate-500">{selectedDeviceForAction.name} - {selectedDeviceForAction.code}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCalibrationForm({
+                              deviceId: selectedDeviceForAction.id,
+                              deviceName: selectedDeviceForAction.name,
+                              deviceCode: selectedDeviceForAction.code,
+                              serialNumber: selectedDeviceForAction.serial,
+                              quantity: 1,
+                              expectedDate: "",
+                              content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189, Sở ban ngành.",
+                              notes: "",
+                              approver: "",
+                              relatedUsers: [],
+                              status: "Nháp",
+                              requestedBy: user?.fullName || "",
+                            });
+                            setCalibrationRequestViewMode("form");
+                          }}
+                          className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 flex items-center gap-2"
+                        >
+                          <Plus size={18} /> Tạo yêu cầu hiệu chuẩn
+                        </button>
+                      </div>
+
+                      {/* Requests Table */}
+                      <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table className="w-full text-sm">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã yêu cầu</th>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Tên thiết bị</th>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã thiết bị</th>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Số serial</th>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Nội dung</th>
+                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
+                              <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {calibrationRequests.filter(r => r.deviceId === selectedDeviceForAction.id).length === 0 ? (
+                              <tr>
+                                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                                  <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                                  <p>Chưa có yêu cầu hiệu chuẩn nào</p>
+                                </td>
+                              </tr>
+                            ) : (
+                              calibrationRequests.filter(r => r.deviceId === selectedDeviceForAction.id).map(req => (
+                                <tr key={req.id} className="hover:bg-slate-50">
+                                  <td className="px-4 py-3 font-mono text-purple-600">{req.requestCode}</td>
+                                  <td className="px-4 py-3">{req.deviceName}</td>
+                                  <td className="px-4 py-3">{req.deviceCode}</td>
+                                  <td className="px-4 py-3">{req.serialNumber}</td>
+                                  <td className="px-4 py-3">{req.content}</td>
+                                  <td className="px-4 py-3">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      req.status === 'Hoàn thành' ? 'bg-green-100 text-green-700' :
+                                      req.status === 'Đã duyệt' ? 'bg-blue-100 text-blue-700' :
+                                      req.status === 'Chờ duyệt' ? 'bg-amber-100 text-amber-700' :
+                                      'bg-slate-100 text-slate-700'
+                                    }`}>
+                                      {req.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <div className="flex justify-center gap-2">
+                                      <button className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Xem chi tiết">
+                                        <Eye size={16} />
+                                      </button>
+                                      <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Xuất PDF">
+                                        <FileText size={16} />
+                                      </button>
+                                      {req.status === 'Chờ duyệt' && (
+                                        <button className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Phê duyệt">
+                                          <CheckCircle2 size={16} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    // ==================== FORM VIEW ====================
+                    <>
+                      {/* Back button */}
+                      <button
+                        onClick={() => setCalibrationRequestViewMode("list")}
+                        className="flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-4"
+                      >
+                        <ChevronRight className="rotate-180" size={20} />
+                        Quay lại danh sách
+                      </button>
+
+                      {/* Device Info */}
               <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
                 <h3 className="font-semibold text-purple-800 text-lg">{selectedDeviceForAction.name}</h3>
                 <p className="text-sm text-purple-600">{selectedDeviceForAction.code} - {selectedDeviceForAction.model} - Serial: {selectedDeviceForAction.serial}</p>
@@ -3584,7 +3885,9 @@ export default function DeviceProfileTab() {
                   </button>
                 </div>
               </div>
-            </>
+                    </>
+                  )}
+                </>
               )}
 
               {/* Tab Content: Lịch hiệu chuẩn */}
