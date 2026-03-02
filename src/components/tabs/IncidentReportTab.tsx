@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   AlertTriangle,
   Plus,
@@ -76,6 +76,7 @@ const LAB_STAFF = MOCK_USERS_LIST.filter(u =>
 export default function IncidentReportTab() {
   const { user } = useAuth();
   const { success, error, info } = useToast();
+  const workOrderAttachmentInputRef = useRef<HTMLInputElement>(null);
 
   // State
   const [incidentReports, setIncidentReports] = useState<IncidentReport[]>(mockIncidents);
@@ -87,11 +88,6 @@ export default function IncidentReportTab() {
   const [activeTab, setActiveTab] = useState<"reports" | "work-orders">("reports");
   const [incidentCounter, setIncidentCounter] = useState(2);
   const [workOrderCounters, setWorkOrderCounters] = useState<Record<string, number>>({});
-  const [attachmentViewer, setAttachmentViewer] = useState<{
-    open: boolean;
-    title: string;
-    files: AttachedFile[];
-  }>({ open: false, title: "", files: [] });
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -141,6 +137,9 @@ export default function IncidentReportTab() {
     status: "Mở",
     isCompleted: false,
   });
+  const [showAttachmentViewer, setShowAttachmentViewer] = useState(false);
+  const [attachmentViewerTitle, setAttachmentViewerTitle] = useState("");
+  const [attachmentViewerFiles, setAttachmentViewerFiles] = useState<AttachedFile[]>([]);
 
   // Filtered incidents
   const filteredIncidents = useMemo(() => {
@@ -632,6 +631,76 @@ export default function IncidentReportTab() {
     success("Thành công", "Đã cập nhật phiếu báo cáo sự cố");
   };
 
+  const openAttachmentViewer = (title: string, files: AttachedFile[]) => {
+    setAttachmentViewerTitle(title);
+    setAttachmentViewerFiles(files);
+    setShowAttachmentViewer(true);
+  };
+
+  const handleViewAttachment = (file: AttachedFile) => {
+    if (!file.url) {
+      error("Lỗi", "Không tìm thấy tệp để xem");
+      return;
+    }
+    window.open(file.url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDownloadAttachment = (file: AttachedFile) => {
+    if (!file.url) {
+      error("Lỗi", "Tệp đính kèm không hợp lệ");
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = file.url;
+    link.download = file.name;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleUploadWorkOrderAttachments = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const incomingFiles = event.target.files;
+    if (!incomingFiles || incomingFiles.length === 0) return;
+
+    const convertedFiles: AttachedFile[] = Array.from(incomingFiles).map((file) => {
+      const lowerFileName = file.name.toLowerCase();
+      const attachmentType: AttachedFile["type"] = lowerFileName.endsWith(".pdf")
+        ? "pdf"
+        : file.type.startsWith("image/")
+          ? "image"
+          : "doc";
+
+      return {
+        id: `ir-att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: file.name,
+        type: attachmentType,
+        url: URL.createObjectURL(file),
+        size: file.size,
+      };
+    });
+
+    setWorkOrderForm((prev) => ({
+      ...prev,
+      attachments: [...(prev.attachments || []), ...convertedFiles],
+    }));
+
+    event.target.value = "";
+    success("Thành công", `Đã thêm ${convertedFiles.length} tệp đính kèm`);
+  };
+
+  const handleRemoveWorkOrderAttachment = (attachmentId: string) => {
+    const attachment = (workOrderForm.attachments || []).find((item) => item.id === attachmentId);
+    if (attachment?.url?.startsWith("blob:")) {
+      URL.revokeObjectURL(attachment.url);
+    }
+
+    setWorkOrderForm((prev) => ({
+      ...prev,
+      attachments: (prev.attachments || []).filter((item) => item.id !== attachmentId),
+    }));
+  };
+
   // Auto-generate supplier action from linked work orders
   const generateSupplierAction = (incident: IncidentReport) => {
     if (!incident.workOrders || incident.workOrders.length === 0) return "";
@@ -642,36 +711,6 @@ export default function IncidentReportTab() {
         return `Từ ${wo.startDateTime}${wo.endDateTime ? ` đến ${wo.endDateTime}` : ''}, Kỹ sư ${wo.engineerName || wo.contactPerson} - ${wo.actionDescription}. Kết luận: ${wo.conclusion === "hoàn thành" ? "Hoàn thành" : "Xử trí 1 phần"}.`;
       })
       .join("\n");
-  };
-
-  const handleOpenAttachments = (files: AttachedFile[], title: string) => {
-    if (!files || files.length === 0) {
-      info("Đính kèm", "Chưa có tài liệu đính kèm");
-      return;
-    }
-    setAttachmentViewer({ open: true, title, files });
-  };
-
-  const handlePreviewAttachment = (file: AttachedFile) => {
-    if (!file.url) {
-      error("Lỗi", "Không tìm thấy đường dẫn tệp đính kèm");
-      return;
-    }
-    window.open(file.url, "_blank", "noopener,noreferrer");
-  };
-
-  const handleDownloadAttachment = (file: AttachedFile) => {
-    if (!file.url) {
-      error("Lỗi", "Không tìm thấy đường dẫn tệp đính kèm");
-      return;
-    }
-
-    const link = document.createElement("a");
-    link.href = file.url;
-    link.download = file.name || `attachment-${Date.now()}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   return (
@@ -823,10 +862,10 @@ export default function IncidentReportTab() {
                         <Eye size={16} />
                       </button>
                       <button
-                        onClick={() => handleOpenAttachments(
-                          incident.workOrders.flatMap((wo) => wo.attachments || []),
-                          `Tài liệu đính kèm - ${incident.reportCode}`
-                        )}
+                        onClick={() => {
+                          const files = incident.workOrders?.flatMap((wo) => wo.attachments || []) || [];
+                          openAttachmentViewer(`Đính kèm của ${incident.reportCode}`, files);
+                        }}
                         className="p-1.5 text-slate-600 hover:bg-slate-100 rounded"
                         title="Đính kèm"
                       >
@@ -902,7 +941,7 @@ export default function IncidentReportTab() {
                         <Printer size={16} />
                       </button>
                       <button
-                        onClick={() => handleOpenAttachments(wo.attachments || [], `Tài liệu đính kèm - ${wo.workOrderCode}`)}
+                        onClick={() => openAttachmentViewer(`Đính kèm của ${wo.workOrderCode}`, wo.attachments || [])}
                         className="p-1.5 text-slate-600 hover:bg-slate-100 rounded"
                         title="Đính kèm"
                       >
@@ -919,53 +958,6 @@ export default function IncidentReportTab() {
           )}
         </div>
       )}
-
-          {attachmentViewer.open && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={() => setAttachmentViewer({ open: false, title: "", files: [] })}>
-              <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-800">{attachmentViewer.title}</h3>
-                    <p className="text-sm text-slate-500">{attachmentViewer.files.length} tài liệu đính kèm</p>
-                  </div>
-                  <button
-                    onClick={() => setAttachmentViewer({ open: false, title: "", files: [] })}
-                    className="p-2 hover:bg-slate-100 rounded-lg"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <div className="p-6 space-y-3">
-                  {attachmentViewer.files.map((file) => (
-                    <div key={file.id} className="border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Paperclip className="w-4 h-4 text-slate-500 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-slate-800 truncate">{file.name}</p>
-                          <p className="text-xs text-slate-500 uppercase">{file.type}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => handlePreviewAttachment(file)}
-                          className="px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center gap-1"
-                        >
-                          <Eye size={14} /> Xem
-                        </button>
-                        <button
-                          onClick={() => handleDownloadAttachment(file)}
-                          className="px-3 py-1.5 text-sm text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 flex items-center gap-1"
-                        >
-                          <Download size={14} /> Tải về
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
 
       {/* Create Incident Form Modal */}
       {showForm && (
@@ -1906,6 +1898,63 @@ export default function IncidentReportTab() {
                   />
                 </div>
 
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Đính kèm tài liệu</label>
+                  <input
+                    ref={workOrderAttachmentInputRef}
+                    type="file"
+                    className="hidden"
+                    multiple
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                    onChange={handleUploadWorkOrderAttachments}
+                  />
+                  <div className="space-y-2">
+                    {(workOrderForm.attachments || []).length > 0 && (
+                      <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
+                        {(workOrderForm.attachments || []).map((attachment) => (
+                          <div key={attachment.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                            <span className="text-slate-700 truncate pr-3">{attachment.name}</span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleViewAttachment(attachment)}
+                                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                title="Xem"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadAttachment(attachment)}
+                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                                title="Tải"
+                              >
+                                <Download size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveWorkOrderAttachment(attachment.id)}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                title="Xóa"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => workOrderAttachmentInputRef.current?.click()}
+                      className="w-full border-2 border-dashed border-slate-200 rounded-lg p-3 text-sm text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-2"
+                    >
+                      <Upload size={16} />
+                      Chọn file đính kèm
+                    </button>
+                  </div>
+                </div>
+
                 {/* Engineer Signature Section */}
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <h5 className="font-medium text-slate-800 mb-3 flex items-center gap-2">
@@ -1991,6 +2040,52 @@ export default function IncidentReportTab() {
                   Đóng
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAttachmentViewer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowAttachmentViewer(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800">{attachmentViewerTitle || "Tài liệu đính kèm"}</h3>
+                <p className="text-sm text-slate-500">{attachmentViewerFiles.length} tệp</p>
+              </div>
+              <button onClick={() => setShowAttachmentViewer(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              {attachmentViewerFiles.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-8">Chưa có tài liệu đính kèm</p>
+              ) : (
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg">
+                  {attachmentViewerFiles.map((file) => (
+                    <div key={file.id} className="flex items-center justify-between px-4 py-3">
+                      <div className="min-w-0 pr-3">
+                        <p className="text-sm font-medium text-slate-700 truncate">{file.name}</p>
+                        <p className="text-xs text-slate-500">{file.type.toUpperCase()} • {Math.max(1, Math.round(file.size / 1024))} KB</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleViewAttachment(file)}
+                          className="px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50"
+                        >
+                          Xem
+                        </button>
+                        <button
+                          onClick={() => handleDownloadAttachment(file)}
+                          className="px-3 py-1.5 text-sm text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50"
+                        >
+                          Tải xuống
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
