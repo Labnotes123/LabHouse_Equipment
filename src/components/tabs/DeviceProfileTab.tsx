@@ -1,5 +1,4 @@
 /* eslint-disable @next/next/no-img-element */
-/* eslint-disable jsx-a11y/alt-text */
 "use client";
 
 import { useState, useMemo, useRef, useId } from "react";
@@ -78,6 +77,15 @@ import {
   ListChecks,
   Table,
 } from "lucide-react";
+import ReturnAcceptanceFormModal from "./ReturnAcceptanceFormModal";
+import ReturnAcceptanceSection from "./ReturnAcceptanceSection";
+import DeviceRegistrationModal from "./DeviceRegistrationModal";
+import CalibrationModal from "./CalibrationModal";
+import MaintenanceModal from "./MaintenanceModal";
+import TransferModal from "./TransferModal";
+import LiquidationModal from "./LiquidationModal";
+import TrainingModal from "./TrainingModal";
+import IncidentReportModal from "./IncidentReportModal";
 import {
   Device,
   DeviceStatus,
@@ -103,16 +111,16 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type ViewMode = "grid" | "list";
 
-interface Column {
+export interface Column {
   key: string;
   label: string;
   visible: boolean;
   width?: number;
 }
 
-type WorkflowStatus = "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành";
+export type WorkflowStatus = "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành";
 
-interface TransferProposal {
+export interface TransferProposal {
   id: string;
   transferCode: string;
   deviceId: string;
@@ -129,7 +137,7 @@ interface TransferProposal {
   updatedAt?: string;
 }
 
-interface LiquidationProposal {
+export interface LiquidationProposal {
   id: string;
   liquidationCode: string;
   deviceId: string;
@@ -146,7 +154,7 @@ interface LiquidationProposal {
   updatedAt?: string;
 }
 
-interface TrainingProposal {
+export interface TrainingProposal {
   id: string;
   trainingCode: string;
   deviceId: string;
@@ -163,7 +171,7 @@ interface TrainingProposal {
 }
 
 type AcceptanceMainTab = "new" | "return";
-type ReturnAcceptanceTab = "checklist" | "transport";
+export type ReturnAcceptanceTab = "checklist" | "transport";
 type AcceptanceStatus = "missing" | "pending" | "done";
 type AcceptanceItemKey =
   | "approvalForm"
@@ -206,7 +214,7 @@ interface NewAcceptanceRecord {
   installationSurveyForm: InstallationSurveyFormState;
 }
 
-interface ReturnAcceptanceFormState {
+export interface ReturnAcceptanceFormState {
   formName: string;
   formCode: string;
   receiveCondition: string;
@@ -220,10 +228,26 @@ interface ReturnAcceptanceFormState {
   createdBy: string;
 }
 
-interface ReturnAcceptanceRecord {
+export interface ReturnAcceptanceRecord {
   handoverCode: string;
   handoverFiles: AttachedFile[];
   acceptanceForm?: ReturnAcceptanceFormState;
+}
+
+export interface ReturnTransportRow {
+  id: string;
+  transferCode: string;
+  handoverCode: string;
+  acceptanceCode: string;
+  deviceCode: string;
+  deviceName: string;
+  model: string;
+  serial: string;
+  location: string;
+  handoverBy: string;
+  receiver: string;
+  receivedAt: string;
+  receiveCondition: string;
 }
 
 interface AcceptanceTableColumn {
@@ -430,9 +454,8 @@ export default function DeviceProfileTab() {
   const { user } = useAuth();
   const { success, error, info } = useToast();
   const uniqueId = useId();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const accessoryFileInputRef = useRef<HTMLInputElement>(null);
-  const workOrderAttachmentInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const accessoryFileInputRef = useRef<HTMLInputElement | null>(null);
   const newAcceptanceAttachmentInputRef = useRef<HTMLInputElement>(null);
   const returnHandoverAttachmentInputRef = useRef<HTMLInputElement>(null);
   const returnAcceptanceFormAttachmentInputRef = useRef<HTMLInputElement>(null);
@@ -461,70 +484,6 @@ export default function DeviceProfileTab() {
   const [selectedDeviceForAction, setSelectedDeviceForAction] = useState<Device | null>(null);
   const [deviceCounter, setDeviceCounter] = useState(0);
   
-  // Incident Report Modal States
-  const [incidentReports, setIncidentReports] = useState<IncidentReport[]>(mockIncidents);
-  const [showIncidentForm, setShowIncidentForm] = useState(false);
-  const [showSupplierContact, setShowSupplierContact] = useState(false);
-  const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
-  const [editingIncidentId, setEditingIncidentId] = useState<string | null>(null);
-  const [incidentModalTab, setIncidentModalTab] = useState<"reports" | "work-orders">("reports");
-  const [incidentCounter, setIncidentCounter] = useState(2); // Current max number for PSC-XXXX-XXX
-  const [workOrderCounter, setWorkOrderCounter] = useState(1); // Current max number for WO-XXX
-  
-  // View mode: 'list' shows the list first, 'form' shows the create form
-  const [incidentViewMode, setIncidentViewMode] = useState<"list" | "form">("list");
-  
-  // Incident form state
-  const [incidentForm, setIncidentForm] = useState<Partial<IncidentReport>>({
-    deviceId: "",
-    deviceName: "",
-    deviceCode: "",
-    specialty: "",
-    incidentDateTime: "",
-    discoveredBy: "",
-    discoveredByRole: "",
-    supplier: "",
-    description: "",
-    immediateAction: "",
-    supplierAction: "",
-    affectsPatientResult: false,
-    affectedPatientSid: "",
-    howAffected: "",
-    requiresDeviceStop: false,
-    stopFrom: "",
-    stopTo: "",
-    hasProposal: false,
-    proposal: "",
-    reportedBy: "",
-    deviceManager: "",
-    relatedUsers: [],
-    status: "Nháp",
-    workOrders: [],
-  });
-  
-  // Work order form state
-  const [workOrderForm, setWorkOrderForm] = useState<Partial<WorkOrder> & { woConclusion?: "hoàn thành" | "xử trí 1 phần" }>({
-    contactPerson: "",
-    contactMethod: "điện thoại",
-    startDateTime: "",
-    endDateTime: "",
-    actionDescription: "",
-    notes: "",
-    attachments: [],
-    status: "Mở",
-    isCompleted: false,
-    woConclusion: undefined,
-  });
-  
-  // Search states for incident reports
-  const [incidentSearchTerm, setIncidentSearchTerm] = useState("");
-  const [incidentFilterStatus, setIncidentFilterStatus] = useState<string>("all");
-  
-  // Supplier contact modal state
-  const [showSupplierContactModal, setShowSupplierContactModal] = useState(false);
-  const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrder | null>(null);
-  const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
-  const [currentIncidentForWorkOrder, setCurrentIncidentForWorkOrder] = useState<IncidentReport | null>(null);
   const [showAttachmentViewer, setShowAttachmentViewer] = useState(false);
   const [attachmentViewerTitle, setAttachmentViewerTitle] = useState("");
   const [attachmentViewerFiles, setAttachmentViewerFiles] = useState<AttachedFile[]>([]);
@@ -574,69 +533,6 @@ export default function DeviceProfileTab() {
     approver: "",
     status: "Nháp",
   });
-  
-  // Calibration form state
-  const [calibrationForm, setCalibrationForm] = useState<{
-    deviceId: string;
-    deviceName: string;
-    deviceCode: string;
-    serialNumber: string;
-    quantity: number;
-    expectedDate: string;
-    content: string;
-    notes: string;
-    approver: string;
-    relatedUsers: string[];
-    status: "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Hoàn thành";
-    requestedBy: string;
-  }>({
-    deviceId: "",
-    deviceName: "",
-    deviceCode: "",
-    serialNumber: "",
-    quantity: 1,
-    expectedDate: "",
-    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189, Sở ban ngành.",
-    notes: "",
-    approver: "",
-    relatedUsers: [],
-    status: "Nháp",
-    requestedBy: "",
-  });
-  const [calibrationCounter, setCalibrationCounter] = useState(1);
-  const [calibrationModalTab, setCalibrationModalTab] = useState<"request" | "schedule" | "result">("request");
-  const [calibrationRequests, setCalibrationRequests] = useState<any[]>([]);
-  const [calibrationSearchTerm, setCalibrationSearchTerm] = useState("");
-  const [calibrationFilterStatus, setCalibrationFilterStatus] = useState<string>("all");
-  
-  // View mode for each calibration tab: 'list' shows list first, 'form' shows create form
-  const [calibrationRequestViewMode, setCalibrationRequestViewMode] = useState<"list" | "form">("list");
-  const [calibrationScheduleViewMode, setCalibrationScheduleViewMode] = useState<"list" | "form">("list");
-  const [calibrationResultViewMode, setCalibrationResultViewMode] = useState<"list" | "form">("list");
-  
-  // Calibration schedule state
-  const [showScheduleForm, setShowScheduleForm] = useState(false);
-  const [scheduleForm, setScheduleForm] = useState({
-    scheduledDate: "",
-    scheduledTime: "",
-    reminderDays: 3,
-    content: "",
-    relatedUsers: [] as string[],
-  });
-  const [calibrationSchedules, setCalibrationSchedules] = useState<any[]>([]);
-  
-  // Calibration result state
-  const [showResultForm, setShowResultForm] = useState(false);
-  const [resultForm, setResultForm] = useState({
-    executionDate: "",
-    content: "",
-    unit: "",
-    result: "",
-    standard: "",
-    conclusion: "" as "Đạt" | "Không đạt" | "",
-    attachments: [] as { name: string; url: string }[],
-  });
-  const [calibrationResults, setCalibrationResults] = useState<any[]>([]);
   
   // Device registration form
   const [form, setForm] = useState<Partial<Device>>({
@@ -726,6 +622,9 @@ export default function DeviceProfileTab() {
   const [editingReturnForm, setEditingReturnForm] = useState<ReturnAcceptanceFormState | null>(null);
   const [activeNewAcceptanceUploadKey, setActiveNewAcceptanceUploadKey] = useState<AcceptanceItemKey | null>(null);
   const [showBm05SurveyModal, setShowBm05SurveyModal] = useState(false);
+  const [showReturnFormModal, setShowReturnFormModal] = useState(false);
+  const [returnReceiverSearch, setReturnReceiverSearch] = useState("");
+  const [showReturnReceiverDropdown, setShowReturnReceiverDropdown] = useState(false);
   
   // Search states for dropdowns
   const [countrySearch, setCountrySearch] = useState("");
@@ -872,48 +771,6 @@ export default function DeviceProfileTab() {
     window.open(file.url, "_blank", "noopener,noreferrer");
   };
 
-  const handleUploadWorkOrderAttachments = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const incomingFiles = event.target.files;
-    if (!incomingFiles || incomingFiles.length === 0) return;
-
-    const convertedFiles: AttachedFile[] = Array.from(incomingFiles).map((file) => {
-      const lowerFileName = file.name.toLowerCase();
-      const attachmentType: AttachedFile["type"] = lowerFileName.endsWith(".pdf")
-        ? "pdf"
-        : file.type.startsWith("image/")
-          ? "image"
-          : "doc";
-
-      return {
-        id: `wo-att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: file.name,
-        type: attachmentType,
-        url: URL.createObjectURL(file),
-        size: file.size,
-      };
-    });
-
-    setWorkOrderForm((prev) => ({
-      ...prev,
-      attachments: [...(prev.attachments || []), ...convertedFiles],
-    }));
-
-    event.target.value = "";
-    success("Thành công", `Đã thêm ${convertedFiles.length} tệp đính kèm`);
-  };
-
-  const handleRemoveWorkOrderAttachment = (attachmentId: string) => {
-    const attachment = (workOrderForm.attachments || []).find((item) => item.id === attachmentId);
-    if (attachment?.url?.startsWith("blob:")) {
-      URL.revokeObjectURL(attachment.url);
-    }
-
-    setWorkOrderForm((prev) => ({
-      ...prev,
-      attachments: (prev.attachments || []).filter((item) => item.id !== attachmentId),
-    }));
-  };
-
   const openPrintableWindow = (title: string, lines: string[]) => {
     const printWindow = window.open("", "_blank", "width=900,height=700");
     if (!printWindow) {
@@ -948,76 +805,6 @@ export default function DeviceProfileTab() {
     if (status === "Chờ duyệt") return "bg-amber-100 text-amber-700";
     if (status === "Từ chối") return "bg-red-100 text-red-700";
     return "bg-slate-100 text-slate-700";
-  };
-
-  const handleEditIncidentRecord = (incident: IncidentReport) => {
-    setEditingIncidentId(incident.id);
-    setIncidentForm({ ...incident });
-    setIncidentViewMode("form");
-  };
-
-  const handleExportIncidentPdf = (incident: IncidentReport) => {
-    openPrintableWindow(`Phiếu sự cố ${incident.reportCode}`, [
-      `Mã phiếu: ${incident.reportCode}`,
-      `Thiết bị: ${incident.deviceCode} - ${incident.deviceName}`,
-      `Người báo cáo: ${incident.discoveredBy}`,
-      `Thời gian phát hiện: ${formatDateTimeLabel(incident.incidentDateTime)}`,
-      `Trạng thái: ${incident.status}`,
-      `Mô tả: ${incident.description}`,
-      `Xử trí tức thì: ${incident.immediateAction}`,
-    ]);
-    success("Thành công", `Đã mở chế độ in/PDF cho ${incident.reportCode}`);
-  };
-
-  const handleExportIncidentExcel = (incident: IncidentReport) => {
-    downloadCsvFile(
-      `${incident.reportCode}.csv`,
-      ["Mã phiếu", "Thiết bị", "Người báo cáo", "Thời gian phát hiện", "Thời gian kết thúc", "Trạng thái"],
-      [[incident.reportCode, `${incident.deviceCode} - ${incident.deviceName}`, incident.discoveredBy, formatDateTimeLabel(incident.incidentDateTime), formatDateTimeLabel(incident.completionDateTime), incident.status]],
-      `Đã xuất dữ liệu phiếu ${incident.reportCode}`
-    );
-  };
-
-  const handleExportWorkOrderPdf = (workOrder: WorkOrder) => {
-    openPrintableWindow(`Công việc NCC ${workOrder.workOrderCode}`, [
-      `Mã công việc: ${workOrder.workOrderCode}`,
-      `Người thực hiện: ${workOrder.contactPerson}`,
-      `Bắt đầu: ${formatDateTimeLabel(workOrder.startDateTime)}`,
-      `Kết thúc: ${formatDateTimeLabel(workOrder.endDateTime)}`,
-      `Trạng thái: ${workOrder.status}`,
-      `Mô tả: ${workOrder.actionDescription}`,
-      `Ghi chú: ${workOrder.notes || "—"}`,
-    ]);
-    success("Thành công", `Đã mở chế độ in/PDF cho ${workOrder.workOrderCode}`);
-  };
-
-  const handleExportWorkOrderExcel = (workOrder: WorkOrder) => {
-    downloadCsvFile(
-      `${workOrder.workOrderCode}.csv`,
-      ["Mã công việc", "Người thực hiện", "Liên hệ", "Bắt đầu", "Kết thúc", "Trạng thái"],
-      [[workOrder.workOrderCode, workOrder.contactPerson, workOrder.contactMethod, formatDateTimeLabel(workOrder.startDateTime), formatDateTimeLabel(workOrder.endDateTime), workOrder.status]],
-      `Đã xuất dữ liệu công việc ${workOrder.workOrderCode}`
-    );
-  };
-
-  const handleEditWorkOrderFromList = (workOrder: WorkOrder) => {
-    const ownerIncident = incidentReports.find((incident) => incident.workOrders?.some((wo) => wo.id === workOrder.id));
-    setCurrentIncidentForWorkOrder(ownerIncident || null);
-    setEditingWorkOrder(workOrder);
-    setWorkOrderForm({
-      contactPerson: workOrder.contactPerson,
-      contactMethod: workOrder.contactMethod,
-      startDateTime: workOrder.startDateTime,
-      endDateTime: workOrder.endDateTime || "",
-      actionDescription: workOrder.actionDescription,
-      notes: workOrder.notes,
-      attachments: workOrder.attachments,
-      status: workOrder.status,
-      isCompleted: workOrder.isCompleted,
-      woConclusion: workOrder.conclusion,
-    });
-    setShowSupplierContactModal(true);
-    setShowWorkOrderForm(true);
   };
 
   const saveTransferProposal = (status: WorkflowStatus) => {
@@ -1264,7 +1051,7 @@ export default function DeviceProfileTab() {
     receiveCondition: "",
     note: "",
     handoverBy: "",
-    receivedAt: "",
+    receivedAt: new Date().toISOString().slice(0, 16),
     receiver: user?.fullName || "",
     attachments: [],
     completed: false,
@@ -1580,15 +1367,35 @@ export default function DeviceProfileTab() {
   };
 
   const prepareReturnAcceptanceFormEditor = (device: Device, existing?: ReturnAcceptanceFormState) => {
-    if (existing && existing.createdBy && existing.createdBy !== (user?.fullName || "")) {
-      error("Không có quyền", "Chỉ người tạo phiếu mới có quyền sửa phiếu tiếp nhận");
-      return;
+    const canEdit = !existing || !existing.createdBy || existing.createdBy === (user?.fullName || "");
+    if (!canEdit) {
+      info("Chế độ xem", "Bạn chỉ có thể xem phiếu do người khác tạo");
     }
-    setEditingReturnForm(existing ? { ...existing } : createDefaultReturnAcceptanceForm(device));
+    const formData = existing ? { ...existing } : createDefaultReturnAcceptanceForm(device);
+    setEditingReturnForm(formData);
+    setReturnReceiverSearch(formData.receiver || "");
+    setShowReturnFormModal(true);
+    setShowReturnReceiverDropdown(false);
   };
+
+  const closeReturnFormModal = () => {
+    setShowReturnFormModal(false);
+    setEditingReturnForm(null);
+    setReturnReceiverSearch("");
+    setShowReturnReceiverDropdown(false);
+  };
+
+  const filteredReceiverUsers = useMemo(() => {
+    if (!returnReceiverSearch.trim()) return MOCK_USERS_LIST;
+    return MOCK_USERS_LIST.filter((u) => u.fullName.toLowerCase().includes(returnReceiverSearch.toLowerCase()));
+  }, [returnReceiverSearch]);
 
   const saveReturnAcceptanceForm = (deviceId: string, completeNow: boolean) => {
     if (!editingReturnForm) return;
+    if (editingReturnForm.createdBy && editingReturnForm.createdBy !== (user?.fullName || "")) {
+      error("Không có quyền", "Chỉ người tạo phiếu mới có quyền sửa phiếu tiếp nhận");
+      return;
+    }
     if (!editingReturnForm.receiveCondition.trim() || !editingReturnForm.handoverBy.trim() || !editingReturnForm.receiver.trim()) {
       error("Thiếu thông tin", "Vui lòng nhập tình trạng tiếp nhận, người bàn giao và người tiếp nhận");
       return;
@@ -1607,7 +1414,7 @@ export default function DeviceProfileTab() {
       acceptanceForm: payload,
     }));
 
-    setEditingReturnForm(null);
+    closeReturnFormModal();
     success("Đã lưu", completeNow ? "Đã hoàn tất phiếu tiếp nhận và chèn chữ ký người tiếp nhận" : "Đã lưu phiếu tiếp nhận");
   };
 
@@ -1699,6 +1506,37 @@ export default function DeviceProfileTab() {
     success("Tải thành công", successMessage);
   };
 
+  const downloadReturnAcceptancePdf = (form: ReturnAcceptanceFormState, device: Device) => {
+    const content = [
+      "PHIẾU TIẾP NHẬN THIẾT BỊ TRỞ LẠI",
+      `Mã phiếu: ${form.formCode}`,
+      "---",
+      `Thiết bị: ${device.name}`,
+      `Mã thiết bị: ${device.code}`,
+      `Model: ${device.model || ""}`,
+      `Serial: ${device.serial || ""}`,
+      `Vị trí: ${device.location || ""}`,
+      "---",
+      `Người bàn giao: ${form.handoverBy}`,
+      `Người tiếp nhận: ${form.receiver}`,
+      `Thời gian tiếp nhận: ${form.receivedAt}`,
+      `Tình trạng: ${form.receiveCondition}`,
+      `Ghi chú: ${form.note}`,
+      `Trạng thái: ${form.completed ? "Đã hoàn tất" : "Nháp"}`,
+      form.completedAt ? `Hoàn tất lúc: ${form.completedAt}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    downloadPlainDocument(`${form.formCode}.pdf`, content, `Đã tải phiếu ${form.formCode}`);
+  };
+
+  const exportReturnTransportRows = () => {
+    const headers = ["Mã VC", "Mã bàn giao", "Mã tiếp nhận", "Mã TB", "Tên TB", "Người bàn giao", "Người tiếp nhận", "Thời gian tiếp nhận", "Tình trạng"];
+    const rows = filteredReturnTransportRows.map((row) => [row.transferCode, row.handoverCode, row.acceptanceCode, row.deviceCode, row.deviceName, row.handoverBy, row.receiver, row.receivedAt, row.receiveCondition]);
+    downloadCsvFile(`Danh_sach_BM07_${new Date().toISOString().split("T")[0]}.csv`, headers, rows, "Đã xuất danh sách phiếu vận chuyển BM.07");
+  };
+
   const downloadApprovalForm = (device: Device, approvalCode: string) => {
     const content = [
       "PHIẾU PHÊ DUYỆT",
@@ -1764,13 +1602,9 @@ export default function DeviceProfileTab() {
         setShowInfoDropdown(null);
         break;
       case "incident":
-        setIncidentViewMode("list");
         setActiveModal("incident");
         break;
       case "calibration":
-        setCalibrationRequestViewMode("list");
-        setCalibrationScheduleViewMode("list");
-        setCalibrationResultViewMode("list");
         setActiveModal("calibration");
         break;
       case "maintenance":
@@ -2828,323 +2662,61 @@ export default function DeviceProfileTab() {
 
               {/* ===== RETURN ACCEPTANCE TAB ===== */}
               {acceptanceMainTab === "return" && (
-                <div className="space-y-5">
-                  <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
-                    <div className="flex flex-wrap items-end gap-3">
-                      <div className="min-w-[240px] flex-1">
-                        <label className="text-xs text-slate-500 font-bold">Thiết bị cần tiếp nhận trở lại</label>
-                        <select
-                          value={resolvedReturnAcceptanceDevice?.id || ""}
-                          onChange={(event) => {
-                            setSelectedReturnAcceptanceDeviceId(event.target.value || null);
-                            setEditingReturnForm(null);
-                          }}
-                          className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                        >
-                          <option value="">-- Chọn thiết bị --</option>
-                          {returnAcceptanceDevices.map((device) => (
-                            <option key={device.id} value={device.id}>{device.code} - {device.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Inner Tabs - Pill Style */}
-                    <div className="flex gap-2 bg-slate-50 p-1.5 rounded-xl w-fit border border-slate-200">
-                      <button
-                        onClick={() => setReturnAcceptanceTab("checklist")}
-                        className={`px-5 py-2 font-bold text-sm rounded-lg transition ${returnAcceptanceTab === "checklist" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-blue-600"}`}
-                      >
-                        <ListChecks size={15} className="inline mr-1.5 -mt-0.5" />
-                        Checklist Tài liệu
-                      </button>
-                      <button
-                        onClick={() => setReturnAcceptanceTab("transport")}
-                        className={`px-5 py-2 font-bold text-sm rounded-lg transition ${returnAcceptanceTab === "transport" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-blue-600"}`}
-                      >
-                        <Table size={15} className="inline mr-1.5 -mt-0.5" />
-                        Sổ Ghi nhận VC (BM.07)
-                      </button>
-                    </div>
-
-                    {resolvedReturnAcceptanceDevice ? (
-                      <>
-                        {returnAcceptanceTab === "checklist" && (
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            {/* Return Item 1: Phiếu bàn giao */}
-                            <div className="flex justify-between items-center p-[18px_20px] rounded-xl border border-slate-200 bg-white transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300" style={{boxShadow: '0 2px 4px rgba(0,0,0,0.02)'}}>
-                              <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center ${(currentReturnAcceptanceRecord.handoverCode.trim() || currentReturnAcceptanceRecord.handoverFiles.length > 0) ? "bg-amber-100 text-amber-500" : "bg-red-100 text-red-500"}`}>
-                                  <Truck size={18} />
-                                </div>
-                                <div>
-                                  <div className="font-extrabold text-slate-800 text-sm">1. Phiếu bàn giao thiết bị</div>
-                                  <div className="text-xs text-slate-500 mt-0.5">{(currentReturnAcceptanceRecord.handoverCode.trim() || currentReturnAcceptanceRecord.handoverFiles.length > 0) ? "Đã có dữ liệu" : "Từ bên sửa chữa/cho mượn"}</div>
-                                </div>
-                              </div>
-                              <div className="flex gap-2 items-center">
-                                <div className="flex items-center gap-1.5 border border-slate-200 rounded-lg px-2.5 py-1.5">
-                                  <Search size={12} className="text-slate-400" />
-                                  <input
-                                    value={currentReturnAcceptanceRecord.handoverCode}
-                                    onChange={(event) => updateReturnAcceptanceRecord(resolvedReturnAcceptanceDevice.id, (base) => ({ ...base, handoverCode: event.target.value }))}
-                                    placeholder="Tìm ID phiếu..."
-                                    className="border-none outline-none w-24 text-xs bg-transparent"
-                                  />
-                                </div>
-                                <button
-                                  onClick={() => returnHandoverAttachmentInputRef.current?.click()}
-                                  className="px-3 py-2 rounded-lg bg-sky-100 text-sky-700 text-sm font-bold hover:bg-sky-600 hover:text-white transition flex items-center gap-1.5"
-                                >
-                                  <Upload size={14} /> Đính kèm
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Return Item 2: Phiếu tiếp nhận */}
-                            <div className="flex justify-between items-center p-[18px_20px] rounded-xl border border-slate-200 bg-white transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300" style={{boxShadow: '0 2px 4px rgba(0,0,0,0.02)'}}>
-                              <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center ${currentReturnAcceptanceRecord.acceptanceForm?.completed ? "bg-green-100 text-emerald-500" : "bg-red-100 text-red-500"}`}>
-                                  <ClipboardCheck size={18} />
-                                </div>
-                                <div>
-                                  <div className="font-extrabold text-slate-800 text-sm">2. Phiếu tiếp nhận</div>
-                                  <div className="text-xs text-slate-500 mt-0.5">{currentReturnAcceptanceRecord.acceptanceForm?.completed ? "Đã hoàn tất" : "Lập phiếu PTN trên hệ thống"}</div>
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                {currentReturnAcceptanceRecord.acceptanceForm ? (
-                                  <>
-                                    <button
-                                      onClick={() => prepareReturnAcceptanceFormEditor(resolvedReturnAcceptanceDevice, currentReturnAcceptanceRecord.acceptanceForm)}
-                                      className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-1.5"
-                                    >
-                                      <Edit size={14} /> Sửa
-                                    </button>
-                                    <button
-                                      onClick={() => openAttachmentViewer(`Đính kèm ${currentReturnAcceptanceRecord.acceptanceForm?.formCode || ""}`, currentReturnAcceptanceRecord.acceptanceForm?.attachments || [])}
-                                      disabled={(currentReturnAcceptanceRecord.acceptanceForm?.attachments || []).length === 0}
-                                      className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-bold hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                                    >
-                                      <Eye size={14} /> Xem
-                                    </button>
-                                  </>
-                                ) : (
-                                  <button
-                                    onClick={() => prepareReturnAcceptanceFormEditor(resolvedReturnAcceptanceDevice)}
-                                    className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition flex items-center gap-1.5"
-                                  >
-                                    <Edit size={14} /> Tạo phiếu
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Return Handover Files Display */}
-                        {returnAcceptanceTab === "checklist" && currentReturnAcceptanceRecord.handoverFiles.length > 0 && (
-                          <div className="rounded-xl border border-slate-200 p-3 space-y-1.5 mt-3">
-                            <p className="text-xs font-bold text-slate-500 mb-1">File phiếu bàn giao:</p>
-                            {currentReturnAcceptanceRecord.handoverFiles.map((file) => (
-                              <div key={file.id} className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5">
-                                <span className="truncate pr-2">{file.name}</span>
-                                <div className="flex items-center gap-1">
-                                  <button onClick={() => handleViewAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Eye size={13} /></button>
-                                  <button onClick={() => handleDownloadAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Download size={13} /></button>
-                                  <button onClick={() => removeReturnHandoverFile(resolvedReturnAcceptanceDevice.id, file.id)} className="p-1 rounded hover:bg-slate-200 text-red-500"><Trash2 size={13} /></button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Return Acceptance Form Editor */}
-                        {returnAcceptanceTab === "checklist" && editingReturnForm && (
-                          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-                            <p className="font-bold text-slate-700 mb-2">Chỉnh sửa phiếu tiếp nhận - {editingReturnForm.formCode}</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-xs text-slate-500 font-bold">Tên phiếu</label>
-                                <input
-                                  value={editingReturnForm.formName}
-                                  onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, formName: event.target.value } : prev)}
-                                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-500 font-bold">Mã phiếu</label>
-                                <input value={editingReturnForm.formCode} readOnly className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-100 font-bold text-blue-600" />
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-500 font-bold">Người bàn giao</label>
-                                <input
-                                  value={editingReturnForm.handoverBy}
-                                  onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, handoverBy: event.target.value } : prev)}
-                                  placeholder="Họ tên người bàn giao..."
-                                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-500 font-bold">Người tiếp nhận</label>
-                                <input
-                                  value={editingReturnForm.receiver}
-                                  onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, receiver: event.target.value } : prev)}
-                                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-500 font-bold">Thời gian tiếp nhận</label>
-                                <input
-                                  type="datetime-local"
-                                  value={editingReturnForm.receivedAt}
-                                  onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, receivedAt: event.target.value } : prev)}
-                                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-500 font-bold">Tình trạng tiếp nhận</label>
-                                <input
-                                  value={editingReturnForm.receiveCondition}
-                                  onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, receiveCondition: event.target.value } : prev)}
-                                  placeholder="Thiết bị hoạt động bình thường..."
-                                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <label className="text-xs text-slate-500 font-bold">Ghi chú</label>
-                              <textarea
-                                value={editingReturnForm.note}
-                                onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, note: event.target.value } : prev)}
-                                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm h-20 resize-none"
-                              />
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              <button onClick={() => returnAcceptanceFormAttachmentInputRef.current?.click()} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"><Upload size={14} />Đính kèm</button>
-                              <button onClick={() => openAttachmentViewer(`Đính kèm phiếu tiếp nhận - ${editingReturnForm.formCode}`, editingReturnForm.attachments)} disabled={editingReturnForm.attachments.length === 0} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"><Eye size={14} />Xem file ({editingReturnForm.attachments.length})</button>
-                            </div>
-                            {editingReturnForm.attachments.length > 0 && (
-                              <div className="space-y-1">
-                                {editingReturnForm.attachments.map((file) => (
-                                  <div key={file.id} className="flex items-center justify-between text-xs text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
-                                    <span className="truncate pr-2">{file.name}</span>
-                                    <div className="flex items-center gap-1">
-                                      <button onClick={() => handleViewAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Eye size={13} /></button>
-                                      <button onClick={() => handleDownloadAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Download size={13} /></button>
-                                      <button onClick={() => removeReturnAcceptanceFormFile(file.id)} className="p-1 rounded hover:bg-slate-200 text-red-500"><Trash2 size={13} /></button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            <div className="flex flex-wrap justify-end gap-2 pt-2">
-                              <button onClick={() => setEditingReturnForm(null)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">Hủy</button>
-                              <button onClick={() => saveReturnAcceptanceForm(resolvedReturnAcceptanceDevice.id, false)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"><Save size={14} />Lưu phiếu</button>
-                              <button onClick={() => saveReturnAcceptanceForm(resolvedReturnAcceptanceDevice.id, true)} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 flex items-center gap-2"><CheckCircle2 size={14} />Hoàn tất & ký</button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Complete Return Acceptance Button */}
-                        {returnAcceptanceTab === "checklist" && (
-                          <div className="flex justify-end gap-3 mt-4">
-                            <button
-                              onClick={() => completeReturnAcceptance(resolvedReturnAcceptanceDevice.id)}
-                              disabled={!isReturnAcceptanceReadyToComplete(currentReturnAcceptanceRecord)}
-                              className="px-5 py-2.5 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition"
-                              style={{boxShadow: '0 4px 10px rgba(16,185,129,0.3)'}}
-                            >
-                              <CheckCircle2 size={18} />
-                              Hoàn tất tiếp nhận trở lại
-                            </button>
-                          </div>
-                        )}
-
-                        {returnAcceptanceTab === "transport" && (
-                          <div className="space-y-4">
-                            <div className="flex flex-wrap items-end gap-3">
-                              <div>
-                                <label className="text-xs text-slate-500">Từ ngày</label>
-                                <input
-                                  type="date"
-                                  value={returnTransportFilterFrom}
-                                  onChange={(event) => setReturnTransportFilterFrom(event.target.value)}
-                                  className="mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-500">Đến ngày</label>
-                                <input
-                                  type="date"
-                                  value={returnTransportFilterTo}
-                                  onChange={(event) => setReturnTransportFilterTo(event.target.value)}
-                                  className="mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                />
-                              </div>
-                              <button
-                                onClick={() => {
-                                  const headers = ["Mã VC", "Mã bàn giao", "Mã tiếp nhận", "Mã TB", "Tên TB", "Người bàn giao", "Người tiếp nhận", "Thời gian tiếp nhận", "Tình trạng"];
-                                  const rows = filteredReturnTransportRows.map((row) => [row.transferCode, row.handoverCode, row.acceptanceCode, row.deviceCode, row.deviceName, row.handoverBy, row.receiver, row.receivedAt, row.receiveCondition]);
-                                  downloadCsvFile(`Danh_sach_BM07_${new Date().toISOString().split("T")[0]}.csv`, headers, rows, "Đã xuất danh sách phiếu vận chuyển BM.07");
-                                }}
-                                className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 flex items-center gap-2"
-                              >
-                                <Download size={14} />
-                                Xuất Excel
-                              </button>
-                            </div>
-
-                            <div className="overflow-x-auto rounded-xl border border-slate-200">
-                              <table className="min-w-full text-sm">
-                                <thead>
-                                  <tr className="bg-slate-50 text-left text-slate-600 border-b border-slate-200">
-                                    <th className="px-3 py-2 font-medium">Mã VC</th>
-                                    <th className="px-3 py-2 font-medium">Mã bàn giao</th>
-                                    <th className="px-3 py-2 font-medium">Mã tiếp nhận</th>
-                                    <th className="px-3 py-2 font-medium">Mã TB</th>
-                                    <th className="px-3 py-2 font-medium">Tên thiết bị</th>
-                                    <th className="px-3 py-2 font-medium">Người bàn giao</th>
-                                    <th className="px-3 py-2 font-medium">Người tiếp nhận</th>
-                                    <th className="px-3 py-2 font-medium">Thời gian</th>
-                                    <th className="px-3 py-2 font-medium">Tình trạng</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {filteredReturnTransportRows.length > 0 ? (
-                                    filteredReturnTransportRows.map((row) => (
-                                      <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50">
-                                        <td className="px-3 py-2 text-slate-700">{row.transferCode}</td>
-                                        <td className="px-3 py-2 text-slate-700">{row.handoverCode}</td>
-                                        <td className="px-3 py-2 text-slate-700">{row.acceptanceCode}</td>
-                                        <td className="px-3 py-2 text-slate-700">{row.deviceCode}</td>
-                                        <td className="px-3 py-2 text-slate-700">{row.deviceName}</td>
-                                        <td className="px-3 py-2 text-slate-700">{row.handoverBy || "—"}</td>
-                                        <td className="px-3 py-2 text-slate-700">{row.receiver || "—"}</td>
-                                        <td className="px-3 py-2 text-slate-700">{formatDateTimeLabel(row.receivedAt)}</td>
-                                        <td className="px-3 py-2 text-slate-700">{row.receiveCondition || "—"}</td>
-                                      </tr>
-                                    ))
-                                  ) : (
-                                    <tr>
-                                      <td colSpan={9} className="px-3 py-6 text-center text-slate-500">Không có dữ liệu phiếu vận chuyển theo bộ lọc hiện tại.</td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-slate-500">Không có thiết bị trạng thái tạm điều chuyển để tiếp nhận trở lại.</div>
-                    )}
-                  </div>
-                </div>
+                <ReturnAcceptanceSection
+                  returnAcceptanceTab={returnAcceptanceTab}
+                  onChangeTab={setReturnAcceptanceTab}
+                  returnAcceptanceDevices={returnAcceptanceDevices}
+                  resolvedDevice={resolvedReturnAcceptanceDevice}
+                  currentRecord={currentReturnAcceptanceRecord}
+                  onSelectDevice={(deviceId) => {
+                    setSelectedReturnAcceptanceDeviceId(deviceId);
+                    setEditingReturnForm(null);
+                  }}
+                  onUpdateHandoverCode={(value) => {
+                    if (!resolvedReturnAcceptanceDevice) return;
+                    updateReturnAcceptanceRecord(resolvedReturnAcceptanceDevice.id, (base) => ({ ...base, handoverCode: value }));
+                  }}
+                  onUploadHandoverFiles={() => returnHandoverAttachmentInputRef.current?.click()}
+                  onOpenForm={prepareReturnAcceptanceFormEditor}
+                  onDownloadFormPdf={downloadReturnAcceptancePdf}
+                  onOpenAttachments={openAttachmentViewer}
+                  onViewAttachment={handleViewAttachment}
+                  onDownloadAttachment={handleDownloadAttachment}
+                  onRemoveHandoverFile={(fileId) => {
+                    if (!resolvedReturnAcceptanceDevice) return;
+                    removeReturnHandoverFile(resolvedReturnAcceptanceDevice.id, fileId);
+                  }}
+                  onCompleteAcceptance={(deviceId) => completeReturnAcceptance(deviceId)}
+                  canComplete={isReturnAcceptanceReadyToComplete(currentReturnAcceptanceRecord)}
+                  filteredReturnTransportRows={filteredReturnTransportRows}
+                  returnTransportFilterFrom={returnTransportFilterFrom}
+                  returnTransportFilterTo={returnTransportFilterTo}
+                  onChangeFilterFrom={setReturnTransportFilterFrom}
+                  onChangeFilterTo={setReturnTransportFilterTo}
+                  onExportTransport={exportReturnTransportRows}
+                  formatDateTimeLabel={formatDateTimeLabel}
+                />
               )}
             </div>
           </div>
         </div>
+      )}
+
+      {showReturnFormModal && resolvedReturnAcceptanceDevice && editingReturnForm && (
+        <ReturnAcceptanceFormModal
+          device={resolvedReturnAcceptanceDevice}
+          form={editingReturnForm}
+          onUpdate={(updater) => setEditingReturnForm((prev) => (prev ? updater(prev) : prev))}
+          onClose={closeReturnFormModal}
+          onSaveDraft={() => saveReturnAcceptanceForm(resolvedReturnAcceptanceDevice.id, false)}
+          onComplete={() => saveReturnAcceptanceForm(resolvedReturnAcceptanceDevice.id, true)}
+          onUploadAttachment={() => returnAcceptanceFormAttachmentInputRef.current?.click()}
+          onViewAttachment={handleViewAttachment}
+          onDownloadAttachment={handleDownloadAttachment}
+          onRemoveAttachment={removeReturnAcceptanceFormFile}
+          onDownloadPdf={() => downloadReturnAcceptancePdf(editingReturnForm, resolvedReturnAcceptanceDevice)}
+          canEdit={!editingReturnForm.createdBy || editingReturnForm.createdBy === (user?.fullName || "")}
+        />
       )}
 
       {/* BM.05 Installation Survey Modal */}
@@ -3847,1988 +3419,125 @@ export default function DeviceProfileTab() {
         </div>
       )}
 
-      {/* Add Device Form Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddForm(false)}>
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-800">Đăng ký thiết bị mới</h2>
-              <button onClick={() => setShowAddForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-6">
-              {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Mã thiết bị <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.code}
-                    onChange={(e) => setForm({ ...form, code: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                    placeholder="TB-XXX"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Tên thiết bị <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                    placeholder="Nhập tên thiết bị"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Chuyên khoa</label>
-                  <select
-                    value={form.specialty}
-                    onChange={(e) => setForm({ ...form, specialty: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                  >
-                    {specialties.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Phân loại</label>
-                  <select
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                  >
-                    {deviceCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Loại thiết bị</label>
-                  <select
-                    value={form.deviceType}
-                    onChange={(e) => setForm({ ...form, deviceType: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                  >
-                    {deviceTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Model</label>
-                  <input
-                    type="text"
-                    value={form.model}
-                    onChange={(e) => setForm({ ...form, model: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                    placeholder="Nhập model"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Số serial <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.serial}
-                    onChange={(e) => setForm({ ...form, serial: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                    placeholder="Nhập số serial"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Vị trí</label>
-                  <select
-                    value={form.location}
-                    onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                  >
-                    {deviceLocations.map(l => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                </div>
-              </div>
-              
-              {/* Manufacturer Info */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Nhà sản xuất <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.manufacturer}
-                    onChange={(e) => setForm({ ...form, manufacturer: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                    placeholder="Nhập tên nhà sản xuất"
-                  />
-                </div>
-                <div className="relative">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Xuất xứ</label>
-                  <input
-                    type="text"
-                    value={form.countryOfOrigin}
-                    onChange={(e) => {
-                      setForm({ ...form, countryOfOrigin: e.target.value });
-                      setCountrySearch(e.target.value);
-                      setShowCountryDropdown(true);
-                    }}
-                    onFocus={() => setShowCountryDropdown(true)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                    placeholder="Tìm kiếm xuất xứ"
-                  />
-                  {showCountryDropdown && filteredCountries.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-auto">
-                      {filteredCountries.map(c => (
-                        <button
-                          key={c}
-                          type="button"
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
-                          onClick={() => {
-                            setForm({ ...form, countryOfOrigin: c });
-                            setShowCountryDropdown(false);
-                          }}
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Năm sản xuất</label>
-                  <select
-                    value={form.yearOfManufacture}
-                    onChange={(e) => setForm({ ...form, yearOfManufacture: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                  >
-                    <option value="">Chọn năm</option>
-                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-              
-              {/* Distributor & Usage */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nhà phân phối</label>
-                  <input
-                    type="text"
-                    value={form.distributor}
-                    onChange={(e) => setForm({ ...form, distributor: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                    placeholder="Nhập tên nhà phân phối"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Ngày bắt đầu sử dụng</label>
-                  <input
-                    type="date"
-                    value={form.usageStartDate}
-                    onChange={(e) => setForm({ ...form, usageStartDate: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian sử dụng</label>
-                  <input
-                    type="text"
-                    value={form.usageTime}
-                    onChange={(e) => setForm({ ...form, usageTime: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                    placeholder="VD: 08:00 - 17:00 (8 giờ)"
-                  />
-                </div>
-              </div>
-              
-              {/* Installation Location & Condition */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Vị trí lắp đặt</label>
-                  <select
-                    value={form.installationLocation}
-                    onChange={(e) => setForm({ ...form, installationLocation: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                  >
-                    <option value="">Chọn vị trí lắp đặt</option>
-                    {deviceLocations.map(l => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Tình trạng khi nhận máy</label>
-                  <select
-                    value={form.conditionOnReceive}
-                    onChange={(e) => setForm({ ...form, conditionOnReceive: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                  >
-                    <option value="Máy mới">Máy mới</option>
-                    <option value="Đã qua sử dụng">Đã qua sử dụng</option>
-                    <option value="Tân trang lại">Tân trang lại</option>
-                  </select>
-                </div>
-              </div>
-              
-              {/* Device Photo */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh chụp thiết bị</label>
-                <div className="flex items-center gap-4">
-                  <div className="w-32 h-32 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-300">
-                    {devicePhoto ? (
-                      <img src={devicePhoto.url} alt="Device preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <Image size={32} className="text-slate-400" />
-                    )}
-                  </div>
-                  <div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50"
-                    >
-                      Chọn ảnh
-                    </button>
-                    <p className="text-xs text-slate-500 mt-1">Chọn ảnh chính diện của thiết bị</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Maintenance & Calibration */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Calibration */}
-                <div className="p-4 bg-slate-50 rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-700">Hiệu chuẩn</span>
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, calibrationRequired: !form.calibrationRequired, calibrationFrequency: form.calibrationRequired ? "" : form.calibrationFrequency })}
-                      className={`p-1 rounded ${form.calibrationRequired ? "text-green-600" : "text-slate-400"}`}
-                    >
-                      {form.calibrationRequired ? <CheckSquare size={20} /> : <Square size={20} />}
-                    </button>
-                  </div>
-                  {form.calibrationRequired && (
-                    <input
-                      type="text"
-                      value={form.calibrationFrequency}
-                      onChange={(e) => setForm({ ...form, calibrationFrequency: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      placeholder="VD: 6 tháng, 1 năm"
-                    />
-                  )}
-                </div>
-                
-                {/* Maintenance */}
-                <div className="p-4 bg-slate-50 rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-700">Bảo trì</span>
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, maintenanceRequired: !form.maintenanceRequired, maintenanceFrequency: form.maintenanceRequired ? "" : form.maintenanceFrequency })}
-                      className={`p-1 rounded ${form.maintenanceRequired ? "text-green-600" : "text-slate-400"}`}
-                    >
-                      {form.maintenanceRequired ? <CheckSquare size={20} /> : <Square size={20} />}
-                    </button>
-                  </div>
-                  {form.maintenanceRequired && (
-                    <input
-                      type="text"
-                      value={form.maintenanceFrequency}
-                      onChange={(e) => setForm({ ...form, maintenanceFrequency: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      placeholder="VD: 3 tháng, 6 tháng"
-                    />
-                  )}
-                </div>
-                
-                {/* Inspection */}
-                <div className="p-4 bg-slate-50 rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-700">Kiểm tra</span>
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, inspectionRequired: !form.inspectionRequired, inspectionFrequency: form.inspectionRequired ? "" : form.inspectionFrequency })}
-                      className={`p-1 rounded ${form.inspectionRequired ? "text-green-600" : "text-slate-400"}`}
-                    >
-                      {form.inspectionRequired ? <CheckSquare size={20} /> : <Square size={20} />}
-                    </button>
-                  </div>
-                  {form.inspectionRequired && (
-                    <input
-                      type="text"
-                      value={form.inspectionFrequency}
-                      onChange={(e) => setForm({ ...form, inspectionFrequency: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      placeholder="VD: 1 năm"
-                    />
-                  )}
-                </div>
-              </div>
-              
-              {/* Accessories */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Phụ kiện đính kèm</label>
-                <div className="space-y-2 mb-3">
-                  {form.accessories?.map((acc) => (
-                    <div key={acc.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Paperclip size={16} className="text-slate-400" />
-                        <span className="text-sm">{acc.name}</span>
-                        {acc.fileName && <span className="text-xs text-slate-500">({acc.fileName})</span>}
-                      </div>
-                      <button type="button" onClick={() => handleRemoveAccessory(acc.id)} className="text-red-500 hover:bg-red-50 p-1 rounded">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newAccessory}
-                    onChange={(e) => setNewAccessory(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                    placeholder="Nhập tên phụ kiện"
-                  />
-                  <input
-                    ref={accessoryFileInputRef}
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={handleAccessoryFileUpload}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => accessoryFileInputRef.current?.click()}
-                    className="px-3 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                    title="Đính kèm file"
-                  >
-                    <Paperclip size={18} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAddAccessory}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700"
-                  >
-                    Thêm
-                  </button>
-                </div>
-              </div>
-              
-              {/* Contacts */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Người liên hệ</label>
-                <div className="space-y-2 mb-3">
-                  {form.contacts?.map((contact) => (
-                    <div key={contact.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <div>
-                        <span className="text-sm font-medium">{contact.fullName}</span>
-                        <span className="text-xs text-slate-500 ml-2">{contact.phone} • {contact.email}</span>
-                      </div>
-                      <button type="button" onClick={() => handleRemoveContact(contact.id)} className="text-red-500 hover:bg-red-50 p-1 rounded">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={newContact.fullName}
-                    onChange={(e) => setNewContact({ ...newContact, fullName: e.target.value })}
-                    className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                    placeholder="Họ tên"
-                  />
-                  <input
-                    type="text"
-                    value={newContact.phone}
-                    onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                    className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                    placeholder="Số điện thoại"
-                  />
-                  <input
-                    type="email"
-                    value={newContact.email}
-                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                    className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                    placeholder="Email"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAddContact}
-                  className="w-full px-4 py-2 border border-dashed border-slate-300 rounded-lg text-sm text-slate-600 hover:bg-slate-50"
-                >
-                  + Thêm người liên hệ
-                </button>
-              </div>
-              
-              {/* Submit Button */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddDevice}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
-                >
-                  <Save size={18} />
-                  Lưu thiết bị
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      <DeviceRegistrationModal
+        show={showAddForm}
+        onClose={() => setShowAddForm(false)}
+        form={form}
+        onFormChange={(next) => setForm(next)}
+        yearOptions={yearOptions}
+        filteredCountries={filteredCountries}
+        showCountryDropdown={showCountryDropdown}
+        onCountryDropdownToggle={setShowCountryDropdown}
+        onCountrySearchChange={setCountrySearch}
+        devicePhoto={devicePhoto}
+        fileInputRef={fileInputRef}
+        onPhotoUpload={handlePhotoUpload}
+        newAccessory={newAccessory}
+        onNewAccessoryChange={setNewAccessory}
+        accessoryFileInputRef={accessoryFileInputRef}
+        onAccessoryFileUpload={handleAccessoryFileUpload}
+        onAddAccessory={handleAddAccessory}
+        onRemoveAccessory={handleRemoveAccessory}
+        newContact={newContact}
+        onNewContactChange={(next) => setNewContact(next)}
+        onAddContact={handleAddContact}
+        onRemoveContact={handleRemoveContact}
+        onSubmit={handleAddDevice}
+      />
+
+      {selectedDeviceForAction && (
+        <IncidentReportModal
+          show={activeModal === "incident"}
+          device={selectedDeviceForAction}
+          user={user}
+          onClose={() => setActiveModal(null)}
+          formatDateTimeLabel={formatDateTimeLabel}
+          downloadCsvFile={downloadCsvFile}
+          openPrintableWindow={openPrintableWindow}
+          openAttachmentViewer={openAttachmentViewer}
+          onViewAttachment={handleViewAttachment}
+          onDownloadAttachment={handleDownloadAttachment}
+          onUpdateDeviceStatus={updateDeviceStatus}
+        />
       )}
 
-      {/* ============================================
-      /* INCIDENT REPORT MODAL - BM.11.QL.TC.018 */
-      /* ============================================ */}
-      {activeModal === "incident" && selectedDeviceForAction && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">Phiếu báo cáo sự cố thiết bị</h2>
-                <p className="text-sm text-slate-500">BM.11.QL.TC.018</p>
-              </div>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="border-b border-slate-200 px-6">
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setIncidentModalTab("reports")}
-                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-                    incidentModalTab === "reports"
-                      ? "border-red-500 text-red-600"
-                      : "border-transparent text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  <AlertTriangle className="w-4 h-4 inline-block mr-2" />
-                  Danh sách phiếu báo cáo sự cố
-                </button>
-                <button
-                  onClick={() => setIncidentModalTab("work-orders")}
-                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-                    incidentModalTab === "work-orders"
-                      ? "border-red-500 text-red-600"
-                      : "border-transparent text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  <ClipboardList className="w-4 h-4 inline-block mr-2" />
-                  Danh sách công việc của kỹ sư
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* TAB REPORTS CONTENT */}
-              {incidentModalTab === "reports" && (
-                <>
-                  {incidentViewMode === "list" ? (
-                    // ==================== LIST VIEW FIRST ====================
-                    <div className="space-y-6">
-                      {/* Header with Create Button */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-slate-800 text-lg">Danh sách phiếu báo cáo sự cố</h3>
-                          <p className="text-sm text-slate-500">{selectedDeviceForAction.name} - {selectedDeviceForAction.code}</p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setEditingIncidentId(null);
-                            setIncidentForm({
-                              deviceId: selectedDeviceForAction.id,
-                              deviceName: selectedDeviceForAction.name,
-                              deviceCode: selectedDeviceForAction.code,
-                              specialty: selectedDeviceForAction.specialty,
-                              incidentDateTime: "",
-                              discoveredBy: user?.fullName || "",
-                              discoveredByRole: user?.role || "",
-                              supplier: selectedDeviceForAction.distributor || "",
-                              description: "",
-                              immediateAction: "",
-                              supplierAction: "",
-                              affectsPatientResult: false,
-                              affectedPatientSid: "",
-                              howAffected: "",
-                              requiresDeviceStop: false,
-                              stopFrom: "",
-                              stopTo: "",
-                              hasProposal: false,
-                              proposal: "",
-                              reportedBy: "",
-                              deviceManager: "",
-                              relatedUsers: [],
-                              status: "Nháp",
-                              workOrders: [],
-                            });
-                            setIncidentViewMode("form");
-                          }}
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2"
-                        >
-                          <Plus size={18} /> Tạo báo cáo sự cố
-                        </button>
-                      </div>
-
-                      {/* Reports Table */}
-                      <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                        <table className="w-full text-sm">
-                          <thead className="bg-slate-50">
-                            <tr>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã phiếu</th>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Người báo cáo</th>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian phát hiện</th>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian kết thúc</th>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
-                              <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {incidentReports.filter(i => i.deviceId === selectedDeviceForAction.id).length === 0 ? (
-                              <tr>
-                                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                                  <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                                  <p>Chưa có phiếu báo cáo sự cố nào</p>
-                                </td>
-                              </tr>
-                            ) : (
-                              incidentReports.filter(i => i.deviceId === selectedDeviceForAction.id).map(incident => (
-                                <tr key={incident.id} className="hover:bg-slate-50">
-                                  <td className="px-4 py-3 font-mono text-red-600">{incident.reportCode}</td>
-                                  <td className="px-4 py-3">{incident.discoveredBy}</td>
-                                  <td className="px-4 py-3">{formatDateTimeLabel(incident.incidentDateTime)}</td>
-                                  <td className="px-4 py-3">{formatDateTimeLabel(incident.completionDateTime)}</td>
-                                  <td className="px-4 py-3">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      incident.status === 'Hoàn thành' ? 'bg-green-100 text-green-700' :
-                                      incident.status === 'Đang khắc phục' ? 'bg-amber-100 text-amber-700' :
-                                      'bg-slate-100 text-slate-700'
-                                    }`}>
-                                      {incident.status}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3 text-center">
-                                    <div className="flex justify-center gap-2">
-                                      <button
-                                        onClick={() => handleEditIncidentRecord(incident)}
-                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                                        title="Cập nhật"
-                                      >
-                                        <Edit size={16} />
-                                      </button>
-                                      <button
-                                        onClick={() => setSelectedIncident(incident)}
-                                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
-                                        title="Xem chi tiết"
-                                      >
-                                        <Eye size={16} />
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          const files = incident.workOrders.flatMap((wo) => wo.attachments || []);
-                                          openAttachmentViewer(`Đính kèm của ${incident.reportCode}`, files);
-                                        }}
-                                        className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-                                        title="Đính kèm"
-                                      >
-                                        <Paperclip size={16} />
-                                      </button>
-                                      <button
-                                        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
-                                        title="Tạo/Liên kết công việc kỹ sư"
-                                        onClick={() => {
-                                          setCurrentIncidentForWorkOrder(incident);
-                                          setShowWorkOrderForm(true);
-                                          setIncidentModalTab("work-orders");
-                                        }}
-                                      >
-                                        <Phone size={16} />
-                                      </button>
-                                      <button
-                                        onClick={() => handleExportIncidentPdf(incident)}
-                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                                        title="Xuất PDF"
-                                      >
-                                        <FileText size={16} />
-                                      </button>
-                                      <button
-                                        onClick={() => handleExportIncidentExcel(incident)}
-                                        className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
-                                        title="Xuất Excel"
-                                      >
-                                        <Download size={16} />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Work Orders Table (Bảng theo dõi công việc của NCC) */}
-                      <div>
-                        <h4 className="font-semibold text-slate-800 mb-3">Danh sách công việc của nhà cung ứng</h4>
-                        <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                          <table className="w-full text-sm">
-                            <thead className="bg-amber-50">
-                              <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã công việc</th>
-                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Người thực hiện</th>
-                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian bắt đầu</th>
-                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian kết thúc</th>
-                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
-                                <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {incidentReports.filter(i => i.deviceId === selectedDeviceForAction.id).flatMap(i => i.workOrders || []).length === 0 ? (
-                                <tr>
-                                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                                    <ClipboardList className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                                    <p>Chưa có công việc nào</p>
-                                  </td>
-                                </tr>
-                              ) : (
-                                incidentReports.filter(i => i.deviceId === selectedDeviceForAction.id).flatMap(i => i.workOrders || []).map(wo => (
-                                  <tr key={wo.id} className="hover:bg-slate-50">
-                                    <td className="px-4 py-3 font-mono text-amber-600">{wo.workOrderCode}</td>
-                                    <td className="px-4 py-3">{wo.contactPerson || '—'}</td>
-                                    <td className="px-4 py-3">{wo.startDateTime || '—'}</td>
-                                    <td className="px-4 py-3">{wo.endDateTime || '—'}</td>
-                                    <td className="px-4 py-3">
-                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                        wo.status === 'Đóng' ? 'bg-green-100 text-green-700' :
-                                        wo.status === 'Mở' ? 'bg-amber-100 text-amber-700' :
-                                        'bg-slate-100 text-slate-700'
-                                      }`}>
-                                        {wo.status}
-                                      </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                      <div className="flex justify-center gap-2">
-                                        <button
-                                          onClick={() => handleEditWorkOrderFromList(wo)}
-                                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                                          title="Cập nhật"
-                                        >
-                                          <Edit size={16} />
-                                        </button>
-                                        <button
-                                          onClick={() => info("Chi tiết công việc", `${wo.workOrderCode} - ${wo.actionDescription || "Chưa cập nhật mô tả"}`)}
-                                          className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
-                                          title="Xem chi tiết"
-                                        >
-                                          <Eye size={16} />
-                                        </button>
-                                        <button
-                                          onClick={() => handleExportWorkOrderPdf(wo)}
-                                          className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                                          title="Xuất PDF"
-                                        >
-                                          <FileText size={16} />
-                                        </button>
-                                        <button
-                                          onClick={() => openAttachmentViewer(`Đính kèm của ${wo.workOrderCode}`, wo.attachments || [])}
-                                          className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-                                          title="Đính kèm"
-                                        >
-                                          <Paperclip size={16} />
-                                        </button>
-                                        <button
-                                          onClick={() => handleExportWorkOrderExcel(wo)}
-                                          className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
-                                          title="Xuất Excel"
-                                        >
-                                          <Download size={16} />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    // ==================== FORM VIEW ====================
-                    <>
-                      {/* Back button */}
-                      <button
-                        onClick={() => setIncidentViewMode("list")}
-                        className="flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-4"
-                      >
-                        <ChevronRight className="rotate-180" size={20} />
-                        Quay lại danh sách
-                      </button>
-
-                      {/* Header Info - Auto-filled from device */}
-              <div className="bg-red-50 rounded-xl p-4 border border-red-100">
-                <h3 className="font-semibold text-red-800 text-lg">{selectedDeviceForAction.name}</h3>
-                <p className="text-sm text-red-600">{selectedDeviceForAction.code} - {selectedDeviceForAction.model} - Serial: {selectedDeviceForAction.serial}</p>
-                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                  <div><span className="text-red-500">Bộ phận:</span> <span className="font-medium">{selectedDeviceForAction.specialty}</span></div>
-                  <div><span className="text-red-500">Nhà cung ứng:</span> <span className="font-medium">{selectedDeviceForAction.distributor || '—'}</span></div>
-                </div>
-              </div>
-
-              {/* Incident Code */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Mã phiếu báo cáo sự cố</label>
-                  <input
-                    type="text"
-                    value={editingIncidentId
-                      ? incidentReports.find((incident) => incident.id === editingIncidentId)?.reportCode || ""
-                      : `PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`}
-                    readOnly
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Ngày giờ phát hiện sự cố <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={incidentForm.incidentDateTime || ''}
-                    onChange={(e) => setIncidentForm({ ...incidentForm, incidentDateTime: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-red-500"
-                  />
-                </div>
-              </div>
-
-              {/* Discovered By */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Người phát hiện sự cố <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={incidentForm.discoveredBy || user?.fullName || ''}
-                    onChange={(e) => setIncidentForm({ ...incidentForm, discoveredBy: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-red-500"
-                    placeholder="Nhập tên người phát hiện"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Chức vụ</label>
-                  <input
-                    type="text"
-                    value={incidentForm.discoveredByRole || user?.role || ''}
-                    onChange={(e) => setIncidentForm({ ...incidentForm, discoveredByRole: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-red-500"
-                    placeholder="Nhập chức vụ"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Mô tả chi tiết sự cố <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={incidentForm.description || ''}
-                  onChange={(e) => setIncidentForm({ ...incidentForm, description: e.target.value })}
-                  rows={4}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-red-500 resize-none"
-                  placeholder="Mô tả chi tiết sự cố..."
-                />
-              </div>
-
-              {/* Immediate Action */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Hành động xử trí tức thì <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={incidentForm.immediateAction || ''}
-                  onChange={(e) => setIncidentForm({ ...incidentForm, immediateAction: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-red-500 resize-none"
-                  placeholder="Hành động xử trí tức thì..."
-                />
-              </div>
-
-              {/* Liên hệ nhà cung ứng button */}
-              <div className="flex items-center justify-between bg-amber-50 rounded-xl p-4 border border-amber-200">
-                <div>
-                  <h4 className="font-semibold text-amber-800">Liên hệ nhà cung ứng</h4>
-                  <p className="text-sm text-amber-600">Quản lý công việc sửa chữa từ nhà cung ứng</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowSupplierContactModal(true)}
-                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
-                >
-                  <Phone size={18} />
-                  Liên hệ NCC
-                </button>
-              </div>
-
-              {/* Conclusion Section */}
-              <div className="border-t border-slate-200 pt-4">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Kết luận</label>
-                <div className="flex gap-4 mb-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="conclusion"
-                      checked={incidentForm.conclusion === "đã khắc phục"}
-                      onChange={() => setIncidentForm({ ...incidentForm, conclusion: "đã khắc phục" })}
-                      className="w-4 h-4 text-green-600"
-                    />
-                    <span className="text-sm text-slate-700">Sự cố đã được khắc phục</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="conclusion"
-                      checked={incidentForm.conclusion === "chưa khắc phục"}
-                      onChange={() => setIncidentForm({ ...incidentForm, conclusion: "chưa khắc phục" })}
-                      className="w-4 h-4 text-red-600"
-                    />
-                    <span className="text-sm text-slate-700">Sự cố chưa được khắc phục</span>
-                  </label>
-                </div>
-
-                {/* Resolution Options */}
-                {incidentForm.conclusion === "đã khắc phục" && (
-                  <div className="bg-green-50 rounded-xl p-4 border border-green-200 space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-green-800 mb-2">Người khắc phục</label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="resolvedByType"
-                            checked={incidentForm.resolvedByType === "nhân viên lab"}
-                            onChange={() => setIncidentForm({ ...incidentForm, resolvedByType: "nhân viên lab", linkedWorkOrderCode: undefined })}
-                            className="w-4 h-4 text-green-600"
-                          />
-                          <span className="text-sm text-slate-700">Nhân viên trong lab</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="resolvedByType"
-                            checked={incidentForm.resolvedByType === "nhà sản xuất"}
-                            onChange={() => setIncidentForm({ ...incidentForm, resolvedByType: "nhà sản xuất" })}
-                            className="w-4 h-4 text-green-600"
-                          />
-                          <span className="text-sm text-slate-700">Nhà sản xuất/NCC</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {incidentForm.resolvedByType === "nhân viên lab" && (
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Chọn người khắc phục (dùng tag để chọn nhiều)</label>
-                        <div className="flex flex-wrap gap-2">
-                          {MOCK_USERS_LIST.filter(u => ["Kỹ thuật viên", "Quản lý trang thiết bị", "Trưởng phòng"].includes(u.role)).map(staff => (
-                            <button
-                              key={staff.id}
-                              type="button"
-                              onClick={() => {
-                                const current = incidentForm.resolvedBy || "";
-                                const newList = current.includes(staff.fullName) 
-                                  ? current.replace(staff.fullName, "").trim()
-                                  : current ? `${current}, ${staff.fullName}` : staff.fullName;
-                                setIncidentForm({ ...incidentForm, resolvedBy: newList });
-                              }}
-                              className={`px-3 py-1 rounded-full text-sm transition-all ${
-                                (incidentForm.resolvedBy || "").includes(staff.fullName)
-                                  ? "bg-green-500 text-white"
-                                  : "bg-white border border-slate-300 text-slate-700 hover:bg-green-50"
-                              }`}
-                            >
-                              {staff.fullName}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {incidentForm.resolvedByType === "nhà sản xuất" && (
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Mã công việc NCC</label>
-                        <select
-                          value={incidentForm.linkedWorkOrderCode || ""}
-                          onChange={(e) => setIncidentForm({ ...incidentForm, linkedWorkOrderCode: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                        >
-                          <option value="">Chọn mã công việc</option>
-                          {incidentReports
-                            .filter(i => i.deviceId === selectedDeviceForAction.id && i.workOrders && i.workOrders.length > 0)
-                            .flatMap(i => i.workOrders || [])
-                            .map(wo => (
-                              <option key={wo.id} value={wo.workOrderCode}>{wo.workOrderCode}</option>
-                            ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Completion DateTime for resolved incidents */}
-              {incidentForm.conclusion === "đã khắc phục" && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian hoàn thành</label>
-                  <input
-                    type="datetime-local"
-                    value={incidentForm.completionDateTime || ''}
-                    onChange={(e) => setIncidentForm({ ...incidentForm, completionDateTime: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                  />
-                </div>
-              )}
-
-              {/* Required Fields Before Submit */}
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 space-y-4">
-                <h4 className="font-semibold text-blue-800">Thông tin bắt buộc trước khi gửi báo cáo</h4>
-                
-                {/* Affects Patient Result */}
-                <div>
-                  <label className="flex items-center gap-2 cursor-pointer mb-2">
-                    <input
-                      type="checkbox"
-                      checked={incidentForm.affectsPatientResult || false}
-                      onChange={(e) => setIncidentForm({ ...incidentForm, affectsPatientResult: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 rounded"
-                    />
-                    <span className="text-sm font-medium text-slate-700">Có ảnh hưởng tới kết quả bệnh nhân không?</span>
-                  </label>
-                  {incidentForm.affectsPatientResult && (
-                    <div className="ml-6 space-y-2">
-                      <input
-                        type="text"
-                        value={incidentForm.affectedPatientSid || ''}
-                        onChange={(e) => setIncidentForm({ ...incidentForm, affectedPatientSid: e.target.value })}
-                        placeholder="Nhập SID bệnh nhân bị ảnh hưởng"
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                      <textarea
-                        value={incidentForm.howAffected || ''}
-                        onChange={(e) => setIncidentForm({ ...incidentForm, howAffected: e.target.value })}
-                        placeholder="Mô tả bệnh nhân bị ảnh hưởng như thế nào"
-                        rows={2}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Requires Device Stop */}
-                <div>
-                  <label className="flex items-center gap-2 cursor-pointer mb-2">
-                    <input
-                      type="checkbox"
-                      checked={incidentForm.requiresDeviceStop || false}
-                      onChange={(e) => setIncidentForm({ ...incidentForm, requiresDeviceStop: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 rounded"
-                    />
-                    <span className="text-sm font-medium text-slate-700">Có phải dừng hoạt động của máy không?</span>
-                  </label>
-                  {incidentForm.requiresDeviceStop && (
-                    <div className="ml-6 grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-slate-500">Từ</label>
-                        <input
-                          type="datetime-local"
-                          value={incidentForm.stopFrom || ''}
-                          onChange={(e) => setIncidentForm({ ...incidentForm, stopFrom: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-slate-500">Đến</label>
-                        <input
-                          type="datetime-local"
-                          value={incidentForm.stopTo || ''}
-                          onChange={(e) => setIncidentForm({ ...incidentForm, stopTo: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Has Proposal */}
-                <div>
-                  <label className="flex items-center gap-2 cursor-pointer mb-2">
-                    <input
-                      type="checkbox"
-                      checked={incidentForm.hasProposal || false}
-                      onChange={(e) => setIncidentForm({ ...incidentForm, hasProposal: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 rounded"
-                    />
-                    <span className="text-sm font-medium text-slate-700">Có đề xuất gì thêm không?</span>
-                  </label>
-                  {incidentForm.hasProposal && (
-                    <div className="ml-6">
-                      <textarea
-                        value={incidentForm.proposal || ''}
-                        onChange={(e) => setIncidentForm({ ...incidentForm, proposal: e.target.value })}
-                        placeholder="Nhập đề xuất của bạn"
-                        rows={2}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-between pt-4 border-t border-slate-200">
-                <button
-                  onClick={() => setActiveModal(null)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                >
-                  Hủy
-                </button>
-                <div className="flex gap-2">
-                  {incidentForm.conclusion === "chưa khắc phục" && (
-                    <button
-                      onClick={() => {
-                        const existingIncident = editingIncidentId
-                          ? incidentReports.find((incident) => incident.id === editingIncidentId)
-                          : null;
-                        const incidentPayload: IncidentReport = {
-                          id: existingIncident?.id || `incident-${Date.now()}`,
-                          reportCode: existingIncident?.reportCode || `PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`,
-                          deviceId: selectedDeviceForAction.id,
-                          deviceName: selectedDeviceForAction.name,
-                          deviceCode: selectedDeviceForAction.code,
-                          specialty: selectedDeviceForAction.specialty,
-                          incidentDateTime: incidentForm.incidentDateTime || new Date().toISOString(),
-                          discoveredBy: incidentForm.discoveredBy || user?.fullName || "",
-                          discoveredByRole: incidentForm.discoveredByRole || user?.role || "",
-                          supplier: selectedDeviceForAction.distributor || "",
-                          description: incidentForm.description || "",
-                          immediateAction: incidentForm.immediateAction || "",
-                          supplierAction: "",
-                          affectsPatientResult: false,
-                          affectedPatientSid: "",
-                          howAffected: "",
-                          requiresDeviceStop: false,
-                          stopFrom: "",
-                          stopTo: "",
-                          hasProposal: false,
-                          proposal: "",
-                          reportedBy: user?.fullName || "",
-                          deviceManager: "",
-                          relatedUsers: [],
-                          status: "Đang khắc phục",
-                          workOrders: existingIncident?.workOrders || [],
-                          createdAt: existingIncident?.createdAt || new Date().toISOString(),
-                          updatedAt: new Date().toISOString(),
-                          conclusion: "chưa khắc phục",
-                          resolvedBy: "",
-                          resolvedByType: undefined,
-                          linkedWorkOrderCode: undefined,
-                          completionDateTime: undefined,
-                        };
-
-                        if (editingIncidentId) {
-                          setIncidentReports(incidentReports.map((incident) => incident.id === editingIncidentId ? incidentPayload : incident));
-                        } else {
-                          setIncidentReports([...incidentReports, incidentPayload]);
-                          setIncidentCounter(incidentCounter + 1);
-                        }
-
-                        setEditingIncidentId(null);
-                        setIncidentForm({
-                          deviceId: "", deviceName: "", deviceCode: "", specialty: "",
-                          incidentDateTime: "", discoveredBy: "", discoveredByRole: "", supplier: "",
-                          description: "", immediateAction: "", supplierAction: "", affectsPatientResult: false,
-                          affectedPatientSid: "", howAffected: "", requiresDeviceStop: false,
-                          stopFrom: "", stopTo: "", hasProposal: false, proposal: "",
-                          reportedBy: "", deviceManager: "", relatedUsers: [], status: "Nháp", workOrders: [],
-                        });
-                        success("Thành công", editingIncidentId ? "Đã cập nhật phiếu báo cáo sự cố" : "Đã lưu báo cáo sự cố với trạng thái Đang khắc phục");
-                        setActiveModal(null);
-                      }}
-                      className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
-                    >
-                      <Save size={18} /> Lưu & Đóng
-                    </button>
-                  )}
-                  {incidentForm.conclusion === "đã khắc phục" && (
-                    <button
-                      onClick={() => {
-                        const existingIncident = editingIncidentId
-                          ? incidentReports.find((incident) => incident.id === editingIncidentId)
-                          : null;
-                        const incidentPayload: IncidentReport = {
-                          id: existingIncident?.id || `incident-${Date.now()}`,
-                          reportCode: existingIncident?.reportCode || `PSC-${new Date().getFullYear()}-${String(incidentCounter).padStart(3, '0')}`,
-                          deviceId: selectedDeviceForAction.id,
-                          deviceName: selectedDeviceForAction.name,
-                          deviceCode: selectedDeviceForAction.code,
-                          specialty: selectedDeviceForAction.specialty,
-                          incidentDateTime: incidentForm.incidentDateTime || new Date().toISOString(),
-                          discoveredBy: incidentForm.discoveredBy || user?.fullName || "",
-                          discoveredByRole: incidentForm.discoveredByRole || user?.role || "",
-                          supplier: selectedDeviceForAction.distributor || "",
-                          description: incidentForm.description || "",
-                          immediateAction: incidentForm.immediateAction || "",
-                          supplierAction: incidentForm.supplierAction || "",
-                          affectsPatientResult: incidentForm.affectsPatientResult || false,
-                          affectedPatientSid: incidentForm.affectedPatientSid || "",
-                          howAffected: incidentForm.howAffected || "",
-                          requiresDeviceStop: incidentForm.requiresDeviceStop || false,
-                          stopFrom: incidentForm.stopFrom || "",
-                          stopTo: incidentForm.stopTo || "",
-                          hasProposal: incidentForm.hasProposal || false,
-                          proposal: incidentForm.proposal || "",
-                          reportedBy: user?.fullName || "",
-                          deviceManager: "",
-                          relatedUsers: [],
-                          status: "Hoàn thành",
-                          workOrders: existingIncident?.workOrders || [],
-                          createdAt: existingIncident?.createdAt || new Date().toISOString(),
-                          updatedAt: new Date().toISOString(),
-                          conclusion: "đã khắc phục",
-                          resolvedBy: incidentForm.resolvedBy || "",
-                          resolvedByType: incidentForm.resolvedByType as "nhân viên lab" | "nhà sản xuất" | undefined,
-                          linkedWorkOrderCode: incidentForm.linkedWorkOrderCode,
-                          completionDateTime: incidentForm.completionDateTime,
-                        };
-
-                        if (editingIncidentId) {
-                          setIncidentReports(incidentReports.map((incident) => incident.id === editingIncidentId ? incidentPayload : incident));
-                        } else {
-                          setIncidentReports([...incidentReports, incidentPayload]);
-                          setIncidentCounter(incidentCounter + 1);
-                        }
-
-                        setEditingIncidentId(null);
-                        // If device was paused, resume it
-                        if (selectedDeviceForAction.status === "Tạm dừng") {
-                          updateDeviceStatus(selectedDeviceForAction.id, "Đang vận hành");
-                        }
-                        success("Thành công", editingIncidentId ? "Đã cập nhật và hoàn thành phiếu sự cố" : "Đã hoàn thành báo cáo sự cố");
-                        setActiveModal(null);
-                      }}
-                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2"
-                    >
-                      <CheckCircle2 size={18} /> Hoàn thành
-                    </button>
-                  )}
-                </div>
-              </div>
-                    </>
-                  )}
-                </>
-              )}
-
-              {/* Tab Content: Lệnh công việc */}
-              {incidentModalTab === "work-orders" && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-800">Danh sách công việc của kỹ sư</h3>
-                    <button
-                      onClick={() => {
-                        // Add new work order logic
-                      }}
-                      className="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 flex items-center gap-1"
-                    >
-                      <Plus size={16} /> Thêm lệnh
-                    </button>
-                  </div>
-                  
-                  {/* Work Orders List */}
-                  {incidentReports
-                    .filter(i => i.deviceId === selectedDeviceForAction.id)
-                    .flatMap(i => i.workOrders || [])
-                    .length === 0 ? (
-                    <div className="text-center py-8 text-slate-500">
-                      <ClipboardList className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                      <p>Chưa có lệnh công việc nào</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {incidentReports
-                        .filter(i => i.deviceId === selectedDeviceForAction.id)
-                        .flatMap(i => i.workOrders || [])
-                        .map(wo => (
-                          <div key={wo.id} className="bg-white border border-slate-200 rounded-lg p-4">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <p className="font-medium text-slate-800">{wo.workOrderCode}</p>
-                                <p className="text-sm text-slate-600">{wo.actionDescription}</p>
-                                <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
-                                  <span>Người liên hệ: {wo.contactPerson}</span>
-                                  <span>Phương thức: {wo.contactMethod}</span>
-                                  <span>Ngày bắt đầu: {wo.startDateTime}</span>
-                                </div>
-                              </div>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                wo.status === "Đóng" ? "bg-green-100 text-green-700" :
-                                wo.status === "Mở" ? "bg-amber-100 text-amber-700" :
-                                "bg-slate-100 text-slate-700"
-                              }`}>
-                                {wo.status}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {selectedDeviceForAction && (
+        <TransferModal
+          show={activeModal === "transfer"}
+          device={selectedDeviceForAction}
+          user={user}
+          viewMode={transferViewMode}
+          filterStatus={transferFilterStatus}
+          transferForm={transferForm}
+          transferRecords={transferRecords}
+          transferCounter={transferCounter}
+          editingId={editingTransferId}
+          onClose={() => setActiveModal(null)}
+          onViewModeChange={setTransferViewMode}
+          onFilterChange={setTransferFilterStatus}
+          onFormChange={setTransferForm}
+          onEditingChange={setEditingTransferId}
+          onSelectRecord={setSelectedTransfer}
+          onApproveRecord={(record) => {
+            setTransferRecords(transferRecords.map((item) => (item.id === record.id ? { ...item, status: "Đã duyệt", updatedAt: new Date().toISOString() } : item)));
+            handleTransferApproval(record.deviceId);
+          }}
+          onSaveTransfer={(status) => saveTransferProposal(status)}
+          getWorkflowStatusClass={getWorkflowStatusClass}
+          openPrintableWindow={openPrintableWindow}
+          downloadCsvFile={downloadCsvFile}
+        />
       )}
 
-      {selectedIncident && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={() => setSelectedIncident(null)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">Chi tiết phiếu sự cố</h3>
-                <p className="text-sm text-slate-500">{selectedIncident.reportCode}</p>
-              </div>
-              <button onClick={() => setSelectedIncident(null)} className="p-2 hover:bg-slate-100 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-3 text-sm">
-              <p><span className="font-medium text-slate-700">Thiết bị:</span> {selectedIncident.deviceCode} - {selectedIncident.deviceName}</p>
-              <p><span className="font-medium text-slate-700">Người báo cáo:</span> {selectedIncident.discoveredBy}</p>
-              <p><span className="font-medium text-slate-700">Thời gian phát hiện:</span> {formatDateTimeLabel(selectedIncident.incidentDateTime)}</p>
-              <p><span className="font-medium text-slate-700">Trạng thái:</span> {selectedIncident.status}</p>
-              <p><span className="font-medium text-slate-700">Mô tả:</span> {selectedIncident.description || "—"}</p>
-              <p><span className="font-medium text-slate-700">Xử trí tức thì:</span> {selectedIncident.immediateAction || "—"}</p>
-            </div>
-          </div>
-        </div>
+      {selectedDeviceForAction && (
+        <LiquidationModal
+          show={activeModal === "dispose"}
+          device={selectedDeviceForAction}
+          user={user}
+          viewMode={liquidationViewMode}
+          filterStatus={liquidationFilterStatus}
+          liquidationForm={liquidationForm}
+          liquidationRecords={liquidationRecords}
+          liquidationCounter={liquidationCounter}
+          editingId={editingLiquidationId}
+          onClose={() => setActiveModal(null)}
+          onViewModeChange={setLiquidationViewMode}
+          onFilterChange={setLiquidationFilterStatus}
+          onFormChange={setLiquidationForm}
+          onEditingChange={setEditingLiquidationId}
+          onSelectRecord={setSelectedLiquidation}
+          onApproveRecord={(record) => {
+            setLiquidationRecords(liquidationRecords.map((item) => (item.id === record.id ? { ...item, status: "Đã duyệt", updatedAt: new Date().toISOString() } : item)));
+            handleLiquidationApproval(record.deviceId);
+          }}
+          onSave={(status) => saveLiquidationProposal(status)}
+          getWorkflowStatusClass={getWorkflowStatusClass}
+          openPrintableWindow={openPrintableWindow}
+          downloadCsvFile={downloadCsvFile}
+        />
       )}
 
-      {/* ============================================
-      /* TRANSFER MODAL */
-      /* ============================================ */}
-      {activeModal === "transfer" && selectedDeviceForAction && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
-          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">Điều chuyển thiết bị</h2>
-                <p className="text-sm text-slate-500">Theo dõi phiếu điều chuyển và trạng thái phê duyệt</p>
-              </div>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {transferViewMode === "list" ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-slate-800">Danh sách phiếu điều chuyển</h3>
-                      <p className="text-sm text-slate-500">{selectedDeviceForAction.name} - {selectedDeviceForAction.code}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={transferFilterStatus}
-                        onChange={(e) => setTransferFilterStatus(e.target.value)}
-                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      >
-                        <option value="all">Tất cả trạng thái</option>
-                        <option value="Nháp">Nháp</option>
-                        <option value="Chờ duyệt">Chờ duyệt</option>
-                        <option value="Đã duyệt">Đã duyệt</option>
-                        <option value="Hoàn thành">Hoàn thành</option>
-                      </select>
-                      <button
-                        onClick={() => {
-                          setEditingTransferId(null);
-                          setTransferForm({
-                            fromLocation: selectedDeviceForAction.location,
-                            toLocation: "",
-                            reason: "",
-                            plannedTransferDate: "",
-                            requestedBy: user?.fullName || "",
-                            approver: "",
-                            status: "Nháp",
-                          });
-                          setTransferViewMode("form");
-                        }}
-                        className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 flex items-center gap-2"
-                      >
-                        <Plus size={18} /> Tạo phiếu điều chuyển
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã phiếu</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Từ</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Đến</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày dự kiến</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
-                          <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {transferRecords
-                          .filter((record) => record.deviceId === selectedDeviceForAction.id)
-                          .filter((record) => transferFilterStatus === "all" || record.status === transferFilterStatus)
-                          .map((record) => (
-                            <tr key={record.id} className="hover:bg-slate-50">
-                              <td className="px-4 py-3 font-mono text-cyan-700">{record.transferCode}</td>
-                              <td className="px-4 py-3">{record.fromLocation}</td>
-                              <td className="px-4 py-3">{record.toLocation}</td>
-                              <td className="px-4 py-3">{record.plannedTransferDate || "—"}</td>
-                              <td className="px-4 py-3">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getWorkflowStatusClass(record.status)}`}>
-                                  {record.status}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <div className="flex justify-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditingTransferId(record.id);
-                                      setTransferForm({ ...record });
-                                      setTransferViewMode("form");
-                                    }}
-                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                                    title="Chỉnh sửa"
-                                  >
-                                    <Edit size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => setSelectedTransfer(record)}
-                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
-                                    title="Xem"
-                                  >
-                                    <Eye size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => openPrintableWindow(`Phiếu điều chuyển ${record.transferCode}`, [
-                                      `Thiết bị: ${record.deviceCode} - ${record.deviceName}`,
-                                      `Từ: ${record.fromLocation}`,
-                                      `Đến: ${record.toLocation}`,
-                                      `Lý do: ${record.reason}`,
-                                      `Người đề nghị: ${record.requestedBy}`,
-                                      `Người duyệt: ${record.approver}`,
-                                      `Trạng thái: ${record.status}`,
-                                    ])}
-                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                                    title="Xuất PDF"
-                                  >
-                                    <FileText size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => downloadCsvFile(
-                                      `${record.transferCode}.csv`,
-                                      ["Mã phiếu", "Thiết bị", "Từ", "Đến", "Ngày dự kiến", "Trạng thái"],
-                                      [[record.transferCode, `${record.deviceCode} - ${record.deviceName}`, record.fromLocation, record.toLocation, record.plannedTransferDate, record.status]],
-                                      `Đã xuất phiếu ${record.transferCode}`
-                                    )}
-                                    className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
-                                    title="Xuất Excel"
-                                  >
-                                    <Download size={16} />
-                                  </button>
-                                  {record.status === "Chờ duyệt" && (
-                                    <button
-                                      onClick={() => {
-                                        setTransferRecords(transferRecords.map((item) => item.id === record.id ? { ...item, status: "Đã duyệt", updatedAt: new Date().toISOString() } : item));
-                                        handleTransferApproval(record.deviceId);
-                                      }}
-                                      className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-                                      title="Phê duyệt"
-                                    >
-                                      <Check size={16} />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        {transferRecords.filter((record) => record.deviceId === selectedDeviceForAction.id).length === 0 && (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Chưa có phiếu điều chuyển</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => setTransferViewMode("list")} className="flex items-center gap-2 text-slate-600 hover:text-slate-800">
-                    <ChevronRight className="rotate-180" size={20} /> Quay lại danh sách
-                  </button>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Mã phiếu</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={editingTransferId
-                          ? transferRecords.find((record) => record.id === editingTransferId)?.transferCode || ""
-                          : `DC-${new Date().getFullYear()}-${String(transferCounter).padStart(3, "0")}`}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Ngày dự kiến điều chuyển</label>
-                      <input
-                        type="date"
-                        value={transferForm.plannedTransferDate || ""}
-                        onChange={(e) => setTransferForm({ ...transferForm, plannedTransferDate: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Từ vị trí</label>
-                      <input
-                        type="text"
-                        value={transferForm.fromLocation || selectedDeviceForAction.location}
-                        onChange={(e) => setTransferForm({ ...transferForm, fromLocation: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Đến vị trí</label>
-                      <input
-                        type="text"
-                        value={transferForm.toLocation || ""}
-                        onChange={(e) => setTransferForm({ ...transferForm, toLocation: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Lý do điều chuyển</label>
-                    <textarea
-                      value={transferForm.reason || ""}
-                      onChange={(e) => setTransferForm({ ...transferForm, reason: e.target.value })}
-                      rows={3}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Người đề nghị</label>
-                      <input
-                        type="text"
-                        value={transferForm.requestedBy || user?.fullName || ""}
-                        onChange={(e) => setTransferForm({ ...transferForm, requestedBy: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Người phê duyệt</label>
-                      <input
-                        type="text"
-                        value={transferForm.approver || ""}
-                        onChange={(e) => setTransferForm({ ...transferForm, approver: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                    <button onClick={() => saveTransferProposal("Nháp")} className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Lưu nháp</button>
-                    <button onClick={() => saveTransferProposal("Chờ duyệt")} className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600">Gửi phê duyệt</button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ============================================
-      /* LIQUIDATION MODAL */
-      /* ============================================ */}
-      {activeModal === "dispose" && selectedDeviceForAction && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
-          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">Thanh lý thiết bị</h2>
-                <p className="text-sm text-slate-500">Quản lý phiếu thanh lý và phê duyệt</p>
-              </div>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {liquidationViewMode === "list" ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-slate-800">Danh sách phiếu thanh lý</h3>
-                      <p className="text-sm text-slate-500">{selectedDeviceForAction.name} - {selectedDeviceForAction.code}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={liquidationFilterStatus}
-                        onChange={(e) => setLiquidationFilterStatus(e.target.value)}
-                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      >
-                        <option value="all">Tất cả trạng thái</option>
-                        <option value="Nháp">Nháp</option>
-                        <option value="Chờ duyệt">Chờ duyệt</option>
-                        <option value="Đã duyệt">Đã duyệt</option>
-                        <option value="Hoàn thành">Hoàn thành</option>
-                      </select>
-                      <button
-                        onClick={() => {
-                          setEditingLiquidationId(null);
-                          setLiquidationForm({
-                            reason: "",
-                            method: "",
-                            estimatedValue: "",
-                            plannedDate: "",
-                            requestedBy: user?.fullName || "",
-                            approver: "",
-                            status: "Nháp",
-                          });
-                          setLiquidationViewMode("form");
-                        }}
-                        className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"
-                      >
-                        <Plus size={18} /> Tạo phiếu thanh lý
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã phiếu</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Lý do</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Phương thức</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày dự kiến</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
-                          <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {liquidationRecords
-                          .filter((record) => record.deviceId === selectedDeviceForAction.id)
-                          .filter((record) => liquidationFilterStatus === "all" || record.status === liquidationFilterStatus)
-                          .map((record) => (
-                            <tr key={record.id} className="hover:bg-slate-50">
-                              <td className="px-4 py-3 font-mono text-slate-700">{record.liquidationCode}</td>
-                              <td className="px-4 py-3">{record.reason}</td>
-                              <td className="px-4 py-3">{record.method}</td>
-                              <td className="px-4 py-3">{record.plannedDate || "—"}</td>
-                              <td className="px-4 py-3">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getWorkflowStatusClass(record.status)}`}>
-                                  {record.status}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <div className="flex justify-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditingLiquidationId(record.id);
-                                      setLiquidationForm({ ...record });
-                                      setLiquidationViewMode("form");
-                                    }}
-                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                                    title="Chỉnh sửa"
-                                  >
-                                    <Edit size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => setSelectedLiquidation(record)}
-                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
-                                    title="Xem"
-                                  >
-                                    <Eye size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => openPrintableWindow(`Phiếu thanh lý ${record.liquidationCode}`, [
-                                      `Thiết bị: ${record.deviceCode} - ${record.deviceName}`,
-                                      `Lý do: ${record.reason}`,
-                                      `Phương thức: ${record.method}`,
-                                      `Giá trị ước tính: ${record.estimatedValue}`,
-                                      `Người đề nghị: ${record.requestedBy}`,
-                                      `Người duyệt: ${record.approver}`,
-                                      `Trạng thái: ${record.status}`,
-                                    ])}
-                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                                    title="Xuất PDF"
-                                  >
-                                    <FileText size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => downloadCsvFile(
-                                      `${record.liquidationCode}.csv`,
-                                      ["Mã phiếu", "Thiết bị", "Lý do", "Phương thức", "Giá trị", "Trạng thái"],
-                                      [[record.liquidationCode, `${record.deviceCode} - ${record.deviceName}`, record.reason, record.method, record.estimatedValue, record.status]],
-                                      `Đã xuất phiếu ${record.liquidationCode}`
-                                    )}
-                                    className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
-                                    title="Xuất Excel"
-                                  >
-                                    <Download size={16} />
-                                  </button>
-                                  {record.status === "Chờ duyệt" && (
-                                    <button
-                                      onClick={() => {
-                                        setLiquidationRecords(liquidationRecords.map((item) => item.id === record.id ? { ...item, status: "Đã duyệt", updatedAt: new Date().toISOString() } : item));
-                                        handleLiquidationApproval(record.deviceId);
-                                      }}
-                                      className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-                                      title="Phê duyệt"
-                                    >
-                                      <Check size={16} />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        {liquidationRecords.filter((record) => record.deviceId === selectedDeviceForAction.id).length === 0 && (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Chưa có phiếu thanh lý</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => setLiquidationViewMode("list")} className="flex items-center gap-2 text-slate-600 hover:text-slate-800">
-                    <ChevronRight className="rotate-180" size={20} /> Quay lại danh sách
-                  </button>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Mã phiếu</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={editingLiquidationId
-                          ? liquidationRecords.find((record) => record.id === editingLiquidationId)?.liquidationCode || ""
-                          : `TL-${new Date().getFullYear()}-${String(liquidationCounter).padStart(3, "0")}`}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Ngày dự kiến thanh lý</label>
-                      <input
-                        type="date"
-                        value={liquidationForm.plannedDate || ""}
-                        onChange={(e) => setLiquidationForm({ ...liquidationForm, plannedDate: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Lý do thanh lý</label>
-                    <textarea
-                      value={liquidationForm.reason || ""}
-                      onChange={(e) => setLiquidationForm({ ...liquidationForm, reason: e.target.value })}
-                      rows={3}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Phương thức thanh lý</label>
-                      <input
-                        type="text"
-                        value={liquidationForm.method || ""}
-                        onChange={(e) => setLiquidationForm({ ...liquidationForm, method: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Giá trị ước tính (VND)</label>
-                      <input
-                        type="number"
-                        value={liquidationForm.estimatedValue || ""}
-                        onChange={(e) => setLiquidationForm({ ...liquidationForm, estimatedValue: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Người đề nghị</label>
-                      <input
-                        type="text"
-                        value={liquidationForm.requestedBy || user?.fullName || ""}
-                        onChange={(e) => setLiquidationForm({ ...liquidationForm, requestedBy: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Người phê duyệt</label>
-                      <input
-                        type="text"
-                        value={liquidationForm.approver || ""}
-                        onChange={(e) => setLiquidationForm({ ...liquidationForm, approver: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                    <button onClick={() => saveLiquidationProposal("Nháp")} className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Lưu nháp</button>
-                    <button onClick={() => saveLiquidationProposal("Chờ duyệt")} className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800">Gửi phê duyệt</button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ============================================
-      /* TRAINING MODAL */
-      /* ============================================ */}
-      {activeModal === "training" && selectedDeviceForAction && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
-          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">Đào tạo vận hành thiết bị</h2>
-                <p className="text-sm text-slate-500">Lập và theo dõi phiếu đào tạo người sử dụng</p>
-              </div>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              {trainingViewMode === "list" ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-slate-800">Danh sách phiếu đào tạo</h3>
-                      <p className="text-sm text-slate-500">{selectedDeviceForAction.name} - {selectedDeviceForAction.code}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={trainingFilterStatus}
-                        onChange={(e) => setTrainingFilterStatus(e.target.value)}
-                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      >
-                        <option value="all">Tất cả trạng thái</option>
-                        <option value="Nháp">Nháp</option>
-                        <option value="Chờ duyệt">Chờ duyệt</option>
-                        <option value="Đã duyệt">Đã duyệt</option>
-                        <option value="Hoàn thành">Hoàn thành</option>
-                      </select>
-                      <button
-                        onClick={() => {
-                          setEditingTrainingId(null);
-                          setTrainingForm({
-                            topic: "",
-                            trainer: "",
-                            traineeGroup: "",
-                            plannedDate: "",
-                            approver: "",
-                            status: "Nháp",
-                          });
-                          setTrainingViewMode("form");
-                        }}
-                        className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 flex items-center gap-2"
-                      >
-                        <Plus size={18} /> Tạo phiếu đào tạo
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã phiếu</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Nội dung</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Giảng viên</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày dự kiến</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
-                          <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {trainingRecords
-                          .filter((record) => record.deviceId === selectedDeviceForAction.id)
-                          .filter((record) => trainingFilterStatus === "all" || record.status === trainingFilterStatus)
-                          .map((record) => (
-                            <tr key={record.id} className="hover:bg-slate-50">
-                              <td className="px-4 py-3 font-mono text-indigo-700">{record.trainingCode}</td>
-                              <td className="px-4 py-3">{record.topic}</td>
-                              <td className="px-4 py-3">{record.trainer}</td>
-                              <td className="px-4 py-3">{record.plannedDate || "—"}</td>
-                              <td className="px-4 py-3">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getWorkflowStatusClass(record.status)}`}>
-                                  {record.status}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <div className="flex justify-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditingTrainingId(record.id);
-                                      setTrainingForm({ ...record });
-                                      setTrainingViewMode("form");
-                                    }}
-                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                                    title="Chỉnh sửa"
-                                  >
-                                    <Edit size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => setSelectedTraining(record)}
-                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
-                                    title="Xem"
-                                  >
-                                    <Eye size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => openPrintableWindow(`Phiếu đào tạo ${record.trainingCode}`, [
-                                      `Thiết bị: ${record.deviceCode} - ${record.deviceName}`,
-                                      `Nội dung: ${record.topic}`,
-                                      `Giảng viên: ${record.trainer}`,
-                                      `Nhóm học viên: ${record.traineeGroup}`,
-                                      `Ngày dự kiến: ${record.plannedDate}`,
-                                      `Người duyệt: ${record.approver}`,
-                                      `Trạng thái: ${record.status}`,
-                                    ])}
-                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                                    title="Xuất PDF"
-                                  >
-                                    <FileText size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => downloadCsvFile(
-                                      `${record.trainingCode}.csv`,
-                                      ["Mã phiếu", "Thiết bị", "Nội dung", "Giảng viên", "Học viên", "Trạng thái"],
-                                      [[record.trainingCode, `${record.deviceCode} - ${record.deviceName}`, record.topic, record.trainer, record.traineeGroup, record.status]],
-                                      `Đã xuất phiếu ${record.trainingCode}`
-                                    )}
-                                    className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
-                                    title="Xuất Excel"
-                                  >
-                                    <Download size={16} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        {trainingRecords.filter((record) => record.deviceId === selectedDeviceForAction.id).length === 0 && (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Chưa có phiếu đào tạo</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => setTrainingViewMode("list")} className="flex items-center gap-2 text-slate-600 hover:text-slate-800">
-                    <ChevronRight className="rotate-180" size={20} /> Quay lại danh sách
-                  </button>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Mã phiếu</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={editingTrainingId
-                          ? trainingRecords.find((record) => record.id === editingTrainingId)?.trainingCode || ""
-                          : `DT-${new Date().getFullYear()}-${String(trainingCounter).padStart(3, "0")}`}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Ngày dự kiến đào tạo</label>
-                      <input
-                        type="date"
-                        value={trainingForm.plannedDate || ""}
-                        onChange={(e) => setTrainingForm({ ...trainingForm, plannedDate: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung đào tạo</label>
-                    <textarea
-                      value={trainingForm.topic || ""}
-                      onChange={(e) => setTrainingForm({ ...trainingForm, topic: e.target.value })}
-                      rows={3}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Giảng viên</label>
-                      <input
-                        type="text"
-                        value={trainingForm.trainer || ""}
-                        onChange={(e) => setTrainingForm({ ...trainingForm, trainer: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Nhóm học viên</label>
-                      <input
-                        type="text"
-                        value={trainingForm.traineeGroup || ""}
-                        onChange={(e) => setTrainingForm({ ...trainingForm, traineeGroup: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Người phê duyệt</label>
-                    <input
-                      type="text"
-                      value={trainingForm.approver || ""}
-                      onChange={(e) => setTrainingForm({ ...trainingForm, approver: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                    <button onClick={() => saveTrainingProposal("Nháp")} className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Lưu nháp</button>
-                    <button onClick={() => saveTrainingProposal("Chờ duyệt")} className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">Gửi phê duyệt</button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+      {selectedDeviceForAction && (
+        <TrainingModal
+          show={activeModal === "training"}
+          device={selectedDeviceForAction}
+          viewMode={trainingViewMode}
+          filterStatus={trainingFilterStatus}
+          trainingForm={trainingForm}
+          trainingRecords={trainingRecords}
+          trainingCounter={trainingCounter}
+          editingId={editingTrainingId}
+          onClose={() => setActiveModal(null)}
+          onViewModeChange={setTrainingViewMode}
+          onFilterChange={setTrainingFilterStatus}
+          onFormChange={setTrainingForm}
+          onEditingChange={setEditingTrainingId}
+          onSelectRecord={setSelectedTraining}
+          onSave={(status) => saveTrainingProposal(status)}
+          getWorkflowStatusClass={getWorkflowStatusClass}
+          openPrintableWindow={openPrintableWindow}
+          downloadCsvFile={downloadCsvFile}
+        />
       )}
 
       {selectedTransfer && (
@@ -5919,1216 +3628,17 @@ export default function DeviceProfileTab() {
         </div>
       )}
 
-      {/* ============================================
-      /* SUPPLIER CONTACT MODAL */
-      /* ============================================ */}
-      {showSupplierContactModal && selectedDeviceForAction && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowSupplierContactModal(false)}>
-          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">Liên hệ nhà cung ứng</h2>
-                <p className="text-sm text-slate-500">Quản lý công việc sửa chữa của nhà cung ứng</p>
-              </div>
-              <button onClick={() => setShowSupplierContactModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
+      <CalibrationModal
+        show={activeModal === "calibration"}
+        device={selectedDeviceForAction}
+        onClose={() => setActiveModal(null)}
+      />
 
-            <div className="p-6 space-y-6">
-              {/* Device Info */}
-              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                <h3 className="font-semibold text-amber-800">{selectedDeviceForAction.name}</h3>
-                <p className="text-sm text-amber-600">{selectedDeviceForAction.code} - {selectedDeviceForAction.distributor || 'Chưa có NCC'}</p>
-              </div>
-
-              {/* Add Work Order Button */}
-              <div className="flex justify-end">
-                <button
-                  onClick={() => {
-                    const defaultIncident = incidentReports.find((incident) => incident.deviceId === selectedDeviceForAction.id) || null;
-                    setCurrentIncidentForWorkOrder(defaultIncident);
-                    setEditingWorkOrder(null);
-                    setWorkOrderForm({
-                      contactPerson: "",
-                      contactMethod: "điện thoại",
-                      startDateTime: "",
-                      endDateTime: "",
-                      actionDescription: "",
-                      notes: "",
-                      attachments: [],
-                      status: "Mở",
-                      isCompleted: false,
-                    });
-                    setShowWorkOrderForm(true);
-                  }}
-                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
-                >
-                  <Plus size={18} /> Thêm công việc
-                </button>
-              </div>
-
-              {/* Work Orders Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã công việc</th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Người liên hệ</th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Hình thức</th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian bắt đầu</th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Thời gian kết thúc</th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Kết luận</th>
-                      <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {incidentReports
-                      .filter(i => i.deviceId === selectedDeviceForAction.id)
-                      .flatMap(i => i.workOrders || [])
-                      .map(wo => (
-                        <tr key={wo.id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 font-mono text-amber-600">{wo.workOrderCode}</td>
-                          <td className="px-4 py-3">{wo.contactPerson}</td>
-                          <td className="px-4 py-3">{wo.contactMethod}</td>
-                          <td className="px-4 py-3">{wo.startDateTime || '—'}</td>
-                          <td className="px-4 py-3">{wo.endDateTime || '—'}</td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              wo.status === 'Mở' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
-                            }`}>
-                              {wo.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            {wo.conclusion ? (
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                wo.conclusion === 'hoàn thành' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                              }`}>
-                                {wo.conclusion === 'hoàn thành' ? 'Hoàn thành' : 'Xử trí 1 phần'}
-                              </span>
-                            ) : '—'}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex justify-center gap-2">
-                              <button
-                                onClick={() => {
-                                  setEditingWorkOrder(wo);
-                                  setWorkOrderForm({
-                                    contactPerson: wo.contactPerson,
-                                    contactMethod: wo.contactMethod,
-                                    startDateTime: wo.startDateTime,
-                                    endDateTime: wo.endDateTime || "",
-                                    actionDescription: wo.actionDescription,
-                                    notes: wo.notes,
-                                    attachments: wo.attachments,
-                                    status: wo.status,
-                                    isCompleted: wo.isCompleted,
-                                  });
-                                  setShowWorkOrderForm(true);
-                                }}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                                title="Cập nhật"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button
-                                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
-                                title="Xem chi tiết"
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <button
-                                onClick={() => openAttachmentViewer(`Đính kèm của ${wo.workOrderCode}`, wo.attachments || [])}
-                                className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-                                title="Đính kèm"
-                              >
-                                <Paperclip size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    {incidentReports.filter(i => i.deviceId === selectedDeviceForAction.id).flatMap(i => i.workOrders || []).length === 0 && (
-                      <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
-                          Chưa có công việc nào
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Work Order Form Modal */}
-              {showWorkOrderForm && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={() => setShowWorkOrderForm(false)}>
-                  <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                    <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-800">
-                          {editingWorkOrder ? 'Cập nhật công việc' : 'Thêm công việc mới'}
-                        </h3>
-                        <p className="text-sm text-slate-500">
-                          Mã công việc: {editingWorkOrder?.workOrderCode || `${selectedDeviceForAction.code}-WO-${String(workOrderCounter).padStart(3, '0')}`}
-                        </p>
-                      </div>
-                      <button onClick={() => setShowWorkOrderForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                        <X size={20} />
-                      </button>
-                    </div>
-                    <div className="p-6 space-y-4">
-                      {/* Contact Person */}
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Người liên hệ NCC</label>
-                        <input
-                          type="text"
-                          value={workOrderForm.contactPerson || ''}
-                          onChange={(e) => setWorkOrderForm({ ...workOrderForm, contactPerson: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                          placeholder="Tên người liên hệ"
-                        />
-                      </div>
-
-                      {/* Contact Method */}
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Hình thức liên hệ</label>
-                        <select
-                          value={workOrderForm.contactMethod || 'điện thoại'}
-                          onChange={(e) => setWorkOrderForm({ ...workOrderForm, contactMethod: e.target.value as any })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                        >
-                          <option value="zalo">Zalo</option>
-                          <option value="điện thoại">Điện thoại</option>
-                          <option value="email">Email</option>
-                          <option value="tin nhắn">Tin nhắn</option>
-                          <option value="trao đổi trực tiếp">Trao đổi trực tiếp</option>
-                        </select>
-                      </div>
-
-                      {/* Time */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian bắt đầu</label>
-                          <input
-                            type="datetime-local"
-                            value={workOrderForm.startDateTime || ''}
-                            onChange={(e) => setWorkOrderForm({ ...workOrderForm, startDateTime: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian kết thúc</label>
-                          <input
-                            type="datetime-local"
-                            value={workOrderForm.endDateTime || ''}
-                            onChange={(e) => setWorkOrderForm({ ...workOrderForm, endDateTime: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả hành động</label>
-                        <textarea
-                          value={workOrderForm.actionDescription || ''}
-                          onChange={(e) => setWorkOrderForm({ ...workOrderForm, actionDescription: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                          placeholder="Mô tả công việc đã thực hiện..."
-                        />
-                      </div>
-
-                      {/* Notes */}
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Ghi chú</label>
-                        <textarea
-                          value={workOrderForm.notes || ''}
-                          onChange={(e) => setWorkOrderForm({ ...workOrderForm, notes: e.target.value })}
-                          rows={2}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                          placeholder="Ghi chú thêm..."
-                        />
-                      </div>
-
-                      {/* Attachments */}
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Đính kèm</label>
-                        <input
-                          ref={workOrderAttachmentInputRef}
-                          type="file"
-                          className="hidden"
-                          multiple
-                          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                          onChange={handleUploadWorkOrderAttachments}
-                        />
-                        <div className="space-y-2">
-                          {(workOrderForm.attachments || []).length > 0 && (
-                            <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
-                              {(workOrderForm.attachments || []).map((attachment) => (
-                                <div key={attachment.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                                  <span className="text-slate-700 truncate pr-3">{attachment.name}</span>
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleViewAttachment(attachment)}
-                                      className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                      title="Xem"
-                                    >
-                                      <Eye size={15} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDownloadAttachment(attachment)}
-                                      className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
-                                      title="Tải xuống"
-                                    >
-                                      <Download size={15} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveWorkOrderAttachment(attachment.id)}
-                                      className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                      title="Xóa"
-                                    >
-                                      <Trash2 size={15} />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => workOrderAttachmentInputRef.current?.click()}
-                            className="w-full border-2 border-dashed border-slate-200 rounded-lg p-4 text-center hover:bg-slate-50"
-                          >
-                            <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
-                            <p className="text-sm text-slate-500">Click để tải lên tệp đính kèm</p>
-                            <p className="text-xs text-slate-400 mt-1">Hình ảnh, phiếu sửa chữa, tài liệu PDF/Word/Excel</p>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Engineer Signature Section */}
-                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-200 space-y-4">
-                        <h4 className="font-semibold text-purple-800">Dành cho kỹ sư sửa chữa</h4>
-                        
-                        {/* Engineer Name */}
-                        <div>
-                          <label className="block text-sm font-medium text-purple-800 mb-1">Tên người sửa chữa</label>
-                          <input
-                            type="text"
-                            value={workOrderForm.notes?.split('|engineer:')[1]?.split('|')[0] || ''}
-                            onChange={(e) => setWorkOrderForm({ 
-                              ...workOrderForm, 
-                              notes: (workOrderForm.notes || '') + `|engineer:${e.target.value}|` 
-                            })}
-                            className="w-full px-3 py-2 rounded-lg border border-purple-200 text-sm"
-                            placeholder="Tên kỹ sư"
-                          />
-                        </div>
-
-                        {/* Conclusion */}
-                        <div>
-                          <label className="block text-sm font-medium text-purple-800 mb-2">Kết luận</label>
-                          <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                name="woConclusion"
-                                checked={(workOrderForm as any).woConclusion === "hoàn thành"}
-                                onChange={() => setWorkOrderForm({ ...workOrderForm, woConclusion: "hoàn thành" } as any)}
-                                className="w-4 h-4 text-green-600"
-                              />
-                              <span className="text-sm text-slate-700">Hoàn thành</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                name="woConclusion"
-                                checked={(workOrderForm as any).woConclusion === "xử trí 1 phần"}
-                                onChange={() => setWorkOrderForm({ ...workOrderForm, woConclusion: "xử trí 1 phần" } as any)}
-                                className="w-4 h-4 text-orange-600"
-                              />
-                              <span className="text-sm text-slate-700">Xử trí 1 phần</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Sign Button */}
-                        <button
-                          className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 flex items-center justify-center gap-2"
-                        >
-                          <Edit size={18} /> Ký và hoàn tất
-                        </button>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                        <button
-                          onClick={() => setShowWorkOrderForm(false)}
-                          className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                        >
-                          Hủy
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (!selectedDeviceForAction) {
-                              error("Lỗi", "Không tìm thấy thiết bị đang thao tác");
-                              return;
-                            }
-
-                            const targetIncident = currentIncidentForWorkOrder
-                              || incidentReports.find((incident) => incident.deviceId === selectedDeviceForAction.id)
-                              || null;
-
-                            if (!targetIncident) {
-                              error("Lỗi", "Cần có ít nhất một phiếu sự cố để gắn công việc nhà cung ứng");
-                              return;
-                            }
-
-                            const newWorkOrder: WorkOrder = {
-                              id: editingWorkOrder?.id || `wo-${Date.now()}`,
-                              workOrderCode: editingWorkOrder?.workOrderCode || `${targetIncident.reportCode}-WO-${String(workOrderCounter).padStart(3, "0")}`,
-                              incidentReportCode: targetIncident.reportCode,
-                              contactPerson: workOrderForm.contactPerson || "",
-                              contactMethod: (workOrderForm.contactMethod || "điện thoại") as WorkOrder["contactMethod"],
-                              startDateTime: workOrderForm.startDateTime || "",
-                              endDateTime: workOrderForm.endDateTime,
-                              actionDescription: workOrderForm.actionDescription || "",
-                              notes: workOrderForm.notes || "",
-                              attachments: workOrderForm.attachments || [],
-                              status: workOrderForm.status || "Mở",
-                              isCompleted: workOrderForm.isCompleted || false,
-                              conclusion: workOrderForm.woConclusion,
-                              createdAt: editingWorkOrder?.createdAt || new Date().toISOString(),
-                            };
-
-                            setIncidentReports(
-                              incidentReports.map((incident) => {
-                                if (incident.id !== targetIncident.id) return incident;
-                                const existingWorkOrders = incident.workOrders || [];
-                                const updatedWorkOrders = editingWorkOrder
-                                  ? existingWorkOrders.map((workOrder) => workOrder.id === editingWorkOrder.id ? newWorkOrder : workOrder)
-                                  : [...existingWorkOrders, newWorkOrder];
-                                return { ...incident, workOrders: updatedWorkOrders, updatedAt: new Date().toISOString() };
-                              })
-                            );
-
-                            setEditingWorkOrder(null);
-                            setCurrentIncidentForWorkOrder(null);
-                            setWorkOrderForm({
-                              contactPerson: "",
-                              contactMethod: "điện thoại",
-                              startDateTime: "",
-                              endDateTime: "",
-                              actionDescription: "",
-                              notes: "",
-                              attachments: [],
-                              status: "Mở",
-                              isCompleted: false,
-                              woConclusion: undefined,
-                            });
-                            success("Thành công", editingWorkOrder ? "Đã cập nhật công việc" : "Đã thêm công việc mới");
-                            setShowWorkOrderForm(false);
-                            if (!editingWorkOrder) {
-                              setWorkOrderCounter(workOrderCounter + 1);
-                            }
-                          }}
-                          className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
-                        >
-                          Lưu
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ============================================
-      /* CALIBRATION MODAL */
-      /* ============================================ */}
-      {activeModal === "calibration" && selectedDeviceForAction && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">Yêu cầu hiệu chuẩn thiết bị</h2>
-                <p className="text-sm text-slate-500">PHC-{new Date().getFullYear()}-{String(calibrationCounter || 1).padStart(3, '0')}</p>
-              </div>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="border-b border-slate-200 px-6">
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setCalibrationModalTab("request")}
-                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-                    calibrationModalTab === "request"
-                      ? "border-purple-500 text-purple-600"
-                      : "border-transparent text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  <FileText className="w-4 h-4 inline-block mr-2" />
-                  Yêu cầu hiệu chuẩn
-                </button>
-                <button
-                  onClick={() => setCalibrationModalTab("schedule")}
-                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-                    calibrationModalTab === "schedule"
-                      ? "border-purple-500 text-purple-600"
-                      : "border-transparent text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  <Calendar className="w-4 h-4 inline-block mr-2" />
-                  Lịch hiệu chuẩn
-                </button>
-                <button
-                  onClick={() => setCalibrationModalTab("result")}
-                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-                    calibrationModalTab === "result"
-                      ? "border-purple-500 text-purple-600"
-                      : "border-transparent text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  <CheckCircle2 className="w-4 h-4 inline-block mr-2" />
-                  Kết quả hiệu chuẩn
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* Tab Content: Yêu cầu hiệu chuẩn */}
-              {calibrationModalTab === "request" && (
-                <>
-                  {calibrationRequestViewMode === "list" ? (
-                    // ==================== LIST VIEW FIRST ====================
-                    <div className="space-y-6">
-                      {/* Header with Create Button */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-slate-800 text-lg">Danh sách yêu cầu hiệu chuẩn</h3>
-                          <p className="text-sm text-slate-500">{selectedDeviceForAction.name} - {selectedDeviceForAction.code}</p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setCalibrationForm({
-                              deviceId: selectedDeviceForAction.id,
-                              deviceName: selectedDeviceForAction.name,
-                              deviceCode: selectedDeviceForAction.code,
-                              serialNumber: selectedDeviceForAction.serial,
-                              quantity: 1,
-                              expectedDate: "",
-                              content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189, Sở ban ngành.",
-                              notes: "",
-                              approver: "",
-                              relatedUsers: [],
-                              status: "Nháp",
-                              requestedBy: user?.fullName || "",
-                            });
-                            setCalibrationRequestViewMode("form");
-                          }}
-                          className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 flex items-center gap-2"
-                        >
-                          <Plus size={18} /> Tạo yêu cầu hiệu chuẩn
-                        </button>
-                      </div>
-
-                      {/* Requests Table */}
-                      <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                        <table className="w-full text-sm">
-                          <thead className="bg-slate-50">
-                            <tr>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã yêu cầu</th>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Tên thiết bị</th>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã thiết bị</th>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Số serial</th>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Nội dung</th>
-                              <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
-                              <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {calibrationRequests.filter(r => r.deviceId === selectedDeviceForAction.id).length === 0 ? (
-                              <tr>
-                                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                                  <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                                  <p>Chưa có yêu cầu hiệu chuẩn nào</p>
-                                </td>
-                              </tr>
-                            ) : (
-                              calibrationRequests.filter(r => r.deviceId === selectedDeviceForAction.id).map(req => (
-                                <tr key={req.id} className="hover:bg-slate-50">
-                                  <td className="px-4 py-3 font-mono text-purple-600">{req.requestCode}</td>
-                                  <td className="px-4 py-3">{req.deviceName}</td>
-                                  <td className="px-4 py-3">{req.deviceCode}</td>
-                                  <td className="px-4 py-3">{req.serialNumber}</td>
-                                  <td className="px-4 py-3">{req.content}</td>
-                                  <td className="px-4 py-3">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      req.status === 'Hoàn thành' ? 'bg-green-100 text-green-700' :
-                                      req.status === 'Đã duyệt' ? 'bg-blue-100 text-blue-700' :
-                                      req.status === 'Chờ duyệt' ? 'bg-amber-100 text-amber-700' :
-                                      'bg-slate-100 text-slate-700'
-                                    }`}>
-                                      {req.status}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3 text-center">
-                                    <div className="flex justify-center gap-2">
-                                      <button className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Xem chi tiết">
-                                        <Eye size={16} />
-                                      </button>
-                                      <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Xuất PDF">
-                                        <FileText size={16} />
-                                      </button>
-                                      {req.status === 'Chờ duyệt' && (
-                                        <button className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Phê duyệt">
-                                          <CheckCircle2 size={16} />
-                                        </button>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    // ==================== FORM VIEW ====================
-                    <>
-                      {/* Back button */}
-                      <button
-                        onClick={() => setCalibrationRequestViewMode("list")}
-                        className="flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-4"
-                      >
-                        <ChevronRight className="rotate-180" size={20} />
-                        Quay lại danh sách
-                      </button>
-
-                      {/* Device Info */}
-              <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                <h3 className="font-semibold text-purple-800 text-lg">{selectedDeviceForAction.name}</h3>
-                <p className="text-sm text-purple-600">{selectedDeviceForAction.code} - {selectedDeviceForAction.model} - Serial: {selectedDeviceForAction.serial}</p>
-                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                  <div><span className="text-purple-500">Bộ phận:</span> <span className="font-medium">{selectedDeviceForAction.specialty}</span></div>
-                  <div><span className="text-purple-500">Nhà sản xuất:</span> <span className="font-medium">{selectedDeviceForAction.manufacturer}</span></div>
-                  <div><span className="text-purple-500">Tần suất HC:</span> <span className="font-medium">{selectedDeviceForAction.calibrationFrequency || '—'}</span></div>
-                </div>
-              </div>
-
-              {/* Calibration Request Form */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Mã yêu cầu hiệu chuẩn</label>
-                  <input
-                    type="text"
-                    value={`PHC-${new Date().getFullYear()}-${String(calibrationCounter || 1).padStart(3, '0')}`}
-                    readOnly
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Ngày dự kiến hiệu chuẩn <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={calibrationForm.expectedDate || ''}
-                    onChange={(e) => setCalibrationForm({ ...calibrationForm, expectedDate: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Người đề xuất</label>
-                  <input
-                    type="text"
-                    value={calibrationForm.requestedBy || user?.fullName || ''}
-                    onChange={(e) => setCalibrationForm({ ...calibrationForm, requestedBy: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Số lượng</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={calibrationForm.quantity || 1}
-                    onChange={(e) => setCalibrationForm({ ...calibrationForm, quantity: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung đề xuất</label>
-                <textarea
-                  value={calibrationForm.content || "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189, Sở ban ngành."}
-                  onChange={(e) => setCalibrationForm({ ...calibrationForm, content: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Ghi chú</label>
-                <textarea
-                  value={calibrationForm.notes || ''}
-                  onChange={(e) => setCalibrationForm({ ...calibrationForm, notes: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                  placeholder="Ghi chú thêm..."
-                />
-              </div>
-
-              {/* Approver Selection */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Người phê duyệt <span className="text-red-500">*</span></label>
-                <div className="flex flex-wrap gap-2">
-                  {MOCK_USERS_LIST.filter(u => ["Quản lý trang thiết bị", "Trưởng phòng xét nghiệm", "Admin"].includes(u.role)).map(approver => (
-                    <button
-                      key={approver.id}
-                      type="button"
-                      onClick={() => setCalibrationForm({ ...calibrationForm, approver: approver.fullName })}
-                      className={`px-3 py-1 rounded-full text-sm transition-all ${
-                        calibrationForm.approver === approver.fullName
-                          ? "bg-purple-500 text-white"
-                          : "bg-white border border-slate-300 text-slate-700 hover:bg-purple-50"
-                      }`}
-                    >
-                      {approver.fullName}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Related Users */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Người liên quan</label>
-                <div className="flex flex-wrap gap-2">
-                  {MOCK_USERS_LIST.map(u => (
-                    <button
-                      key={u.id}
-                      type="button"
-                      onClick={() => {
-                        const current = calibrationForm.relatedUsers || [];
-                        const newList = current.includes(u.fullName) 
-                          ? current.filter(name => name !== u.fullName)
-                          : [...current, u.fullName];
-                        setCalibrationForm({ ...calibrationForm, relatedUsers: newList });
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm transition-all ${
-                        (calibrationForm.relatedUsers || []).includes(u.fullName)
-                          ? "bg-blue-500 text-white"
-                          : "bg-white border border-slate-300 text-slate-700 hover:bg-blue-50"
-                      }`}
-                    >
-                      {u.fullName}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-between pt-4 border-t border-slate-200">
-                <button
-                  onClick={() => setActiveModal(null)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                >
-                  Hủy
-                </button>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      // Save as draft
-                      success("Thành công", "Đã lưu bản nháp yêu cầu hiệu chuẩn");
-                      setActiveModal(null);
-                    }}
-                    className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2"
-                  >
-                    <Save size={18} /> Lưu bản nháp
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!calibrationForm.expectedDate || !calibrationForm.approver) {
-                        error("Lỗi", "Vui lòng chọn ngày dự kiến và người phê duyệt");
-                        return;
-                      }
-                      // Create calibration request
-                      success("Thành công", `Đã gửi yêu cầu hiệu chuẩn PHC-${new Date().getFullYear()}-${String(calibrationCounter || 1).padStart(3, '0')}`);
-                      setCalibrationCounter((calibrationCounter || 1) + 1);
-                      setCalibrationForm({
-                        deviceId: "", deviceName: "", deviceCode: "", serialNumber: "",
-                        quantity: 1, expectedDate: "", content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189, Sở ban ngành.",
-                        notes: "", approver: "", relatedUsers: [], status: "Nháp", requestedBy: "",
-                      });
-                      setActiveModal(null);
-                    }}
-                    disabled={!calibrationForm.expectedDate || !calibrationForm.approver}
-                    className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <Send size={18} /> Hoàn tất & Gửi phê duyệt
-                  </button>
-                </div>
-              </div>
-                    </>
-                  )}
-                </>
-              )}
-
-              {/* Tab Content: Lịch hiệu chuẩn */}
-              {calibrationModalTab === "schedule" && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-800">Lịch hiệu chuẩn - BM.08.QL.TC.018</h3>
-                    <button
-                      onClick={() => setShowScheduleForm(true)}
-                      className="px-3 py-1.5 bg-purple-500 text-white text-sm rounded-lg hover:bg-purple-600 flex items-center gap-1"
-                    >
-                      <Plus size={16} /> Lên lịch
-                    </button>
-                  </div>
-                  
-                  {/* Schedule Table */}
-                  {calibrationSchedules.filter(s => s.deviceId === selectedDeviceForAction.id).length === 0 ? (
-                    <div className="text-center py-8 text-slate-500">
-                      <Calendar className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                      <p>Chưa có lịch hiệu chuẩn nào</p>
-                      <p className="text-sm text-slate-400 mt-1">Lịch hiệu chuẩn sẽ hiển thị sau khi yêu cầu được phê duyệt</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">STT</th>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Tên thiết bị</th>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã thiết bị</th>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày HC</th>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Nội dung</th>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
-                            <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {calibrationSchedules
-                            .filter(s => s.deviceId === selectedDeviceForAction.id)
-                            .map((s, idx) => (
-                              <tr key={s.id} className="hover:bg-slate-50">
-                                <td className="px-4 py-3">{idx + 1}</td>
-                                <td className="px-4 py-3">{s.deviceName}</td>
-                                <td className="px-4 py-3 font-mono">{s.deviceCode}</td>
-                                <td className="px-4 py-3">{s.scheduledDate}</td>
-                                <td className="px-4 py-3">{s.content}</td>
-                                <td className="px-4 py-3">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    s.status === 'Đã hoàn thành' ? 'bg-green-100 text-green-700' :
-                                    s.status === 'Quá hạn' ? 'bg-red-100 text-red-700' :
-                                    'bg-amber-100 text-amber-700'
-                                  }`}>
-                                    {s.status}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
-                                    <Eye size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {/* Schedule Form Modal */}
-                  {showScheduleForm && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowScheduleForm(false)}>
-                      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-                          <div>
-                            <h3 className="text-lg font-bold text-slate-800">Lên lịch hiệu chuẩn</h3>
-                            <p className="text-sm text-slate-500">BM.08.QL.TC.018</p>
-                          </div>
-                          <button onClick={() => setShowScheduleForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                            <X size={20} />
-                          </button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                          {/* Device Info */}
-                          <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                            <h4 className="font-semibold text-purple-800">{selectedDeviceForAction.name}</h4>
-                            <p className="text-sm text-purple-600">{selectedDeviceForAction.code} - {selectedDeviceForAction.serial}</p>
-                          </div>
-
-                          {/* Date and Time */}
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Ngày hiệu chuẩn</label>
-                              <input
-                                type="date"
-                                value={scheduleForm.scheduledDate}
-                                onChange={(e) => setScheduleForm({ ...scheduleForm, scheduledDate: e.target.value })}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Giờ hiệu chuẩn</label>
-                              <input
-                                type="time"
-                                value={scheduleForm.scheduledTime}
-                                onChange={(e) => setScheduleForm({ ...scheduleForm, scheduledTime: e.target.value })}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Reminder */}
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Nhắc lịch trước</label>
-                            <select
-                              value={scheduleForm.reminderDays}
-                              onChange={(e) => setScheduleForm({ ...scheduleForm, reminderDays: parseInt(e.target.value) })}
-                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                            >
-                              <option value={1}>1 ngày</option>
-                              <option value={3}>3 ngày</option>
-                              <option value={5}>5 ngày</option>
-                              <option value={7}>7 ngày</option>
-                            </select>
-                          </div>
-
-                          {/* Content */}
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung</label>
-                            <textarea
-                              value={scheduleForm.content}
-                              onChange={(e) => setScheduleForm({ ...scheduleForm, content: e.target.value })}
-                              rows={2}
-                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                              placeholder="Nội dung hiệu chuẩn..."
-                            />
-                          </div>
-
-                          {/* Related Users */}
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Người liên quan</label>
-                            <div className="flex flex-wrap gap-2">
-                              {MOCK_USERS_LIST.map(u => (
-                                <button
-                                  key={u.id}
-                                  type="button"
-                                  onClick={() => {
-                                    const current = scheduleForm.relatedUsers || [];
-                                    const newList = current.includes(u.fullName)
-                                      ? current.filter(name => name !== u.fullName)
-                                      : [...current, u.fullName];
-                                    setScheduleForm({ ...scheduleForm, relatedUsers: newList });
-                                  }}
-                                  className={`px-3 py-1 rounded-full text-sm transition-all ${
-                                    (scheduleForm.relatedUsers || []).includes(u.fullName)
-                                      ? "bg-purple-500 text-white"
-                                      : "bg-white border border-slate-300 text-slate-700 hover:bg-purple-50"
-                                  }`}
-                                >
-                                  {u.fullName}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                            <button
-                              onClick={() => setShowScheduleForm(false)}
-                              className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                            >
-                              Hủy
-                            </button>
-                            <button
-                              onClick={() => {
-                                const newSchedule = {
-                                  id: `schedule-${Date.now()}`,
-                                  deviceId: selectedDeviceForAction.id,
-                                  deviceName: selectedDeviceForAction.name,
-                                  deviceCode: selectedDeviceForAction.code,
-                                  scheduledDate: `${scheduleForm.scheduledDate} ${scheduleForm.scheduledTime}`,
-                                  content: scheduleForm.content,
-                                  status: "Chờ thực hiện" as const,
-                                  notes: `Nhắc trước ${scheduleForm.reminderDays} ngày`,
-                                };
-                                setCalibrationSchedules([...calibrationSchedules, newSchedule]);
-                                success("Thành công", "Đã thêm lịch hiệu chuẩn");
-                                setShowScheduleForm(false);
-                              }}
-                              disabled={!scheduleForm.scheduledDate}
-                              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50"
-                            >
-                              Lưu
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Tab Content: Kết quả hiệu chuẩn */}
-              {calibrationModalTab === "result" && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-800">Xem xét kết quả hiệu chuẩn - BM.09.QL.TC.018</h3>
-                    <button
-                      onClick={() => setShowResultForm(true)}
-                      className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 flex items-center gap-1"
-                    >
-                      <Plus size={16} /> Xem xét kết quả
-                    </button>
-                  </div>
-                  
-                  {/* Results Table */}
-                  {calibrationResults.filter(r => r.deviceId === selectedDeviceForAction.id).length === 0 ? (
-                    <div className="text-center py-8 text-slate-500">
-                      <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                      <p>Chưa có kết quả hiệu chuẩn nào</p>
-                      <p className="text-sm text-slate-400 mt-1">Kết quả hiệu chuẩn sẽ hiển thị sau khi hoàn thành</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Tên thiết bị</th>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã TB</th>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Serial</th>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày thực hiện</th>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Kết quả</th>
-                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Kết luận</th>
-                            <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {calibrationResults
-                            .filter(r => r.deviceId === selectedDeviceForAction.id)
-                            .map(r => (
-                              <tr key={r.id} className="hover:bg-slate-50">
-                                <td className="px-4 py-3">{r.deviceName}</td>
-                                <td className="px-4 py-3 font-mono">{r.deviceCode}</td>
-                                <td className="px-4 py-3">{r.serialNumber}</td>
-                                <td className="px-4 py-3">{r.executionDate}</td>
-                                <td className="px-4 py-3">{r.result}</td>
-                                <td className="px-4 py-3">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    r.conclusion === 'Đạt' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                  }`}>
-                                    {r.conclusion}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
-                                    <Eye size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {/* Result Form Modal */}
-                  {showResultForm && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowResultForm(false)}>
-                      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-                          <div>
-                            <h3 className="text-lg font-bold text-slate-800">Phiếu đánh giá kết quả hiệu chuẩn</h3>
-                            <p className="text-sm text-slate-500">BM.09.QL.TC.018</p>
-                          </div>
-                          <button onClick={() => setShowResultForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                            <X size={20} />
-                          </button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                          {/* Device Info */}
-                          <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                            <h4 className="font-semibold text-green-800">{selectedDeviceForAction.name}</h4>
-                            <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-green-700">
-                              <div>Mã: {selectedDeviceForAction.code}</div>
-                              <div>Serial: {selectedDeviceForAction.serial}</div>
-                              <div>Hãng: {selectedDeviceForAction.manufacturer}</div>
-                            </div>
-                          </div>
-
-                          {/* Execution Date */}
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Ngày thực hiện</label>
-                            <input
-                              type="date"
-                              value={resultForm.executionDate}
-                              onChange={(e) => setResultForm({ ...resultForm, executionDate: e.target.value })}
-                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                            />
-                          </div>
-
-                          {/* Content */}
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung thực hiện</label>
-                            <textarea
-                              value={resultForm.content}
-                              onChange={(e) => setResultForm({ ...resultForm, content: e.target.value })}
-                              rows={2}
-                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                              placeholder="Nội dung hiệu chuẩn đã thực hiện..."
-                            />
-                          </div>
-
-                          {/* Unit and Result */}
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Đơn vị thực hiện</label>
-                              <input
-                                type="text"
-                                value={resultForm.unit}
-                                onChange={(e) => setResultForm({ ...resultForm, unit: e.target.value })}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                placeholder="Tên đơn vị..."
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Kết quả hiệu chuẩn</label>
-                              <input
-                                type="text"
-                                value={resultForm.result}
-                                onChange={(e) => setResultForm({ ...resultForm, result: e.target.value })}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                placeholder="Kết quả..."
-                              />
-                            </div>
-                          </div>
-
-                          {/* Standard */}
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Tiêu chuẩn</label>
-                            <input
-                              type="text"
-                              value={resultForm.standard}
-                              onChange={(e) => setResultForm({ ...resultForm, standard: e.target.value })}
-                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                              placeholder="Tiêu chuẩn áp dụng..."
-                            />
-                          </div>
-
-                          {/* Conclusion */}
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Kết luận</label>
-                            <div className="flex gap-4">
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="conclusion"
-                                  checked={resultForm.conclusion === "Đạt"}
-                                  onChange={() => setResultForm({ ...resultForm, conclusion: "Đạt" })}
-                                  className="w-4 h-4 text-green-600"
-                                />
-                                <span className="text-sm text-slate-700">Đạt</span>
-                              </label>
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="conclusion"
-                                  checked={resultForm.conclusion === "Không đạt"}
-                                  onChange={() => setResultForm({ ...resultForm, conclusion: "Không đạt" })}
-                                  className="w-4 h-4 text-red-600"
-                                />
-                                <span className="text-sm text-slate-700">Không đạt</span>
-                              </label>
-                            </div>
-                          </div>
-
-                          {/* Attachments */}
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Đính kèm file hiệu chuẩn có dấu</label>
-                            <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 text-center">
-                              <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
-                              <p className="text-sm text-slate-500">Kéo thả file hoặc click để tải lên</p>
-                              <p className="text-xs text-slate-400 mt-1">File PDF có dấu đỏ</p>
-                            </div>
-                          </div>
-
-                          {/* Report Incident Button (show when not passed) */}
-                          {resultForm.conclusion === "Không đạt" && (
-                            <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                              <p className="text-sm text-red-700 mb-3">Thiết bị không đạt, bạn có muốn báo cáo sự cố không?</p>
-                              <button
-                                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2"
-                              >
-                                <AlertTriangle size={18} /> Báo cáo sự cố
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Action Buttons */}
-                          <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                            <button
-                              onClick={() => setShowResultForm(false)}
-                              className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                            >
-                              Hủy
-                            </button>
-                            <button
-                              onClick={() => {
-                                const newResult = {
-                                  id: `result-${Date.now()}`,
-                                  deviceId: selectedDeviceForAction.id,
-                                  deviceName: selectedDeviceForAction.name,
-                                  deviceCode: selectedDeviceForAction.code,
-                                  serialNumber: selectedDeviceForAction.serial,
-                                  manufacturer: selectedDeviceForAction.manufacturer,
-                                  executionDate: resultForm.executionDate,
-                                  content: resultForm.content,
-                                  unit: resultForm.unit,
-                                  result: resultForm.result,
-                                  standard: resultForm.standard,
-                                  conclusion: resultForm.conclusion,
-                                  attachments: resultForm.attachments,
-                                };
-                                setCalibrationResults([...calibrationResults, newResult]);
-                                success("Thành công", "Đã lưu kết quả hiệu chuẩn");
-                                setShowResultForm(false);
-                              }}
-                              disabled={!resultForm.executionDate || !resultForm.conclusion}
-                              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
-                            >
-                              Hoàn tất
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <MaintenanceModal
+        show={activeModal === "maintenance"}
+        device={selectedDeviceForAction}
+        onClose={() => setActiveModal(null)}
+      />
     </div>
   );
 }
