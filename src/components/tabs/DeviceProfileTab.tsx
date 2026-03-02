@@ -68,6 +68,15 @@ import {
   Filter,
   RefreshCw,
   GraduationCap,
+  Microscope,
+  Handshake,
+  BookOpen,
+  Award,
+  ShieldCheck,
+  FlaskConical,
+  FileSignature,
+  ListChecks,
+  Table,
 } from "lucide-react";
 import {
   Device,
@@ -716,6 +725,7 @@ export default function DeviceProfileTab() {
   const [returnTransportFilterTo, setReturnTransportFilterTo] = useState("");
   const [editingReturnForm, setEditingReturnForm] = useState<ReturnAcceptanceFormState | null>(null);
   const [activeNewAcceptanceUploadKey, setActiveNewAcceptanceUploadKey] = useState<AcceptanceItemKey | null>(null);
+  const [showBm05SurveyModal, setShowBm05SurveyModal] = useState(false);
   
   // Search states for dropdowns
   const [countrySearch, setCountrySearch] = useState("");
@@ -2620,464 +2630,209 @@ export default function DeviceProfileTab() {
       {/* Acceptance Modal */}
       {activeModal === "accept" && selectedDeviceForAction && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setActiveModal(null)}>
-          <div className="bg-white rounded-2xl max-w-7xl w-full max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between z-10">
+          <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[92vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Gradient Header */}
+            <div className="bg-gradient-to-br from-sky-500 to-blue-600 p-5 rounded-t-2xl text-white flex items-center justify-between" style={{boxShadow: '0 10px 15px -3px rgba(14,165,233,0.3)'}}>
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Tiếp nhận thiết bị</h2>
-                <p className="text-sm text-slate-500">Quản lý tiếp nhận mới và tiếp nhận trở lại theo biểu mẫu BM.05/BM.07</p>
+                <h2 className="text-xl font-extrabold flex items-center gap-2">
+                  <Microscope size={22} />
+                  {selectedDeviceForAction.name}
+                </h2>
+                <p className="text-sm opacity-90 mt-1">
+                  Mã thiết bị: {selectedDeviceForAction.code} | Serial: {selectedDeviceForAction.serial} | Hãng SX: {selectedDeviceForAction.manufacturer}
+                </p>
               </div>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-lg">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 backdrop-blur-sm px-5 py-2.5 rounded-lg text-center">
+                  <div className="text-xs uppercase font-bold tracking-wider">{selectedDeviceForAction.status}</div>
+                </div>
+                <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-white/20 rounded-lg transition">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-6">
+              {/* Tab Switcher */}
+              <div className="flex gap-2.5 border-b-2 border-slate-200 mb-5">
                 <button
                   onClick={() => setAcceptanceMainTab("new")}
-                  className={`w-full rounded-2xl border p-4 text-left shadow-sm transition ${acceptanceMainTab === "new" ? "border-purple-300 bg-purple-50" : "border-slate-200 hover:border-slate-300"}`}
+                  className={`px-5 py-2.5 font-bold text-[15px] border-b-[3px] -mb-[2px] transition-colors flex items-center gap-2 ${acceptanceMainTab === "new" ? "text-blue-600 border-blue-600" : "text-slate-500 border-transparent hover:text-blue-600"}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center shadow-sm ${acceptanceMainTab === "new" ? "bg-purple-100 text-purple-700" : "bg-slate-100 text-slate-500"}`}>
-                      <ClipboardCheck size={20} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-800">Tiếp nhận mới</p>
-                      <p className="text-xs text-slate-500">Checklist hồ sơ + khảo sát lắp đặt BM.05</p>
-                    </div>
-                  </div>
+                  <Package size={16} /> Tiếp nhận mới
                 </button>
                 <button
-                  onClick={() => setAcceptanceMainTab("return")}
-                  className={`w-full rounded-2xl border p-4 text-left shadow-sm transition ${acceptanceMainTab === "return" ? "border-purple-300 bg-purple-50" : "border-slate-200 hover:border-slate-300"}`}
+                  onClick={() => { setAcceptanceMainTab("return"); setReturnAcceptanceTab("checklist"); }}
+                  className={`px-5 py-2.5 font-bold text-[15px] border-b-[3px] -mb-[2px] transition-colors flex items-center gap-2 ${acceptanceMainTab === "return" ? "text-blue-600 border-blue-600" : "text-slate-500 border-transparent hover:text-blue-600"}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center shadow-sm ${acceptanceMainTab === "return" ? "bg-purple-100 text-purple-700" : "bg-slate-100 text-slate-500"}`}>
-                      <RotateCcw size={20} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-800">Tiếp nhận trở lại</p>
-                      <p className="text-xs text-slate-500">Checklist bàn giao + phiếu vận chuyển BM.07</p>
-                    </div>
-                  </div>
+                  <RotateCcw size={16} /> Tiếp nhận trở lại
                 </button>
               </div>
 
-              <input
-                ref={newAcceptanceAttachmentInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleUploadNewAcceptanceFiles}
-              />
-              <input
-                ref={returnHandoverAttachmentInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleUploadReturnHandoverFiles}
-              />
-              <input
-                ref={returnAcceptanceFormAttachmentInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleUploadReturnAcceptanceFormFiles}
-              />
+              {/* Hidden file inputs */}
+              <input ref={newAcceptanceAttachmentInputRef} type="file" multiple className="hidden" onChange={handleUploadNewAcceptanceFiles} />
+              <input ref={returnHandoverAttachmentInputRef} type="file" multiple className="hidden" onChange={handleUploadReturnHandoverFiles} />
+              <input ref={returnAcceptanceFormAttachmentInputRef} type="file" multiple className="hidden" onChange={handleUploadReturnAcceptanceFormFiles} />
 
+              {/* ===== NEW ACCEPTANCE TAB ===== */}
               {acceptanceMainTab === "new" && (
-                <div className="space-y-5">
-                  <div className="rounded-2xl border border-slate-200 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-                      <h3 className="font-semibold text-slate-800">Danh sách thiết bị tiếp nhận mới</h3>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setShowAcceptanceColumnConfig((prev) => !prev)}
-                          className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                        >
-                          <Settings size={16} />
-                          Cấu hình cột
-                        </button>
-                        <button
-                          onClick={exportAcceptanceTable}
-                          className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 flex items-center gap-2"
-                        >
-                          <Download size={16} />
-                          Xuất Excel
-                        </button>
-                      </div>
-                    </div>
-
-                    {showAcceptanceColumnConfig && (
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 mb-3 space-y-2">
-                        {acceptanceColumns.map((column, index) => (
-                          <div key={column.key} className="flex items-center justify-between gap-3 rounded-lg bg-white border border-slate-200 p-2">
-                            <label className="flex items-center gap-2 text-sm text-slate-700">
-                              <input
-                                type="checkbox"
-                                checked={column.visible}
-                                onChange={(event) => setAcceptanceColumns((prev) => prev.map((item) => item.key === column.key ? { ...item, visible: event.target.checked } : item))}
-                                className="rounded border-slate-300"
-                              />
-                              {column.label}
-                            </label>
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => moveAcceptanceColumn(index, "up")}
-                                className="p-1.5 rounded border border-slate-200 hover:bg-slate-100"
-                                disabled={index === 0}
-                              >
-                                <ChevronUp size={14} />
-                              </button>
-                              <button
-                                onClick={() => moveAcceptanceColumn(index, "down")}
-                                className="p-1.5 rounded border border-slate-200 hover:bg-slate-100"
-                                disabled={index === acceptanceColumns.length - 1}
-                              >
-                                <ChevronDown size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-slate-200 text-left text-slate-500">
-                            {acceptanceColumns.filter((column) => column.visible).map((column) => (
-                              <th key={column.key} className="py-2 pr-3 font-medium">{column.label}</th>
-                            ))}
-                          </tr>
-                          <tr className="border-b border-slate-100">
-                            {acceptanceColumns.filter((column) => column.visible).map((column) => (
-                              <th key={column.key} className="py-2 pr-3">
-                                <input
-                                  value={acceptanceFilters[column.key] || ""}
-                                  onChange={(event) => setAcceptanceFilters((prev) => ({ ...prev, [column.key]: event.target.value }))}
-                                  placeholder={`Lọc ${column.label.toLowerCase()}`}
-                                  className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs"
-                                />
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredNewAcceptanceDevices.map((device) => {
-                            const selected = resolvedNewAcceptanceDevice?.id === device.id;
-                            return (
-                              <tr
-                                key={device.id}
-                                onClick={() => setSelectedNewAcceptanceDeviceId(device.id)}
-                                className={`border-b border-slate-100 cursor-pointer ${selected ? "bg-purple-50" : "hover:bg-slate-50"}`}
-                              >
-                                {acceptanceColumns.filter((column) => column.visible).map((column) => (
-                                  <td key={column.key} className="py-2 pr-3 text-slate-700">{getAcceptanceFieldText(device, column.key) || "—"}</td>
-                                ))}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
+                <div>
                   {resolvedNewAcceptanceDevice ? (
-                    <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <h4 className="font-semibold text-slate-800">Checklist tiếp nhận mới - {resolvedNewAcceptanceDevice.code}</h4>
-                          <p className="text-sm text-slate-500">{resolvedNewAcceptanceDevice.name} • {resolvedNewAcceptanceDevice.model}</p>
+                    <>
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="text-slate-500 text-sm flex items-center gap-2">
+                          <AlertCircle size={16} />
+                          Chỉ dành cho thiết bị mới đăng ký vào Lab.
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded-full ${isNewAcceptanceReadyToComplete(currentNewAcceptanceRecord) ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                          {isNewAcceptanceReadyToComplete(currentNewAcceptanceRecord) ? "Đủ điều kiện hoàn tất" : "Còn hồ sơ bắt buộc"}
-                        </span>
-                      </div>
-
-                      {[
-                        { key: "approvalForm", label: "Phiếu phê duyệt", desc: "Nhập mã phiếu phê duyệt và tải phiếu" },
-                        { key: "handoverRecord", label: "Biên bản bàn giao/tiếp nhận", desc: "Đính kèm biên bản bàn giao" },
-                        { key: "installationSurvey", label: "Khảo sát điều kiện lắp đặt", desc: "Lập phiếu BM.05.QL.TC.018" },
-                        { key: "userManual", label: "Tài liệu sử dụng", desc: "Tài liệu của lab và hãng" },
-                        { key: "co", label: "CO (Certificate of Origin)", desc: "Chứng minh nguồn gốc xuất xứ" },
-                        { key: "cq", label: "CQ (Certificate of Quality)", desc: "Chứng minh chất lượng" },
-                        { key: "contract", label: "Hợp đồng", desc: "Hợp đồng mua bán" },
-                        { key: "installationReport", label: "Biên bản lắp đặt", desc: "Biên bản nghiệm thu lắp đặt" },
-                        { key: "usageConfirmation", label: "Xác nhận giá trị sử dụng", desc: "Không bắt buộc" },
-                      ].map((item) => {
-                        const itemState = currentNewAcceptanceRecord.items[item.key as AcceptanceItemKey];
-                        const style = getStatusStyle(itemState.status);
-                        return (
-                          <div key={item.key} className={`rounded-xl border p-4 ${style.card}`}>
-                            <div className="flex items-start gap-3">
-                              <div className={`w-9 h-9 rounded-full flex items-center justify-center ${style.iconWrap}`}>
-                                {itemState.status === "done" ? <CheckCircle2 size={18} /> : itemState.status === "pending" ? <Loader2 size={18} className="animate-spin" /> : <AlertCircle size={18} />}
-                              </div>
-                              <div className="flex-1 space-y-2">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="font-medium text-slate-800">{item.label}</p>
-                                  <span className={`text-xs px-2 py-0.5 rounded-full ${style.text} bg-white/80 border border-current/20`}>{style.label}</span>
-                                </div>
-                                <p className="text-sm text-slate-600">{item.desc}</p>
-
-                                {item.key === "approvalForm" && (
-                                  <div className="flex flex-wrap gap-2">
-                                    <input
-                                      value={itemState.refCode || ""}
-                                      onChange={(event) => {
-                                        const value = event.target.value;
-                                        updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
-                                          ...base,
-                                          approvalCode: value,
-                                          items: {
-                                            ...base.items,
-                                            approvalForm: {
-                                              ...base.items.approvalForm,
-                                              refCode: value,
-                                              status: value.trim() ? "done" : "missing",
-                                            },
-                                          },
-                                        }));
-                                      }}
-                                      placeholder="Nhập mã phiếu phê duyệt"
-                                      className="min-w-[220px] flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                    />
-                                    <button
-                                      onClick={() => downloadApprovalForm(resolvedNewAcceptanceDevice, itemState.refCode || currentNewAcceptanceRecord.approvalCode || "PDD-TAM")}
-                                      className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"
-                                    >
-                                      <Download size={14} />
-                                      Tải phiếu
-                                    </button>
-                                  </div>
-                                )}
-
-                                {item.key !== "approvalForm" && (
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <button
-                                      onClick={() => {
-                                        setActiveNewAcceptanceUploadKey(item.key as AcceptanceItemKey);
-                                        newAcceptanceAttachmentInputRef.current?.click();
-                                      }}
-                                      className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"
-                                    >
-                                      <Upload size={14} />
-                                      Đính kèm
-                                    </button>
-                                    <button
-                                      onClick={() => openNewAcceptanceAttachments(`${item.label} - ${resolvedNewAcceptanceDevice.code}`, itemState.files)}
-                                      disabled={itemState.files.length === 0}
-                                      className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                    >
-                                      <Eye size={14} />
-                                      Xem file ({itemState.files.length})
-                                    </button>
-                                  </div>
-                                )}
-
-                                {itemState.files.length > 0 && (
-                                  <div className="space-y-1">
-                                    {itemState.files.map((file) => (
-                                      <div key={file.id} className="flex items-center justify-between text-xs text-slate-600 bg-white/70 border border-slate-200 rounded-lg px-2 py-1.5">
-                                        <span className="truncate pr-2">{file.name}</span>
-                                        <div className="flex items-center gap-1">
-                                          <button onClick={() => handleViewAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Eye size={13} /></button>
-                                          <button onClick={() => handleDownloadAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Download size={13} /></button>
-                                          <button onClick={() => removeNewAcceptanceFile(resolvedNewAcceptanceDevice.id, item.key as AcceptanceItemKey, file.id)} className="p-1 rounded hover:bg-slate-200 text-red-500"><Trash2 size={13} /></button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {item.key === "installationSurvey" && (
-                                  <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 space-y-3">
-                                    <p className="font-medium text-slate-700">Phiếu khảo sát BM.05.QL.TC.018</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                      <div>
-                                        <label className="text-xs text-slate-500">Ngày khảo sát</label>
-                                        <input
-                                          type="date"
-                                          value={currentNewAcceptanceRecord.installationSurveyForm.surveyDate}
-                                          onChange={(event) => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
-                                            ...base,
-                                            installationSurveyForm: { ...base.installationSurveyForm, surveyDate: event.target.value },
-                                          }))}
-                                          className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="text-xs text-slate-500">Người khảo sát</label>
-                                        <input
-                                          value={currentNewAcceptanceRecord.installationSurveyForm.surveyor}
-                                          onChange={(event) => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
-                                            ...base,
-                                            installationSurveyForm: { ...base.installationSurveyForm, surveyor: event.target.value },
-                                          }))}
-                                          placeholder="Nhập tên người khảo sát"
-                                          className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="text-xs text-slate-500">Người phê duyệt</label>
-                                        <input
-                                          value={currentNewAcceptanceRecord.installationSurveyForm.approver}
-                                          onChange={(event) => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
-                                            ...base,
-                                            installationSurveyForm: { ...base.installationSurveyForm, approver: event.target.value },
-                                          }))}
-                                          placeholder="Nhập người phê duyệt"
-                                          className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="text-xs text-slate-500">Kết luận</label>
-                                        <input
-                                          value={currentNewAcceptanceRecord.installationSurveyForm.conclusion}
-                                          onChange={(event) => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
-                                            ...base,
-                                            installationSurveyForm: { ...base.installationSurveyForm, conclusion: event.target.value },
-                                          }))}
-                                          placeholder="Kết luận khảo sát"
-                                          className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                        />
-                                      </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                                      {[
-                                        { key: "hasPowerSupply", label: "Nguồn điện" },
-                                        { key: "hasGrounding", label: "Tiếp địa" },
-                                        { key: "hasBenchSpace", label: "Không gian lắp đặt" },
-                                        { key: "hasTemperatureControl", label: "Nhiệt độ phù hợp" },
-                                        { key: "hasHumidityControl", label: "Độ ẩm phù hợp" },
-                                        { key: "hasNetwork", label: "Mạng nội bộ" },
-                                        { key: "hasWaterLine", label: "Đường nước" },
-                                      ].map((question) => {
-                                        const value = currentNewAcceptanceRecord.installationSurveyForm[question.key as keyof InstallationSurveyFormState] as boolean | null;
-                                        return (
-                                          <div key={question.key} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
-                                            <span className="text-slate-700">{question.label}</span>
-                                            <div className="flex gap-1">
-                                              <button
-                                                onClick={() => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
-                                                  ...base,
-                                                  installationSurveyForm: { ...base.installationSurveyForm, [question.key]: true },
-                                                }))}
-                                                className={`px-2 py-1 rounded text-xs ${value === true ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}
-                                              >
-                                                Đạt
-                                              </button>
-                                              <button
-                                                onClick={() => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
-                                                  ...base,
-                                                  installationSurveyForm: { ...base.installationSurveyForm, [question.key]: false },
-                                                }))}
-                                                className={`px-2 py-1 rounded text-xs ${value === false ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"}`}
-                                              >
-                                                Không
-                                              </button>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-
-                                    <div>
-                                      <label className="text-xs text-slate-500">Người sử dụng liên quan</label>
-                                      <input
-                                        value={surveyUserSearch}
-                                        onChange={(event) => setSurveyUserSearch(event.target.value)}
-                                        placeholder="Tìm người dùng..."
-                                        className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                      />
-                                      <div className="mt-2 max-h-28 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50 space-y-1">
-                                        {acceptanceUsers.map((member) => {
-                                          const selected = currentNewAcceptanceRecord.installationSurveyForm.relatedUsers.includes(member.fullName);
-                                          return (
-                                            <button
-                                              key={member.id}
-                                              onClick={() => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
-                                                ...base,
-                                                installationSurveyForm: {
-                                                  ...base.installationSurveyForm,
-                                                  relatedUsers: selected
-                                                    ? base.installationSurveyForm.relatedUsers.filter((name) => name !== member.fullName)
-                                                    : [...base.installationSurveyForm.relatedUsers, member.fullName],
-                                                },
-                                              }))}
-                                              className={`w-full text-left px-2 py-1.5 rounded text-xs ${selected ? "bg-purple-100 text-purple-700" : "hover:bg-slate-100 text-slate-600"}`}
-                                            >
-                                              {member.fullName}
-                                            </button>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-2">
-                                      <button
-                                        onClick={() => {
-                                          setActiveNewAcceptanceUploadKey("installationSurvey");
-                                          newAcceptanceAttachmentInputRef.current?.click();
-                                        }}
-                                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"
-                                      >
-                                        <Upload size={14} />
-                                        Đính kèm BM.05
-                                      </button>
-                                      <button
-                                        onClick={() => openNewAcceptanceAttachments(`BM.05 - ${resolvedNewAcceptanceDevice.code}`, currentNewAcceptanceRecord.installationSurveyForm.attachments)}
-                                        disabled={currentNewAcceptanceRecord.installationSurveyForm.attachments.length === 0}
-                                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                      >
-                                        <Eye size={14} />
-                                        Xem đính kèm ({currentNewAcceptanceRecord.installationSurveyForm.attachments.length})
-                                      </button>
-                                      <button onClick={() => submitSurveyDraft(resolvedNewAcceptanceDevice.id)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"><Save size={14} />Lưu nháp</button>
-                                      <button onClick={() => submitSurveyForApproval(resolvedNewAcceptanceDevice.id)} className="px-3 py-2 rounded-lg bg-amber-100 text-amber-700 text-sm hover:bg-amber-200 flex items-center gap-2"><Send size={14} />Gửi duyệt</button>
-                                      <button onClick={() => approveSurvey(resolvedNewAcceptanceDevice.id)} className="px-3 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-sm hover:bg-emerald-200 flex items-center gap-2"><CheckCircle2 size={14} />Phê duyệt</button>
-                                    </div>
-
-                                    <p className="text-xs text-slate-500">Trạng thái: {currentNewAcceptanceRecord.installationSurveyForm.status} {currentNewAcceptanceRecord.installationSurveyForm.approvedAt ? `• Duyệt lúc ${currentNewAcceptanceRecord.installationSurveyForm.approvedAt}` : ""}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      <div className="flex justify-end gap-3">
-                        <button
-                          onClick={() => setActiveModal(null)}
-                          className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                        >
-                          Đóng
-                        </button>
                         <button
                           onClick={() => completeAcceptance(resolvedNewAcceptanceDevice.id)}
                           disabled={!isNewAcceptanceReadyToComplete(currentNewAcceptanceRecord)}
-                          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          className="px-5 py-2.5 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition"
+                          style={{boxShadow: '0 4px 10px rgba(16,185,129,0.3)'}}
                         >
                           <CheckCircle2 size={18} />
-                          Hoàn tất tiếp nhận mới
+                          Hoàn tất tiếp nhận
                         </button>
                       </div>
-                    </div>
+
+                      {/* Checklist Grid */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+                        {([
+                          { key: "approvalForm" as AcceptanceItemKey, label: "1. Phiếu phê duyệt PDX", icon: FileSignature, subDone: "Hoàn thành", subMissing: "Thiếu mã phiếu" },
+                          { key: "handoverRecord" as AcceptanceItemKey, label: "2. Biên bản bàn giao", icon: Handshake, subDone: "Đã có tài liệu", subMissing: "Chưa có tài liệu" },
+                          { key: "installationSurvey" as AcceptanceItemKey, label: "3. Khảo sát lắp đặt (BM.05)", icon: ClipboardList, subDone: "Đã duyệt", subMissing: "Chưa thực hiện" },
+                          { key: "userManual" as AcceptanceItemKey, label: "4. Tài liệu sử dụng (HDSD)", icon: BookOpen, subDone: "Đã có tài liệu", subMissing: "Thiếu file" },
+                          { key: "co" as AcceptanceItemKey, label: "5. Chứng nhận xuất xứ (CO)", icon: Award, subDone: "Đã có tài liệu", subMissing: "Thiếu file" },
+                          { key: "cq" as AcceptanceItemKey, label: "6. Chứng nhận chất lượng (CQ)", icon: ShieldCheck, subDone: "Đã có tài liệu", subMissing: "Thiếu file" },
+                          { key: "contract" as AcceptanceItemKey, label: "7. Hợp đồng", icon: FileText, subDone: "Đã có tài liệu", subMissing: "Thiếu file" },
+                          { key: "installationReport" as AcceptanceItemKey, label: "8. Biên bản lắp đặt", icon: Wrench, subDone: "Đã có tài liệu", subMissing: "Thiếu file" },
+                          { key: "usageConfirmation" as AcceptanceItemKey, label: "9. Xác nhận giá trị sử dụng", icon: FlaskConical, subDone: "Đã có tài liệu", subMissing: "Không bắt buộc" },
+                        ]).map((item) => {
+                          const itemState = currentNewAcceptanceRecord.items[item.key];
+                          const IconComp = item.icon;
+                          const isDone = itemState.status === "done";
+                          const isPending = itemState.status === "pending";
+                          const iconBg = isDone ? "bg-green-100 text-emerald-500" : isPending ? "bg-amber-100 text-amber-500" : "bg-red-100 text-red-500";
+                          const subText = isDone ? item.subDone : isPending ? (item.key === "installationSurvey" ? "Chờ phê duyệt" : item.subMissing) : item.subMissing;
+
+                          return (
+                            <div
+                              key={item.key}
+                              className="flex justify-between items-center p-[18px_20px] rounded-xl border border-slate-200 bg-white transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300"
+                              style={{boxShadow: '0 2px 4px rgba(0,0,0,0.02)'}}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center ${iconBg}`}>
+                                  <IconComp size={18} />
+                                </div>
+                                <div>
+                                  <div className="font-extrabold text-slate-800 text-sm">{item.label}</div>
+                                  <div className="text-xs text-slate-500 mt-0.5">{subText}</div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                {/* approvalForm: input + download or View */}
+                                {item.key === "approvalForm" && (
+                                  isDone ? (
+                                    <button
+                                      onClick={() => downloadApprovalForm(resolvedNewAcceptanceDevice, itemState.refCode || currentNewAcceptanceRecord.approvalCode || "PDD-TAM")}
+                                      className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-1.5"
+                                    >
+                                      <Eye size={14} /> View
+                                    </button>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        value={itemState.refCode || ""}
+                                        onChange={(event) => {
+                                          const value = event.target.value;
+                                          updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
+                                            ...base,
+                                            approvalCode: value,
+                                            items: {
+                                              ...base.items,
+                                              approvalForm: {
+                                                ...base.items.approvalForm,
+                                                refCode: value,
+                                                status: value.trim() ? "done" : "missing",
+                                              },
+                                            },
+                                          }));
+                                        }}
+                                        placeholder="Nhập mã phiếu"
+                                        className="w-28 px-2.5 py-2 rounded-lg border border-slate-200 text-xs"
+                                      />
+                                      <button
+                                        onClick={() => downloadApprovalForm(resolvedNewAcceptanceDevice, itemState.refCode || currentNewAcceptanceRecord.approvalCode || "PDD-TAM")}
+                                        className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-1.5"
+                                      >
+                                        <Download size={14} /> Tải phiếu
+                                      </button>
+                                    </div>
+                                  )
+                                )}
+
+                                {/* installationSurvey: "Lập phiếu" button */}
+                                {item.key === "installationSurvey" && (
+                                  isDone ? (
+                                    <button
+                                      onClick={() => setShowBm05SurveyModal(true)}
+                                      className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-1.5"
+                                    >
+                                      <Eye size={14} /> View
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => setShowBm05SurveyModal(true)}
+                                      className="px-3 py-2 rounded-lg bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition flex items-center gap-1.5"
+                                    >
+                                      <Edit size={14} /> Lập phiếu
+                                    </button>
+                                  )
+                                )}
+
+                                {/* All other items: "Up File" button */}
+                                {item.key !== "approvalForm" && item.key !== "installationSurvey" && (
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setActiveNewAcceptanceUploadKey(item.key);
+                                        newAcceptanceAttachmentInputRef.current?.click();
+                                      }}
+                                      className="px-3 py-2 rounded-lg bg-sky-100 text-sky-700 text-sm font-bold hover:bg-sky-600 hover:text-white transition flex items-center gap-1.5"
+                                    >
+                                      <Upload size={14} /> Up File
+                                    </button>
+                                    {itemState.files.length > 0 && (
+                                      <button
+                                        onClick={() => openNewAcceptanceAttachments(`${item.label} - ${resolvedNewAcceptanceDevice.code}`, itemState.files)}
+                                        className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-1.5"
+                                      >
+                                        <Eye size={14} /> ({itemState.files.length})
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-slate-500">Không có thiết bị trạng thái đăng ký mới để tiếp nhận.</div>
                   )}
                 </div>
               )}
 
+
+              {/* ===== RETURN ACCEPTANCE TAB ===== */}
               {acceptanceMainTab === "return" && (
                 <div className="space-y-5">
                   <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
                     <div className="flex flex-wrap items-end gap-3">
                       <div className="min-w-[240px] flex-1">
-                        <label className="text-xs text-slate-500">Thiết bị cần tiếp nhận trở lại</label>
+                        <label className="text-xs text-slate-500 font-bold">Thiết bị cần tiếp nhận trở lại</label>
                         <select
                           value={resolvedReturnAcceptanceDevice?.id || ""}
                           onChange={(event) => {
@@ -3092,215 +2847,217 @@ export default function DeviceProfileTab() {
                           ))}
                         </select>
                       </div>
-                      <div className="flex border border-slate-200 rounded-lg overflow-hidden">
-                        <button
-                          onClick={() => setReturnAcceptanceTab("checklist")}
-                          className={`px-4 py-2 text-sm ${returnAcceptanceTab === "checklist" ? "bg-purple-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
-                        >
-                          Checklist
-                        </button>
-                        <button
-                          onClick={() => setReturnAcceptanceTab("transport")}
-                          className={`px-4 py-2 text-sm ${returnAcceptanceTab === "transport" ? "bg-purple-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
-                        >
-                          BM.07 vận chuyển
-                        </button>
-                      </div>
+                    </div>
+
+                    {/* Inner Tabs - Pill Style */}
+                    <div className="flex gap-2 bg-slate-50 p-1.5 rounded-xl w-fit border border-slate-200">
+                      <button
+                        onClick={() => setReturnAcceptanceTab("checklist")}
+                        className={`px-5 py-2 font-bold text-sm rounded-lg transition ${returnAcceptanceTab === "checklist" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-blue-600"}`}
+                      >
+                        <ListChecks size={15} className="inline mr-1.5 -mt-0.5" />
+                        Checklist Tài liệu
+                      </button>
+                      <button
+                        onClick={() => setReturnAcceptanceTab("transport")}
+                        className={`px-5 py-2 font-bold text-sm rounded-lg transition ${returnAcceptanceTab === "transport" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-blue-600"}`}
+                      >
+                        <Table size={15} className="inline mr-1.5 -mt-0.5" />
+                        Sổ Ghi nhận VC (BM.07)
+                      </button>
                     </div>
 
                     {resolvedReturnAcceptanceDevice ? (
                       <>
-                        <div className="bg-purple-50 rounded-xl p-3">
-                          <p className="font-semibold text-purple-800">{resolvedReturnAcceptanceDevice.name}</p>
-                          <p className="text-sm text-purple-600">{resolvedReturnAcceptanceDevice.code} • {resolvedReturnAcceptanceDevice.model}</p>
-                        </div>
-
                         {returnAcceptanceTab === "checklist" && (
-                          <div className="space-y-4">
-                            <div className="rounded-xl border border-slate-200 p-4 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-medium text-slate-800">1) Phiếu bàn giao</h4>
-                                <span className={`text-xs px-2 py-1 rounded-full ${(currentReturnAcceptanceRecord.handoverCode.trim() || currentReturnAcceptanceRecord.handoverFiles.length > 0) ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-                                  {(currentReturnAcceptanceRecord.handoverCode.trim() || currentReturnAcceptanceRecord.handoverFiles.length > 0) ? "Đã có dữ liệu" : "Thiếu thông tin"}
-                                </span>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {/* Return Item 1: Phiếu bàn giao */}
+                            <div className="flex justify-between items-center p-[18px_20px] rounded-xl border border-slate-200 bg-white transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300" style={{boxShadow: '0 2px 4px rgba(0,0,0,0.02)'}}>
+                              <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center ${(currentReturnAcceptanceRecord.handoverCode.trim() || currentReturnAcceptanceRecord.handoverFiles.length > 0) ? "bg-amber-100 text-amber-500" : "bg-red-100 text-red-500"}`}>
+                                  <Truck size={18} />
+                                </div>
+                                <div>
+                                  <div className="font-extrabold text-slate-800 text-sm">1. Phiếu bàn giao thiết bị</div>
+                                  <div className="text-xs text-slate-500 mt-0.5">{(currentReturnAcceptanceRecord.handoverCode.trim() || currentReturnAcceptanceRecord.handoverFiles.length > 0) ? "Đã có dữ liệu" : "Từ bên sửa chữa/cho mượn"}</div>
+                                </div>
                               </div>
-                              <input
-                                value={currentReturnAcceptanceRecord.handoverCode}
-                                onChange={(event) => updateReturnAcceptanceRecord(resolvedReturnAcceptanceDevice.id, (base) => ({ ...base, handoverCode: event.target.value }))}
-                                placeholder="Nhập mã phiếu bàn giao"
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                              />
-                              <div className="flex flex-wrap gap-2">
+                              <div className="flex gap-2 items-center">
+                                <div className="flex items-center gap-1.5 border border-slate-200 rounded-lg px-2.5 py-1.5">
+                                  <Search size={12} className="text-slate-400" />
+                                  <input
+                                    value={currentReturnAcceptanceRecord.handoverCode}
+                                    onChange={(event) => updateReturnAcceptanceRecord(resolvedReturnAcceptanceDevice.id, (base) => ({ ...base, handoverCode: event.target.value }))}
+                                    placeholder="Tìm ID phiếu..."
+                                    className="border-none outline-none w-24 text-xs bg-transparent"
+                                  />
+                                </div>
                                 <button
                                   onClick={() => returnHandoverAttachmentInputRef.current?.click()}
-                                  className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"
+                                  className="px-3 py-2 rounded-lg bg-sky-100 text-sky-700 text-sm font-bold hover:bg-sky-600 hover:text-white transition flex items-center gap-1.5"
                                 >
-                                  <Upload size={14} />
-                                  Đính kèm bàn giao
-                                </button>
-                                <button
-                                  onClick={() => openAttachmentViewer(`Phiếu bàn giao - ${resolvedReturnAcceptanceDevice.code}`, currentReturnAcceptanceRecord.handoverFiles)}
-                                  disabled={currentReturnAcceptanceRecord.handoverFiles.length === 0}
-                                  className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                >
-                                  <Eye size={14} />
-                                  Xem file ({currentReturnAcceptanceRecord.handoverFiles.length})
+                                  <Upload size={14} /> Đính kèm
                                 </button>
                               </div>
-                              {currentReturnAcceptanceRecord.handoverFiles.length > 0 && (
-                                <div className="space-y-1">
-                                  {currentReturnAcceptanceRecord.handoverFiles.map((file) => (
-                                    <div key={file.id} className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5">
-                                      <span className="truncate pr-2">{file.name}</span>
-                                      <div className="flex items-center gap-1">
-                                        <button onClick={() => handleViewAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Eye size={13} /></button>
-                                        <button onClick={() => handleDownloadAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Download size={13} /></button>
-                                        <button onClick={() => removeReturnHandoverFile(resolvedReturnAcceptanceDevice.id, file.id)} className="p-1 rounded hover:bg-slate-200 text-red-500"><Trash2 size={13} /></button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
                             </div>
 
-                            <div className="rounded-xl border border-slate-200 p-4 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-medium text-slate-800">2) Phiếu tiếp nhận</h4>
-                                <span className={`text-xs px-2 py-1 rounded-full ${currentReturnAcceptanceRecord.acceptanceForm?.completed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                                  {currentReturnAcceptanceRecord.acceptanceForm?.completed ? "Đã hoàn tất" : "Chưa hoàn tất"}
-                                </span>
+                            {/* Return Item 2: Phiếu tiếp nhận */}
+                            <div className="flex justify-between items-center p-[18px_20px] rounded-xl border border-slate-200 bg-white transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300" style={{boxShadow: '0 2px 4px rgba(0,0,0,0.02)'}}>
+                              <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center ${currentReturnAcceptanceRecord.acceptanceForm?.completed ? "bg-green-100 text-emerald-500" : "bg-red-100 text-red-500"}`}>
+                                  <ClipboardCheck size={18} />
+                                </div>
+                                <div>
+                                  <div className="font-extrabold text-slate-800 text-sm">2. Phiếu tiếp nhận</div>
+                                  <div className="text-xs text-slate-500 mt-0.5">{currentReturnAcceptanceRecord.acceptanceForm?.completed ? "Đã hoàn tất" : "Lập phiếu PTN trên hệ thống"}</div>
+                                </div>
                               </div>
-
-                              {editingReturnForm ? (
-                                <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <div>
-                                      <label className="text-xs text-slate-500">Tên phiếu</label>
-                                      <input
-                                        value={editingReturnForm.formName}
-                                        onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, formName: event.target.value } : prev)}
-                                        className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="text-xs text-slate-500">Mã phiếu</label>
-                                      <input value={editingReturnForm.formCode} readOnly className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-100" />
-                                    </div>
-                                    <div>
-                                      <label className="text-xs text-slate-500">Người bàn giao</label>
-                                      <input
-                                        value={editingReturnForm.handoverBy}
-                                        onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, handoverBy: event.target.value } : prev)}
-                                        className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="text-xs text-slate-500">Người tiếp nhận</label>
-                                      <input
-                                        value={editingReturnForm.receiver}
-                                        onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, receiver: event.target.value } : prev)}
-                                        className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="text-xs text-slate-500">Thời gian tiếp nhận</label>
-                                      <input
-                                        type="datetime-local"
-                                        value={editingReturnForm.receivedAt}
-                                        onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, receivedAt: event.target.value } : prev)}
-                                        className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="text-xs text-slate-500">Tình trạng tiếp nhận</label>
-                                      <input
-                                        value={editingReturnForm.receiveCondition}
-                                        onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, receiveCondition: event.target.value } : prev)}
-                                        className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                      />
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <label className="text-xs text-slate-500">Ghi chú</label>
-                                    <textarea
-                                      value={editingReturnForm.note}
-                                      onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, note: event.target.value } : prev)}
-                                      className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm h-20 resize-none"
-                                    />
-                                  </div>
-
-                                  <div className="flex flex-wrap gap-2">
-                                    <button onClick={() => returnAcceptanceFormAttachmentInputRef.current?.click()} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"><Upload size={14} />Đính kèm</button>
-                                    <button onClick={() => openAttachmentViewer(`Đính kèm phiếu tiếp nhận - ${editingReturnForm.formCode}`, editingReturnForm.attachments)} disabled={editingReturnForm.attachments.length === 0} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"><Eye size={14} />Xem file ({editingReturnForm.attachments.length})</button>
-                                  </div>
-
-                                  {editingReturnForm.attachments.length > 0 && (
-                                    <div className="space-y-1">
-                                      {editingReturnForm.attachments.map((file) => (
-                                        <div key={file.id} className="flex items-center justify-between text-xs text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
-                                          <span className="truncate pr-2">{file.name}</span>
-                                          <div className="flex items-center gap-1">
-                                            <button onClick={() => handleViewAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Eye size={13} /></button>
-                                            <button onClick={() => handleDownloadAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Download size={13} /></button>
-                                            <button onClick={() => removeReturnAcceptanceFormFile(file.id)} className="p-1 rounded hover:bg-slate-200 text-red-500"><Trash2 size={13} /></button>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  <div className="flex flex-wrap justify-end gap-2">
-                                    <button onClick={() => setEditingReturnForm(null)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">Hủy</button>
-                                    <button onClick={() => saveReturnAcceptanceForm(resolvedReturnAcceptanceDevice.id, false)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"><Save size={14} />Lưu phiếu</button>
-                                    <button onClick={() => saveReturnAcceptanceForm(resolvedReturnAcceptanceDevice.id, true)} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 flex items-center gap-2"><CheckCircle2 size={14} />Hoàn tất & ký</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  {currentReturnAcceptanceRecord.acceptanceForm ? (
-                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 space-y-1">
-                                      <p><span className="font-medium">Tên phiếu:</span> {currentReturnAcceptanceRecord.acceptanceForm.formName}</p>
-                                      <p><span className="font-medium">Mã phiếu:</span> {currentReturnAcceptanceRecord.acceptanceForm.formCode}</p>
-                                      <p><span className="font-medium">Tình trạng:</span> {currentReturnAcceptanceRecord.acceptanceForm.receiveCondition || "—"}</p>
-                                      <p><span className="font-medium">Người bàn giao:</span> {currentReturnAcceptanceRecord.acceptanceForm.handoverBy || "—"}</p>
-                                      <p><span className="font-medium">Người tiếp nhận:</span> {currentReturnAcceptanceRecord.acceptanceForm.receiver || "—"}</p>
-                                      <p><span className="font-medium">Ngày giờ tiếp nhận:</span> {formatDateTimeLabel(currentReturnAcceptanceRecord.acceptanceForm.receivedAt)}</p>
-                                      <p><span className="font-medium">Trạng thái:</span> {currentReturnAcceptanceRecord.acceptanceForm.completed ? "Đã hoàn tất" : "Nháp"}</p>
-                                      {currentReturnAcceptanceRecord.acceptanceForm.completedAt && (
-                                        <p><span className="font-medium">Ký hoàn tất:</span> {currentReturnAcceptanceRecord.acceptanceForm.completedAt}</p>
-                                      )}
-                                      <div className="pt-2 flex flex-wrap gap-2">
-                                        <button onClick={() => prepareReturnAcceptanceFormEditor(resolvedReturnAcceptanceDevice, currentReturnAcceptanceRecord.acceptanceForm)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-100 flex items-center gap-2"><Edit size={14} />Sửa phiếu</button>
-                                        <button onClick={() => downloadReturnAcceptanceForm(resolvedReturnAcceptanceDevice, currentReturnAcceptanceRecord.acceptanceForm!)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-100 flex items-center gap-2"><Download size={14} />Tải phiếu</button>
-                                        <button onClick={() => openAttachmentViewer(`Đính kèm ${currentReturnAcceptanceRecord.acceptanceForm?.formCode || ""}`, currentReturnAcceptanceRecord.acceptanceForm?.attachments || [])} disabled={(currentReturnAcceptanceRecord.acceptanceForm?.attachments || []).length === 0} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"><Eye size={14} />Xem file</button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-500">Chưa có phiếu tiếp nhận cho thiết bị này.</div>
-                                  )}
-                                  {!currentReturnAcceptanceRecord.acceptanceForm && (
-                                    <button onClick={() => prepareReturnAcceptanceFormEditor(resolvedReturnAcceptanceDevice)} className="px-3 py-2 rounded-lg bg-purple-100 text-purple-700 text-sm hover:bg-purple-200 flex items-center gap-2"><FilePlus size={14} />Tạo phiếu tiếp nhận</button>
-                                  )}
-                                </div>
-                              )}
+                              <div className="flex gap-2">
+                                {currentReturnAcceptanceRecord.acceptanceForm ? (
+                                  <>
+                                    <button
+                                      onClick={() => prepareReturnAcceptanceFormEditor(resolvedReturnAcceptanceDevice, currentReturnAcceptanceRecord.acceptanceForm)}
+                                      className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-1.5"
+                                    >
+                                      <Edit size={14} /> Sửa
+                                    </button>
+                                    <button
+                                      onClick={() => openAttachmentViewer(`Đính kèm ${currentReturnAcceptanceRecord.acceptanceForm?.formCode || ""}`, currentReturnAcceptanceRecord.acceptanceForm?.attachments || [])}
+                                      disabled={(currentReturnAcceptanceRecord.acceptanceForm?.attachments || []).length === 0}
+                                      className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-bold hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                                    >
+                                      <Eye size={14} /> Xem
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() => prepareReturnAcceptanceFormEditor(resolvedReturnAcceptanceDevice)}
+                                    className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition flex items-center gap-1.5"
+                                  >
+                                    <Edit size={14} /> Tạo phiếu
+                                  </button>
+                                )}
+                              </div>
                             </div>
+                          </div>
+                        )}
 
-                            <div className="flex justify-end gap-3">
-                              <button
-                                onClick={() => setActiveModal(null)}
-                                className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                              >
-                                Đóng
-                              </button>
-                              <button
-                                onClick={() => completeReturnAcceptance(resolvedReturnAcceptanceDevice.id)}
-                                disabled={!isReturnAcceptanceReadyToComplete(currentReturnAcceptanceRecord)}
-                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                              >
-                                <CheckCircle2 size={18} />
-                                Hoàn tất tiếp nhận trở lại
-                              </button>
+                        {/* Return Handover Files Display */}
+                        {returnAcceptanceTab === "checklist" && currentReturnAcceptanceRecord.handoverFiles.length > 0 && (
+                          <div className="rounded-xl border border-slate-200 p-3 space-y-1.5 mt-3">
+                            <p className="text-xs font-bold text-slate-500 mb-1">File phiếu bàn giao:</p>
+                            {currentReturnAcceptanceRecord.handoverFiles.map((file) => (
+                              <div key={file.id} className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5">
+                                <span className="truncate pr-2">{file.name}</span>
+                                <div className="flex items-center gap-1">
+                                  <button onClick={() => handleViewAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Eye size={13} /></button>
+                                  <button onClick={() => handleDownloadAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Download size={13} /></button>
+                                  <button onClick={() => removeReturnHandoverFile(resolvedReturnAcceptanceDevice.id, file.id)} className="p-1 rounded hover:bg-slate-200 text-red-500"><Trash2 size={13} /></button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Return Acceptance Form Editor */}
+                        {returnAcceptanceTab === "checklist" && editingReturnForm && (
+                          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                            <p className="font-bold text-slate-700 mb-2">Chỉnh sửa phiếu tiếp nhận - {editingReturnForm.formCode}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-xs text-slate-500 font-bold">Tên phiếu</label>
+                                <input
+                                  value={editingReturnForm.formName}
+                                  onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, formName: event.target.value } : prev)}
+                                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 font-bold">Mã phiếu</label>
+                                <input value={editingReturnForm.formCode} readOnly className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-100 font-bold text-blue-600" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 font-bold">Người bàn giao</label>
+                                <input
+                                  value={editingReturnForm.handoverBy}
+                                  onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, handoverBy: event.target.value } : prev)}
+                                  placeholder="Họ tên người bàn giao..."
+                                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 font-bold">Người tiếp nhận</label>
+                                <input
+                                  value={editingReturnForm.receiver}
+                                  onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, receiver: event.target.value } : prev)}
+                                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 font-bold">Thời gian tiếp nhận</label>
+                                <input
+                                  type="datetime-local"
+                                  value={editingReturnForm.receivedAt}
+                                  onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, receivedAt: event.target.value } : prev)}
+                                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 font-bold">Tình trạng tiếp nhận</label>
+                                <input
+                                  value={editingReturnForm.receiveCondition}
+                                  onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, receiveCondition: event.target.value } : prev)}
+                                  placeholder="Thiết bị hoạt động bình thường..."
+                                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                />
+                              </div>
                             </div>
+                            <div>
+                              <label className="text-xs text-slate-500 font-bold">Ghi chú</label>
+                              <textarea
+                                value={editingReturnForm.note}
+                                onChange={(event) => setEditingReturnForm((prev) => prev ? { ...prev, note: event.target.value } : prev)}
+                                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm h-20 resize-none"
+                              />
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button onClick={() => returnAcceptanceFormAttachmentInputRef.current?.click()} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"><Upload size={14} />Đính kèm</button>
+                              <button onClick={() => openAttachmentViewer(`Đính kèm phiếu tiếp nhận - ${editingReturnForm.formCode}`, editingReturnForm.attachments)} disabled={editingReturnForm.attachments.length === 0} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"><Eye size={14} />Xem file ({editingReturnForm.attachments.length})</button>
+                            </div>
+                            {editingReturnForm.attachments.length > 0 && (
+                              <div className="space-y-1">
+                                {editingReturnForm.attachments.map((file) => (
+                                  <div key={file.id} className="flex items-center justify-between text-xs text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
+                                    <span className="truncate pr-2">{file.name}</span>
+                                    <div className="flex items-center gap-1">
+                                      <button onClick={() => handleViewAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Eye size={13} /></button>
+                                      <button onClick={() => handleDownloadAttachment(file)} className="p-1 rounded hover:bg-slate-200"><Download size={13} /></button>
+                                      <button onClick={() => removeReturnAcceptanceFormFile(file.id)} className="p-1 rounded hover:bg-slate-200 text-red-500"><Trash2 size={13} /></button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div className="flex flex-wrap justify-end gap-2 pt-2">
+                              <button onClick={() => setEditingReturnForm(null)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">Hủy</button>
+                              <button onClick={() => saveReturnAcceptanceForm(resolvedReturnAcceptanceDevice.id, false)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 flex items-center gap-2"><Save size={14} />Lưu phiếu</button>
+                              <button onClick={() => saveReturnAcceptanceForm(resolvedReturnAcceptanceDevice.id, true)} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 flex items-center gap-2"><CheckCircle2 size={14} />Hoàn tất & ký</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Complete Return Acceptance Button */}
+                        {returnAcceptanceTab === "checklist" && (
+                          <div className="flex justify-end gap-3 mt-4">
+                            <button
+                              onClick={() => completeReturnAcceptance(resolvedReturnAcceptanceDevice.id)}
+                              disabled={!isReturnAcceptanceReadyToComplete(currentReturnAcceptanceRecord)}
+                              className="px-5 py-2.5 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition"
+                              style={{boxShadow: '0 4px 10px rgba(16,185,129,0.3)'}}
+                            >
+                              <CheckCircle2 size={18} />
+                              Hoàn tất tiếp nhận trở lại
+                            </button>
                           </div>
                         )}
 
@@ -3385,6 +3142,270 @@ export default function DeviceProfileTab() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BM.05 Installation Survey Modal */}
+      {showBm05SurveyModal && resolvedNewAcceptanceDevice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowBm05SurveyModal(false)}>
+          <div className="bg-slate-50 rounded-2xl max-w-[850px] w-full max-h-[92vh] overflow-y-auto shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            {/* Close button */}
+            <button onClick={() => setShowBm05SurveyModal(false)} className="absolute top-4 right-4 p-2 hover:bg-slate-200 rounded-lg transition z-10">
+              <X size={20} className="text-slate-500" />
+            </button>
+
+            {/* Header */}
+            <div className="text-center pt-6 pb-4 px-6 border-b-2 border-slate-200">
+              <h2 className="text-xl font-extrabold text-blue-600 mb-1">PHIẾU KHẢO SÁT ĐIỀU KIỆN LẮP ĐẶT</h2>
+              <div className="text-slate-500 font-bold text-sm">Mã tài liệu: BM.05.QL.TC.018</div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Device Info (read-only) */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold">Tên thiết bị:</label>
+                    <input type="text" value={resolvedNewAcceptanceDevice.name} readOnly className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50 font-bold" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold">Model:</label>
+                    <input type="text" value={resolvedNewAcceptanceDevice.model || "Đang cập nhật"} readOnly className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold">Hãng sản xuất:</label>
+                    <input type="text" value={resolvedNewAcceptanceDevice.manufacturer || ""} readOnly className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold">Công ty cung ứng:</label>
+                    <input type="text" value={resolvedNewAcceptanceDevice.distributor || ""} readOnly className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold">Ngày khảo sát (*):</label>
+                    <input
+                      type="date"
+                      value={currentNewAcceptanceRecord.installationSurveyForm.surveyDate}
+                      onChange={(event) => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
+                        ...base,
+                        installationSurveyForm: { ...base.installationSurveyForm, surveyDate: event.target.value },
+                      }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Survey Questions Table */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
+                <h4 className="font-bold text-slate-700 mb-3">I. Nội dung khảo sát</h4>
+                <div className="overflow-hidden rounded-lg border border-slate-200">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50">
+                        <th className="px-4 py-3 text-left font-bold text-slate-600 border-b border-slate-200">Hạng mục</th>
+                        <th className="px-4 py-3 text-center w-24 font-bold text-slate-600 border-b border-slate-200">Đạt</th>
+                        <th className="px-4 py-3 text-center w-24 font-bold text-slate-600 border-b border-slate-200">Không</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {([
+                        { key: "hasPowerSupply" as const, label: "1. Nguồn điện phù hợp" },
+                        { key: "hasGrounding" as const, label: "2. Tiếp địa" },
+                        { key: "hasBenchSpace" as const, label: "3. Không gian lắp đặt" },
+                        { key: "hasTemperatureControl" as const, label: "4. Nhiệt độ phù hợp" },
+                        { key: "hasHumidityControl" as const, label: "5. Độ ẩm phù hợp" },
+                        { key: "hasNetwork" as const, label: "6. Hệ thống mạng (LIS/HIS)" },
+                        { key: "hasWaterLine" as const, label: "7. Hệ thống nước sạch/nước thải" },
+                      ]).map((question) => {
+                        const value = currentNewAcceptanceRecord.installationSurveyForm[question.key] as boolean | null;
+                        return (
+                          <tr key={question.key} className="border-b border-slate-200 last:border-b-0">
+                            <td className="px-4 py-3 text-slate-700">{question.label}</td>
+                            <td className="text-center px-4 py-3">
+                              <button
+                                onClick={() => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
+                                  ...base,
+                                  installationSurveyForm: { ...base.installationSurveyForm, [question.key]: true },
+                                }))}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${value === true ? "bg-emerald-500 text-white shadow-sm" : "bg-slate-100 text-slate-500 hover:bg-emerald-100 hover:text-emerald-600"}`}
+                              >
+                                Đạt
+                              </button>
+                            </td>
+                            <td className="text-center px-4 py-3">
+                              <button
+                                onClick={() => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
+                                  ...base,
+                                  installationSurveyForm: { ...base.installationSurveyForm, [question.key]: false },
+                                }))}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${value === false ? "bg-red-500 text-white shadow-sm" : "bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600"}`}
+                              >
+                                Không
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Attachments */}
+                <div className="mt-4">
+                  <label className="text-xs text-slate-500 font-bold">Đính kèm biên bản/hình ảnh:</label>
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      onClick={() => {
+                        setActiveNewAcceptanceUploadKey("installationSurvey");
+                        newAcceptanceAttachmentInputRef.current?.click();
+                      }}
+                      className="px-3 py-2 rounded-lg bg-sky-100 text-sky-700 text-sm font-bold hover:bg-sky-600 hover:text-white transition flex items-center gap-1.5"
+                    >
+                      <Upload size={14} /> Thêm file
+                    </button>
+                    {currentNewAcceptanceRecord.installationSurveyForm.attachments.length > 0 && (
+                      <button
+                        onClick={() => openNewAcceptanceAttachments(`BM.05 - ${resolvedNewAcceptanceDevice.code}`, currentNewAcceptanceRecord.installationSurveyForm.attachments)}
+                        className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-1.5"
+                      >
+                        <Eye size={14} /> Xem ({currentNewAcceptanceRecord.installationSurveyForm.attachments.length})
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Conclusion */}
+                <div className="mt-4">
+                  <label className="text-xs text-slate-500 font-bold">Kết luận:</label>
+                  <textarea
+                    value={currentNewAcceptanceRecord.installationSurveyForm.conclusion}
+                    onChange={(event) => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
+                      ...base,
+                      installationSurveyForm: { ...base.installationSurveyForm, conclusion: event.target.value },
+                    }))}
+                    placeholder="Nhập kết luận khảo sát..."
+                    className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm h-16 resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Surveyor & Approver */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
+                <h4 className="font-bold text-slate-700 mb-3">II. Phân công & Phê duyệt</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold">Người khảo sát (*):</label>
+                    <input
+                      value={currentNewAcceptanceRecord.installationSurveyForm.surveyor}
+                      onChange={(event) => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
+                        ...base,
+                        installationSurveyForm: { ...base.installationSurveyForm, surveyor: event.target.value },
+                      }))}
+                      placeholder="Nhập tên người khảo sát"
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold">Người phê duyệt (*):</label>
+                    <input
+                      value={currentNewAcceptanceRecord.installationSurveyForm.approver}
+                      onChange={(event) => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
+                        ...base,
+                        installationSurveyForm: { ...base.installationSurveyForm, approver: event.target.value },
+                      }))}
+                      placeholder="Nhập người phê duyệt"
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Related Users */}
+                <div className="mt-3">
+                  <label className="text-xs text-slate-500 font-bold">Người liên quan (Nhận thông báo):</label>
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      value={surveyUserSearch}
+                      onChange={(event) => setSurveyUserSearch(event.target.value)}
+                      placeholder="Tìm người dùng..."
+                      className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                    />
+                  </div>
+                  {surveyUserSearch.trim() && (
+                    <div className="mt-1 max-h-28 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50 space-y-1">
+                      {acceptanceUsers.map((member) => {
+                        const selected = currentNewAcceptanceRecord.installationSurveyForm.relatedUsers.includes(member.fullName);
+                        return (
+                          <button
+                            key={member.id}
+                            onClick={() => {
+                              updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
+                                ...base,
+                                installationSurveyForm: {
+                                  ...base.installationSurveyForm,
+                                  relatedUsers: selected
+                                    ? base.installationSurveyForm.relatedUsers.filter((name) => name !== member.fullName)
+                                    : [...base.installationSurveyForm.relatedUsers, member.fullName],
+                                },
+                              }));
+                              setSurveyUserSearch("");
+                            }}
+                            className={`w-full text-left px-2 py-1.5 rounded text-xs ${selected ? "bg-sky-100 text-sky-700 font-bold" : "hover:bg-slate-100 text-slate-600"}`}
+                          >
+                            {member.fullName} {selected ? "✓" : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Selected User Tags */}
+                  <div className="flex flex-wrap gap-1.5 mt-2 min-h-[42px] border border-dashed border-slate-300 rounded-lg p-2 bg-white">
+                    {currentNewAcceptanceRecord.installationSurveyForm.relatedUsers.length === 0 ? (
+                      <span className="text-xs text-slate-400">Chưa chọn người liên quan</span>
+                    ) : (
+                      currentNewAcceptanceRecord.installationSurveyForm.relatedUsers.map((name) => (
+                        <span key={name} className="bg-sky-100 text-sky-700 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                          {name}
+                          <button
+                            onClick={() => updateNewAcceptanceRecord(resolvedNewAcceptanceDevice.id, (base) => ({
+                              ...base,
+                              installationSurveyForm: {
+                                ...base.installationSurveyForm,
+                                relatedUsers: base.installationSurveyForm.relatedUsers.filter((n) => n !== name),
+                              },
+                            }))}
+                            className="text-red-500 hover:scale-110 transition"
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Status display */}
+                <div className="mt-3 text-xs text-slate-500">
+                  Trạng thái: <span className="font-bold">{currentNewAcceptanceRecord.installationSurveyForm.status}</span>
+                  {currentNewAcceptanceRecord.installationSurveyForm.approvedAt ? ` • Duyệt lúc ${currentNewAcceptanceRecord.installationSurveyForm.approvedAt}` : ""}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button onClick={() => submitSurveyDraft(resolvedNewAcceptanceDevice.id)} className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-2 transition">
+                  <Save size={14} /> Lưu nháp
+                </button>
+                <button onClick={() => { submitSurveyForApproval(resolvedNewAcceptanceDevice.id); setShowBm05SurveyModal(false); }} className="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 flex items-center gap-2 transition" style={{boxShadow: '0 4px 10px rgba(59,130,246,0.3)'}}>
+                  <Send size={14} /> Hoàn tất & Gửi phê duyệt
+                </button>
+                <button onClick={() => { approveSurvey(resolvedNewAcceptanceDevice.id); setShowBm05SurveyModal(false); }} className="px-4 py-2.5 rounded-lg bg-emerald-500 text-white text-sm font-bold hover:bg-emerald-600 flex items-center gap-2 transition" style={{boxShadow: '0 4px 10px rgba(16,185,129,0.3)'}}>
+                  <CheckCircle2 size={14} /> Phê duyệt
+                </button>
+              </div>
             </div>
           </div>
         </div>
