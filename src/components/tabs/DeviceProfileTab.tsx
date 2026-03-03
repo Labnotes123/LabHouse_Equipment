@@ -2032,24 +2032,14 @@ export default function DeviceProfileTab() {
                     {actionButtons.map((btn) => (
                       <div key={btn.key} className="relative">
                         {btn.key === "info" ? (
-                          <>
-                            <button
-                              onClick={() => handleActionClick(device, btn.key)}
-                              className={`${btn.bg} ${btn.hover} text-white px-3 py-2 rounded-lg text-xs font-medium flex flex-col items-center gap-1 transition-all transform hover:scale-105 shadow-lg`}
-                              title={btn.label}
-                            >
-                              <btn.icon size={16} />
-                              <span className="whitespace-nowrap">{btn.label}</span>
-                            </button>
-                            {/* Unified Management Modal button */}
-                                <button
-                                  onClick={() => handleActionClick(device, "info-management")}
-                                  className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-purple-50 flex items-center gap-2"
-                                >
-                                  <Settings size={14} className="text-purple-600" />
-                                  Thông tin quản lý
-                                </button>
-                          </>
+                          <button
+                            onClick={() => handleActionClick(device, "info-management")}
+                            className={`${btn.bg} ${btn.hover} text-white px-3 py-2 rounded-lg text-xs font-medium flex flex-col items-center gap-1 transition-all transform hover:scale-105 shadow-lg`}
+                            title={btn.label}
+                          >
+                            <btn.icon size={16} />
+                            <span className="whitespace-nowrap">{btn.label}</span>
+                          </button>
                         ) : (
                           <button
                             onClick={() => handleActionClick(device, btn.key)}
@@ -2312,32 +2302,18 @@ export default function DeviceProfileTab() {
                                 {actionButtons.map((btn) => (
                                   <div key={btn.key} className="relative">
                                     {btn.key === "info" ? (
-                                      <>
-                                        <button
-                                          onClick={() => {
-                                            setShowInfoDropdown(showInfoDropdown === device.id ? device.id : device.id);
-                                            setShowActionMenu(null);
-                                          }}
-                                          className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between hover:bg-slate-50 ${btn.color === 'emerald' ? 'text-emerald-600' : btn.color === 'blue' ? 'text-blue-600' : btn.color === 'red' ? 'text-red-600' : btn.color === 'purple' ? 'text-purple-600' : btn.color === 'orange' ? 'text-orange-600' : btn.color === 'cyan' ? 'text-cyan-600' : 'text-slate-600'}`}
-                                        >
-                                          <span className="flex items-center gap-3">
-                                            <btn.icon size={16} />
-                                            {btn.label}
-                                          </span>
-                                          <ChevronRight size={14} className="rotate-90" />
-                                        </button>
-                                        {/* Unified Management button */}
-                                            <button
-                                              onClick={() => {
-                                                handleActionClick(device, "info-management");
-                                                setShowInfoDropdown(null);
-                                              }}
-                                              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-purple-50 flex items-center gap-3"
-                                            >
-                                              <Settings size={16} className="text-purple-600" />
-                                              Thông tin quản lý
-                                            </button>
-                                      </>
+                                      <button
+                                        onClick={() => {
+                                          handleActionClick(device, "info-management");
+                                          setShowActionMenu(null);
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-sm flex items-center justify-between text-purple-600 hover:bg-purple-50"
+                                      >
+                                        <span className="flex items-center gap-3">
+                                          <Settings size={16} className="text-purple-600" />
+                                          Thông tin quản lý
+                                        </span>
+                                      </button>
                                     ) : (
                                       <button
                                         onClick={() => {
