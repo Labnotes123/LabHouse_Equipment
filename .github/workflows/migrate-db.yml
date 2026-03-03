@@ -46,6 +46,7 @@ jobs:
   seed-admin:
     name: Seed / Reset Admin User
     runs-on: ubuntu-latest
+    needs: [migrate]
     permissions:
       contents: read
     # Only run this job when triggered manually with reset_admin_password = true
