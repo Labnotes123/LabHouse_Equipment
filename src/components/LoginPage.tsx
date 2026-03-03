@@ -15,6 +15,15 @@ import {
   Microscope,
 } from "lucide-react";
 
+const DEMO_ACCOUNTS = [
+  { username: "admin",       password: "admin123" },
+  { username: "giamdoc",     password: "gd123" },
+  { username: "truongphong", password: "tp123" },
+  { username: "ktv",         password: "ktv123" },
+  { username: "qlcl",        password: "qlcl123" },
+  { username: "qltb",        password: "qltb123" },
+];
+
 export default function LoginPage() {
   const { login, labName, logoUrl } = useAuth();
   const { success, error } = useToast();
@@ -201,12 +210,20 @@ export default function LoginPage() {
 
             {/* Demo accounts hint */}
             <div className="mt-6 p-4 rounded-xl" style={{ background: "rgba(37,99,235,0.06)" }}>
-              <p className="text-xs font-semibold text-blue-700 mb-2">Tài khoản demo:</p>
-              <div className="grid grid-cols-2 gap-1 text-xs text-slate-600">
-                <span>admin / admin123</span>
-                <span>giamdoc / gd123</span>
-                <span>ktv / ktv123</span>
-                <span>qltb / qltb123</span>
+              <p className="text-xs font-semibold text-blue-700 mb-2">Tài khoản demo (click để điền):</p>
+              <div className="grid grid-cols-2 gap-1">
+                {DEMO_ACCOUNTS.map((acc) => (
+                  <button
+                    key={acc.username}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => { setUsername(acc.username); setPassword(acc.password); }}
+                    className="text-left px-2 py-1 rounded-lg text-xs text-slate-600 hover:bg-blue-100 hover:text-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    <span className="font-medium">{acc.username}</span>
+                    <span className="text-slate-400"> / {acc.password}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
