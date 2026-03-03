@@ -7,6 +7,7 @@ import type {
   IncidentReport,
   CalibrationSchedule,
   HistoryLog,
+  UserProfile,
 } from "@/lib/mockData";
 
 interface DataContextValue {
@@ -16,6 +17,7 @@ interface DataContextValue {
   incidents: IncidentReport[];
   schedules: CalibrationSchedule[];
   history: HistoryLog[];
+  users: UserProfile[];
 
   // Loading states
   loading: boolean;
@@ -24,6 +26,7 @@ interface DataContextValue {
   incidentsLoading: boolean;
   schedulesLoading: boolean;
   historyLoading: boolean;
+  usersLoading: boolean;
 
   // Refresh
   refreshData: () => Promise<void>;
@@ -69,12 +72,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [schedules, setSchedules] = useState<CalibrationSchedule[]>([]);
   const [history, setHistory] = useState<HistoryLog[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
 
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [proposalsLoading, setProposalsLoading] = useState(true);
   const [incidentsLoading, setIncidentsLoading] = useState(true);
   const [schedulesLoading, setSchedulesLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(true);
 
   const fetchDevices = useCallback(async () => {
     setDevicesLoading(true);
@@ -136,6 +141,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const fetchUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const data = await apiFetch<UserProfile[]>("/api/users");
+      setUsers(data);
+    } catch (e) {
+      console.error("Failed to fetch users", e);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
   const refreshData = useCallback(async () => {
     await Promise.all([
       fetchDevices(),
@@ -143,15 +160,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       fetchIncidents(),
       fetchSchedules(),
       fetchHistory(),
+      fetchUsers(),
     ]);
-  }, [fetchDevices, fetchProposals, fetchIncidents, fetchSchedules, fetchHistory]);
+  }, [fetchDevices, fetchProposals, fetchIncidents, fetchSchedules, fetchHistory, fetchUsers]);
 
   useEffect(() => {
     refreshData();
   }, [refreshData]);
 
   const loading =
-    devicesLoading || proposalsLoading || incidentsLoading || schedulesLoading || historyLoading;
+    devicesLoading || proposalsLoading || incidentsLoading || schedulesLoading || historyLoading || usersLoading;
 
   // Device mutations
   const addDevice = useCallback(async (device: Omit<Device, "id">) => {
@@ -276,12 +294,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         incidents,
         schedules,
         history,
+        users,
         loading,
         devicesLoading,
         proposalsLoading,
         incidentsLoading,
         schedulesLoading,
         historyLoading,
+        usersLoading,
         refreshData,
         addDevice,
         updateDevice,

@@ -42,7 +42,6 @@ import {
   IncidentReport,
   WorkOrder,
   Device,
-  MOCK_USERS_LIST,
   AttachedFile,
 } from "@/lib/mockData";
 import { useData } from "@/contexts/DataContext";
@@ -67,10 +66,7 @@ const contactMethods = [
   { value: "trao đổi trực tiếp", label: "Trao đổi trực tiếp", icon: Users },
 ];
 
-// Staff list for lab employees
-const LAB_STAFF = MOCK_USERS_LIST.filter(u => 
-  ["Kỹ thuật viên", "Quản lý trang thiết bị", "Trưởng phòng"].includes(u.role)
-);
+// Staff list for lab employees – computed inside component from real users
 
 export default function IncidentReportTab() {
   const { user } = useAuth();
@@ -78,7 +74,10 @@ export default function IncidentReportTab() {
   const workOrderAttachmentInputRef = useRef<HTMLInputElement>(null);
 
   // State
-  const { incidents: contextIncidents, devices: contextDevices, addIncident, updateIncident } = useData();
+  const { incidents: contextIncidents, devices: contextDevices, addIncident, updateIncident, users } = useData();
+  const labStaff = users.filter(u =>
+    ["Kỹ thuật viên", "Quản lý trang thiết bị", "Trưởng phòng"].includes(u.position)
+  );
   const [incidentReports, setIncidentReports] = useState<IncidentReport[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   useEffect(() => { setIncidentReports(contextIncidents); }, [contextIncidents]);
@@ -198,7 +197,7 @@ export default function IncidentReportTab() {
       const month = String(now.getMonth() + 1).padStart(2, "0");
       const year = now.getFullYear();
 
-      const currentUser = MOCK_USERS_LIST.find((u) => u.id === user?.id);
+      const currentUser = users.find((u) => u.id === user?.id);
 
       setForm({
         ...form,
@@ -209,7 +208,7 @@ export default function IncidentReportTab() {
         supplier: device.distributor,
         incidentDateTime: `${hours}:${minutes} ${day}/${month}/${year}`,
         discoveredBy: currentUser?.fullName || "",
-        discoveredByRole: currentUser?.role || "",
+        discoveredByRole: currentUser?.position || "",
         reportedBy: currentUser?.fullName || "",
         deviceManager: device.managerHistory?.find((m) => m.isCurrent)?.fullName || "",
       });
@@ -1157,7 +1156,7 @@ export default function IncidentReportTab() {
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Chọn người khắc phục (dùng Ctrl/Cmd để chọn nhiều)</label>
                         <div className="flex flex-wrap gap-2">
-                          {LAB_STAFF.map(staff => (
+                          {labStaff.map(staff => (
                             <button
                               key={staff.id}
                               type="button"
@@ -1472,9 +1471,9 @@ export default function IncidentReportTab() {
                                   onChange={(e) => setForm({ ...form, resolvedBy: Array.from(e.target.selectedOptions).map(o => o.value).join(",") })}
                                   className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                                 >
-                                  {LAB_STAFF.map((staff) => (
+                                  {labStaff.map((staff) => (
                                     <option key={staff.id} value={staff.fullName}>
-                                      {staff.fullName} - {staff.role}
+                                      {staff.fullName} - {staff.position}
                                     </option>
                                   ))}
                                 </select>
@@ -1638,7 +1637,7 @@ export default function IncidentReportTab() {
                     className="w-full px-4 py-2 border border-slate-200 rounded-lg"
                   >
                     <option value="">-- Chọn người báo cáo --</option>
-                    {MOCK_USERS_LIST.map((u) => (
+                    {users.map((u) => (
                       <option key={u.id} value={u.fullName}>
                         {u.fullName}
                       </option>
@@ -1655,7 +1654,7 @@ export default function IncidentReportTab() {
                     className="w-full px-4 py-2 border border-slate-200 rounded-lg"
                   >
                     <option value="">-- Chọn quản lý --</option>
-                    {MOCK_USERS_LIST.map((u) => (
+                    {users.map((u) => (
                       <option key={u.id} value={u.fullName}>
                         {u.fullName}
                       </option>

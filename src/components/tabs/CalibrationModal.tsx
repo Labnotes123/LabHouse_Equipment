@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Device, MOCK_USERS_LIST } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
+import { Device } from "@/lib/mockData";
 
 interface CalibrationModalProps {
   show: boolean;
@@ -70,6 +71,7 @@ type CalibrationResult = {
 export default function CalibrationModal({ show, device, onClose }: CalibrationModalProps) {
   const { user } = useAuth();
   const { success, error } = useToast();
+  const { users } = useData();
 
   const [calibrationModalTab, setCalibrationModalTab] = useState<"request" | "schedule" | "result">("request");
   const [calibrationRequestViewMode, setCalibrationRequestViewMode] = useState<"list" | "form">("list");
@@ -442,7 +444,7 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Người phê duyệt <span className="text-red-500">*</span></label>
                     <div className="flex flex-wrap gap-2">
-                      {MOCK_USERS_LIST.filter((u) => ["Quản lý trang thiết bị", "Trưởng phòng xét nghiệm", "Admin"].includes(u.role)).map((approver) => (
+                      {users.filter((u) => ["Quản lý trang thiết bị", "Trưởng phòng xét nghiệm", "Admin"].includes(u.position)).map((approver) => (
                         <button
                           key={approver.id}
                           type="button"
@@ -462,7 +464,7 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Người liên quan</label>
                     <div className="flex flex-wrap gap-2">
-                      {MOCK_USERS_LIST.map((u) => (
+                      {users.map((u) => (
                         <button
                           key={u.id}
                           type="button"
@@ -639,7 +641,7 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Người liên quan</label>
                         <div className="flex flex-wrap gap-2">
-                          {MOCK_USERS_LIST.map((u) => (
+                          {users.map((u) => (
                             <button
                               key={u.id}
                               type="button"

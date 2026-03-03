@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Device, MOCK_USERS_LIST } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
+import { Device } from "@/lib/mockData";
 
 interface MaintenanceModalProps {
   show: boolean;
@@ -67,6 +68,7 @@ type MaintenanceResult = {
 export default function MaintenanceModal({ show, device, onClose }: MaintenanceModalProps) {
   const { user } = useAuth();
   const { success, error } = useToast();
+  const { users } = useData();
 
   const [tab, setTab] = useState<"request" | "schedule" | "result">("request");
   const [requestView, setRequestView] = useState<"list" | "form">("list");
@@ -125,7 +127,7 @@ export default function MaintenanceModal({ show, device, onClose }: MaintenanceM
 
   const currentRequestCode = `BD-${new Date().getFullYear()}-${String(requestCounter).padStart(3, "0")}`;
 
-  const approvers = MOCK_USERS_LIST.filter((u) => ["Quản lý trang thiết bị", "Trưởng phòng xét nghiệm", "Admin"].includes(u.role));
+  const approvers = users.filter((u) => ["Quản lý trang thiết bị", "Trưởng phòng xét nghiệm", "Admin"].includes(u.position));
 
   const handleSaveRequest = (finalStatus: MaintenanceStatus) => {
     if (!requestForm.expectedDate || !requestForm.approver) {

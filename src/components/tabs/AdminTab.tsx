@@ -35,12 +35,12 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
+import { useData } from "@/contexts/DataContext";
 import { 
   mockUserProfiles, 
   mockProfiles, 
   mockBranches, 
   mockPositions, 
-  mockDevices,
   countries,
   mockSuppliers,
   mockHistoryConfig,
@@ -86,6 +86,7 @@ const permissionCategories: { id: PermissionCategory; label: string }[] = [
 export default function AdminTab() {
   const { user } = useAuth();
   const { success, error, info } = useToast();
+  const { devices } = useData();
   const [activeSection, setActiveSection] = useState<AdminSection>("users");
 
   // User management state
@@ -784,7 +785,7 @@ export default function AdminTab() {
                   onChange={(e) => setEditingUser({ ...editingUser, managedDevices: Array.from(e.target.selectedOptions, opt => opt.value) })}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-purple-500 h-32"
                 >
-                  {mockDevices.map(d => <option key={d.id} value={d.code}>{d.name} ({d.code})</option>)}
+                  {devices.map(d => <option key={d.id} value={d.code}>{d.name} ({d.code})</option>)}
                 </select>
                 <p className="text-xs text-slate-400 mt-1">Giữ Ctrl/Cmd để chọn nhiều</p>
               </div>

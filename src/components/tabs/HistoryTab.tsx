@@ -15,7 +15,7 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
-import { MOCK_USERS_LIST, HistoryLog, formatDateTime } from "@/lib/mockData";
+import { HistoryLog, formatDateTime } from "@/lib/mockData";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -81,7 +81,7 @@ function calculateDateRange(timeRange: TimeRange, dateFrom: string, dateTo: stri
 
 export default function HistoryTab() {
   const { user } = useAuth();
-  const { history: mockHistoryLogs, devices: mockDevices } = useData();
+  const { history: mockHistoryLogs, devices: mockDevices, users } = useData();
   const [logs, setLogs] = useState<HistoryLog[]>([]);
   useEffect(() => { setLogs(mockHistoryLogs); }, [mockHistoryLogs]);
   
@@ -168,7 +168,7 @@ export default function HistoryTab() {
   const deviceOptions = mockDevices.map(d => ({ value: d.code, label: `${d.name} (${d.code})` }));
 
   // User options
-  const userOptions = MOCK_USERS_LIST.map(u => ({ value: u.fullName, label: u.fullName }));
+  const userOptions = users.map(u => ({ value: u.fullName, label: u.fullName }));
 
   // Module options
   const moduleOptions: ModuleType[] = ["Thiết bị mới", "Hồ sơ thiết bị", "Quản trị", "Quản lý chung"];

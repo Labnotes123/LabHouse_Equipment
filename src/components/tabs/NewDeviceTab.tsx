@@ -52,7 +52,6 @@ import {
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
-import { MOCK_USERS_LIST } from "@/lib/mockData";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,7 +148,7 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
   const { user } = useAuth();
   const { success, error, info } = useToast();
 
-  const { proposals: contextProposals, addProposal, updateProposal } = useData();
+  const { proposals: contextProposals, addProposal, updateProposal, users } = useData();
   // ── State ──
   const [proposals, setProposals] = useState<NewDeviceProposal[]>([]);
   useEffect(() => { setProposals(contextProposals); }, [contextProposals]);
@@ -465,12 +464,12 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
   };
 
   // Approver management
-  const allUsers = MOCK_USERS_LIST;
+  const allUsers = users;
   const approverCandidates = allUsers.filter((u) =>
-    APPROVER_ROLES.includes(u.role) &&
+    APPROVER_ROLES.includes(u.position) &&
     (approverSearch === "" ||
       u.fullName.toLowerCase().includes(approverSearch.toLowerCase()) ||
-      u.role.toLowerCase().includes(approverSearch.toLowerCase()))
+      u.position.toLowerCase().includes(approverSearch.toLowerCase()))
   );
 
   const toggleApprover = (u: typeof allUsers[0], isApprover: boolean) => {
@@ -482,7 +481,7 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
         }
         return prev.map((a) => a.userId === u.id ? { ...a, isApprover } : a);
       }
-      return [...prev, { userId: u.id, fullName: u.fullName, role: u.role, isApprover }];
+      return [...prev, { userId: u.id, fullName: u.fullName, role: u.position, isApprover }];
     });
   };
 
@@ -1108,7 +1107,7 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-slate-700">{u.fullName}</p>
-                            <p className="text-xs text-slate-400">{u.role}</p>
+                            <p className="text-xs text-slate-400">{u.position}</p>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -1470,7 +1469,7 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto">
                         {allUsers.filter((u) => u.fullName.toLowerCase().includes(regUserSearch.toLowerCase())).map((u) => (
                           <button key={u.id} onClick={() => { setRegForm((f) => ({ ...f, responsiblePerson: u.fullName })); setRegUserSearch(""); }} className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 transition-colors">
-                            <span className="font-semibold">{u.fullName}</span> <span className="text-slate-400 text-xs">({u.role})</span>
+                            <span className="font-semibold">{u.fullName}</span> <span className="text-slate-400 text-xs">({u.position})</span>
                           </button>
                         ))}
                       </div>
