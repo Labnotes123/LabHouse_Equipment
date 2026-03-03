@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   History,
   Search,
@@ -15,7 +15,8 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
-import { mockHistoryLogs, mockDevices, MOCK_USERS_LIST, HistoryLog, formatDateTime } from "@/lib/mockData";
+import { MOCK_USERS_LIST, HistoryLog, formatDateTime } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 type TimeRange = "today" | "yesterday" | "week" | "month" | "custom";
@@ -80,7 +81,9 @@ function calculateDateRange(timeRange: TimeRange, dateFrom: string, dateTo: stri
 
 export default function HistoryTab() {
   const { user } = useAuth();
-  const [logs] = useState<HistoryLog[]>(mockHistoryLogs);
+  const { history: mockHistoryLogs, devices: mockDevices } = useData();
+  const [logs, setLogs] = useState<HistoryLog[]>([]);
+  useEffect(() => { setLogs(mockHistoryLogs); }, [mockHistoryLogs]);
   
   // Filters
   const [timeRange, setTimeRange] = useState<TimeRange>("week");

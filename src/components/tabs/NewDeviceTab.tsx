@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Plus,
   Package,
@@ -35,7 +35,6 @@ import {
   Filter,
 } from "lucide-react";
 import {
-  mockProposals,
   mockNotifications,
   NewDeviceProposal,
   DeviceRequirement,
@@ -52,6 +51,7 @@ import {
 } from "@/lib/mockData";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useData } from "@/contexts/DataContext";
 import { MOCK_USERS_LIST } from "@/lib/mockData";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -149,8 +149,10 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
   const { user } = useAuth();
   const { success, error, info } = useToast();
 
+  const { proposals: contextProposals, addProposal, updateProposal } = useData();
   // ── State ──
-  const [proposals, setProposals] = useState<NewDeviceProposal[]>(mockProposals);
+  const [proposals, setProposals] = useState<NewDeviceProposal[]>([]);
+  useEffect(() => { setProposals(contextProposals); }, [contextProposals]);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
 
   // Table state
@@ -326,9 +328,11 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
     const proposal = buildProposal("Bản nháp");
     if (editingProposal) {
       setProposals((prev) => prev.map((p) => p.id === editingProposal.id ? proposal : p));
+      updateProposal(editingProposal.id, proposal).catch(console.error);
       success("Đã lưu bản nháp", `Phiếu ${proposal.proposalCode} đã được lưu`);
     } else {
       setProposals((prev) => [proposal, ...prev]);
+      addProposal(proposal).catch(console.error);
       success("Đã lưu bản nháp", `Phiếu ${proposal.proposalCode} đã được lưu`);
     }
     setShowForm(false);
@@ -353,8 +357,10 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
     const proposal: NewDeviceProposal = { ...pendingFormData, approvers: formApprovers, status: "Chờ duyệt" };
     if (editingProposal) {
       setProposals((prev) => prev.map((p) => p.id === editingProposal.id ? proposal : p));
+      updateProposal(editingProposal.id, proposal).catch(console.error);
     } else {
       setProposals((prev) => [proposal, ...prev]);
+      addProposal(proposal).catch(console.error);
     }
     // Add notifications
     const newNotifs: Notification[] = formApprovers.map((a) => ({
@@ -380,13 +386,11 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
   const handleApprove = (p: NewDeviceProposal) => {
     const now = new Date();
     const approvedDate = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")} ${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+    const updates = { status: "Đã duyệt" as const, approvedBy: user?.fullName, approvedDate };
     setProposals((prev) =>
-      prev.map((pr) =>
-        pr.id === p.id
-          ? { ...pr, status: "Đã duyệt" as const, approvedBy: user?.fullName, approvedDate }
-          : pr
-      )
+      prev.map((pr) => pr.id === p.id ? { ...pr, ...updates } : pr)
     );
+    updateProposal(p.id, updates).catch(console.error);
     // Notify proposer
     const notif: Notification = {
       id: `n-${Date.now()}`,
@@ -407,13 +411,11 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
   const handleReject = () => {
     if (!rejectProposal) return;
     if (!rejectReason.trim()) { error("Thiếu lý do", "Vui lòng nhập lý do từ chối"); return; }
+    const updates = { status: "Từ chối" as const, rejectedBy: user?.fullName, rejectedDate: new Date().toISOString(), rejectionReason: rejectReason };
     setProposals((prev) =>
-      prev.map((pr) =>
-        pr.id === rejectProposal.id
-          ? { ...pr, status: "Từ chối" as const, rejectedBy: user?.fullName, rejectedDate: new Date().toISOString(), rejectionReason: rejectReason }
-          : pr
-      )
+      prev.map((pr) => pr.id === rejectProposal.id ? { ...pr, ...updates } : pr)
     );
+    updateProposal(rejectProposal.id, updates).catch(console.error);
     const notif: Notification = {
       id: `n-${Date.now()}`,
       userId: rejectProposal.proposedById,
@@ -454,6 +456,9 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
     setProposals((prev) =>
       prev.map((p) => p.id === registerProposal?.id ? { ...p, registeredToSystem: true } : p)
     );
+    if (registerProposal) {
+      updateProposal(registerProposal.id, { registeredToSystem: true }).catch(console.error);
+    }
     success("Đăng ký thành công", `Thiết bị ${regForm.deviceCode} đã được đăng ký vào hệ thống`);
     setRegisterProposal(null);
     setRegForm(emptyRegisterForm());

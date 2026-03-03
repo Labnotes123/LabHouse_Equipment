@@ -24,7 +24,7 @@ import NewDeviceTab from "@/components/tabs/NewDeviceTab";
 import DeviceProfileTab from "@/components/tabs/DeviceProfileTab";
 import AdminTab from "@/components/tabs/AdminTab";
 import HistoryTab from "@/components/tabs/HistoryTab";
-import { mockProposals } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 
 type TabId = "dashboard" | "new-device" | "device-profile" | "admin" | "history";
 type NewDeviceFilter = "all" | "pending";
@@ -86,6 +86,7 @@ const roleColors: Record<string, string> = {
 export default function MainApp() {
   const { user, logout } = useAuth();
   const { success } = useToast();
+  const { proposals } = useData();
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [newDeviceFilter, setNewDeviceFilter] = useState<NewDeviceFilter>("all");
   const [showProfile, setShowProfile] = useState(false);
@@ -93,7 +94,7 @@ export default function MainApp() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const pendingCount =
-    mockProposals.filter((p) => p.status === "Chờ duyệt").length;
+    proposals.filter((p) => p.status === "Chờ duyệt").length;
 
   const handleLogout = () => {
     logout();

@@ -1,0 +1,69 @@
+name: Apply Database Schema
+
+on:
+  # Trigger manually from the GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      reset_admin_password:
+        description: "Reset admin user to default credentials"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+  # Auto-trigger when the schema file changes on main
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/schema.sql"
+      - "scripts/setup-db.js"
+
+jobs:
+  migrate:
+    name: Run DB Migration
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Apply full schema to Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: zqykubyimjpofztuokfd
+        run: node scripts/setup-db.js
+
+  seed-admin:
+    name: Seed / Reset Admin User
+    runs-on: ubuntu-latest
+    needs: [migrate]
+    permissions:
+      contents: read
+    # Only run this job when triggered manually with reset_admin_password = true
+    if: github.event_name == 'workflow_dispatch' && inputs.reset_admin_password == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Seed admin user
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: zqykubyimjpofztuokfd
+          RESET_ADMIN_PASSWORD: "1"
+        run: node scripts/seed-admin.js

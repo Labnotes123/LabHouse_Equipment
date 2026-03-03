@@ -16,6 +16,7 @@ export interface User {
   username: string;
   fullName: string;
   role: UserRole;
+  department?: string;
   email: string;
   phone: string;
   avatar?: string;
@@ -36,97 +37,45 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// Mock users database
-const MOCK_USERS: (User & { password: string })[] = [
-  {
-    id: "1",
-    username: "admin",
-    password: "admin123",
-    fullName: "Nguyễn Văn Admin",
-    role: "Admin",
-    email: "admin@labhouse.vn",
-    phone: "0901234567",
-  },
-  {
-    id: "2",
-    username: "giamdoc",
-    password: "gd123",
-    fullName: "Trần Thị Giám Đốc",
-    role: "Giám đốc",
-    email: "giamdoc@labhouse.vn",
-    phone: "0902345678",
-  },
-  {
-    id: "3",
-    username: "truongphong",
-    password: "tp123",
-    fullName: "Lê Văn Trưởng Phòng",
-    role: "Trưởng phòng xét nghiệm",
-    email: "truongphong@labhouse.vn",
-    phone: "0903456789",
-  },
-  {
-    id: "4",
-    username: "ktv",
-    password: "ktv123",
-    fullName: "Phạm Thị Kỹ Thuật",
-    role: "Kỹ thuật viên",
-    email: "ktv@labhouse.vn",
-    phone: "0904567890",
-  },
-  {
-    id: "5",
-    username: "qlcl",
-    password: "qlcl123",
-    fullName: "Hoàng Văn Chất Lượng",
-    role: "Quản lý chất lượng",
-    email: "qlcl@labhouse.vn",
-    phone: "0905678901",
-  },
-  {
-    id: "6",
-    username: "qltb",
-    password: "qltb123",
-    fullName: "Vũ Thị Thiết Bị",
-    role: "Quản lý trang thiết bị",
-    email: "qltb@labhouse.vn",
-    phone: "0906789012",
-  },
-];
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [labName, setLabName] = useState("TRUNG TÂM XÉT NGHIỆM Y KHOA LABHOUSE");
   const [logoUrl, setLogoUrl] = useState("");
-  const [passwords, setPasswords] = useState<Record<string, string>>(
-    Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.password]))
-  );
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    await new Promise((r) => setTimeout(r, 800)); // simulate API call
-    const found = MOCK_USERS.find(
-      (u) => u.username === username && passwords[u.id] === password
-    );
-    if (found) {
-      const { password: _p, ...userWithoutPass } = found;
-      void _p;
-      setUser(userWithoutPass);
-      return true;
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!res.ok) return false;
+
+      const data = await res.json() as { user?: User };
+      if (data.user) {
+        setUser(data.user);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
     }
-    return false;
   };
 
-  const logout = () => setUser(null);
+  const logout = async () => {
+    setUser(null);
+    await fetch("/api/auth/logout", { method: "POST" });
+  };
 
   const updateProfile = (data: Partial<User>) => {
     if (user) setUser({ ...user, ...data });
   };
 
-  const updatePassword = async (oldPass: string, newPass: string): Promise<boolean> => {
-    if (!user) return false;
-    if (passwords[user.id] !== oldPass) return false;
-    setPasswords((prev) => ({ ...prev, [user.id]: newPass }));
-    return true;
+  // Password changes require a dedicated /api/auth/change-password route.
+  // Return false until that route is implemented so callers know nothing changed.
+  const updatePassword = async (_oldPass: string, _newPass: string): Promise<boolean> => {
+    return false;
   };
 
   return (

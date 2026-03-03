@@ -15,21 +15,16 @@ import {
   AlertCircle,
   CalendarCheck,
 } from "lucide-react";
-import {
-  mockProposals,
-  mockIncidents,
-  mockSchedules,
-  mockDevices,
-  formatDate,
-} from "@/lib/mockData";
+import { formatDate } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/contexts/ToastContext";
-
 interface DashboardTabProps {
   onNavigateNewDevicePending?: () => void;
 }
 
 export default function DashboardTab({ onNavigateNewDevicePending }: DashboardTabProps) {
   const { info } = useToast();
+  const { proposals: mockProposals, incidents: mockIncidents, schedules: mockSchedules, devices: mockDevices } = useData();
   const [activeFilter, setActiveFilter] = useState<"all" | "calibration" | "maintenance">("all");
 
   const pendingProposals = mockProposals.filter((p) => p.status === "Chờ duyệt");
