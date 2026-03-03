@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockSchedules, CalibrationSchedule } from "@/lib/mockData";
 
+export const dynamic = 'force-dynamic';
+
 // In-memory store for schedules
 let schedulesStore: CalibrationSchedule[] = [...mockSchedules];
 

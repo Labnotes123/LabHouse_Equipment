@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockSuppliers, Supplier } from "@/lib/mockData";
 
+export const dynamic = 'force-dynamic';
+
 // In-memory store for suppliers
 let suppliersStore: Supplier[] = [...mockSuppliers];
 

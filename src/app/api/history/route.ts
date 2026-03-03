@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockHistoryLogs, HistoryLog } from "@/lib/mockData";
 
+export const dynamic = 'force-dynamic';
+
 // In-memory store for history
 let historyStore: HistoryLog[] = [...mockHistoryLogs];
 

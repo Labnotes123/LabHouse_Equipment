@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockBranches, Branch } from "@/lib/mockData";
 
+export const dynamic = 'force-dynamic';
+
 // In-memory store for branches
 let branchesStore: Branch[] = [...mockBranches];
 

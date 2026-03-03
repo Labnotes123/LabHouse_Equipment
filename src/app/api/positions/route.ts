@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockPositions, Position } from "@/lib/mockData";
 
+export const dynamic = 'force-dynamic';
+
 // In-memory store for positions
 let positionsStore: Position[] = [...mockPositions];
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockDevices, Device } from "@/lib/mockData";
 
+export const dynamic = 'force-dynamic';
+
 // In-memory store for devices
 let devicesStore: Device[] = [...mockDevices];
 

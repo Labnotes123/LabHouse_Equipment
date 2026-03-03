@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockProfiles, Profile, Permission } from "@/lib/mockData";
 
+export const dynamic = 'force-dynamic';
+
 // In-memory store for profiles
 let profilesStore: Profile[] = [...mockProfiles];
 
