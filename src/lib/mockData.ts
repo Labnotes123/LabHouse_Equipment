@@ -1352,6 +1352,12 @@ export const countries = [
   "Canada", "Úc", "Singapore", "Đài Loan",
 ];
 
+// Generate list of years from 1990 to current year
+export const years = Array.from(
+  { length: new Date().getFullYear() - 1990 + 1 },
+  (_, i) => String(1990 + i)
+).reverse();
+
 // Helper to generate PDX code
 export function generatePDXCode(existingProposals: NewDeviceProposal[]): string {
   const year = new Date().getFullYear();

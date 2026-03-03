@@ -48,6 +48,7 @@ import {
   specialties,
   deviceCategories,
   countries,
+  years,
 } from "@/lib/mockData";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -172,6 +173,17 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
     proposedBy: "",
     status: "",
   });
+
+  // Column visibility config
+  const [visibleColumns, setVisibleColumns] = useState({
+    proposalCode: true,
+    proposedDate: true,
+    necessity: true,
+    proposedBy: true,
+    status: true,
+    actions: true,
+  });
+  const [showColumnConfig, setShowColumnConfig] = useState(false);
 
   // Modals
   const [showForm, setShowForm] = useState(false);
@@ -596,6 +608,40 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
             </div>
           </div>
           <div className="flex gap-2">
+            <div className="relative">
+              <button 
+                onClick={() => setShowColumnConfig(!showColumnConfig)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${
+                  showColumnConfig ? "border-blue-500 bg-blue-50 text-blue-600" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Settings2 size={15} />
+                Cấu hình
+              </button>
+              {showColumnConfig && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 z-20 p-3">
+                  <p className="text-xs font-bold text-slate-600 mb-2">Hiển thị cột</p>
+                  {Object.entries(visibleColumns).map(([key, value]) => (
+                    <label key={key} className="flex items-center gap-2 cursor-pointer py-1.5 hover:bg-slate-50 rounded px-1">
+                      <input
+                        type="checkbox"
+                        checked={value}
+                        onChange={(e) => setVisibleColumns({ ...visibleColumns, [key]: e.target.checked })}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-xs text-slate-600">
+                        {key === "proposalCode" && "Mã phiếu"}
+                        {key === "proposedDate" && "Ngày yêu cầu"}
+                        {key === "necessity" && "Nội dung yêu cầu"}
+                        {key === "proposedBy" && "Người đề xuất"}
+                        {key === "status" && "Trạng thái"}
+                        {key === "actions" && "Thao tác"}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
             <button onClick={handleExportExcel} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-all">
               <FileSpreadsheet size={15} />
               Xuất Excel
@@ -618,94 +664,118 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("proposalCode")}>
-                  Mã phiếu {renderSortIcon("proposalCode")}
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("proposedDate")}>
-                  Ngày yêu cầu {renderSortIcon("proposedDate")}
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide cursor-pointer select-none" onClick={() => handleSort("necessity")}>
-                  Nội dung yêu cầu {renderSortIcon("necessity")}
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("proposedBy")}>
-                  Người đề xuất {renderSortIcon("proposedBy")}
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide cursor-pointer select-none" onClick={() => handleSort("status")}>
-                  Trạng thái {renderSortIcon("status")}
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Thao tác</th>
+                {visibleColumns.proposalCode && (
+                  <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("proposalCode")}>
+                    Mã phiếu {renderSortIcon("proposalCode")}
+                  </th>
+                )}
+                {visibleColumns.proposedDate && (
+                  <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("proposedDate")}>
+                    Ngày yêu cầu {renderSortIcon("proposedDate")}
+                  </th>
+                )}
+                {visibleColumns.necessity && (
+                  <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide cursor-pointer select-none" onClick={() => handleSort("necessity")}>
+                    Nội dung yêu cầu {renderSortIcon("necessity")}
+                  </th>
+                )}
+                {visibleColumns.proposedBy && (
+                  <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("proposedBy")}>
+                    Người đề xuất {renderSortIcon("proposedBy")}
+                  </th>
+                )}
+                {visibleColumns.status && (
+                  <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide cursor-pointer select-none" onClick={() => handleSort("status")}>
+                    Trạng thái {renderSortIcon("status")}
+                  </th>
+                )}
+                {visibleColumns.actions && (
+                  <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Thao tác</th>
+                )}
               </tr>
               {/* Column filters */}
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <td className="px-4 py-2">
-                  <input
-                    type="text"
-                    placeholder="Lọc mã..."
-                    value={colFilters.proposalCode}
-                    onChange={(e) => { setColFilters((f) => ({ ...f, proposalCode: e.target.value })); setPage(1); }}
-                    className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <div className="flex gap-1">
+                {visibleColumns.proposalCode && (
+                  <td className="px-4 py-2">
                     <input
-                      type="date"
-                      value={colFilters.proposedDate}
-                      onChange={(e) => { setColFilters((f) => ({ ...f, proposedDate: e.target.value })); setPage(1); }}
+                      type="text"
+                      placeholder="Lọc mã..."
+                      value={colFilters.proposalCode}
+                      onChange={(e) => { setColFilters((f) => ({ ...f, proposalCode: e.target.value })); setPage(1); }}
                       className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                      title="Từ ngày"
                     />
+                  </td>
+                )}
+                {visibleColumns.proposedDate && (
+                  <td className="px-4 py-2">
+                    <div className="flex gap-1">
+                      <input
+                        type="date"
+                        value={colFilters.proposedDate}
+                        onChange={(e) => { setColFilters((f) => ({ ...f, proposedDate: e.target.value })); setPage(1); }}
+                        className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                        title="Từ ngày"
+                      />
+                      <input
+                        type="date"
+                        value={colFilters.proposedDateTo}
+                        onChange={(e) => { setColFilters((f) => ({ ...f, proposedDateTo: e.target.value })); setPage(1); }}
+                        className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                        title="Đến ngày"
+                      />
+                    </div>
+                  </td>
+                )}
+                {visibleColumns.necessity && (
+                  <td className="px-4 py-2">
                     <input
-                      type="date"
-                      value={colFilters.proposedDateTo}
-                      onChange={(e) => { setColFilters((f) => ({ ...f, proposedDateTo: e.target.value })); setPage(1); }}
+                      type="text"
+                      placeholder="Lọc nội dung..."
+                      value={colFilters.necessity}
+                      onChange={(e) => { setColFilters((f) => ({ ...f, necessity: e.target.value })); setPage(1); }}
                       className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                      title="Đến ngày"
                     />
-                  </div>
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="text"
-                    placeholder="Lọc nội dung..."
-                    value={colFilters.necessity}
-                    onChange={(e) => { setColFilters((f) => ({ ...f, necessity: e.target.value })); setPage(1); }}
-                    className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="text"
-                    placeholder="Lọc người..."
-                    value={colFilters.proposedBy}
-                    onChange={(e) => { setColFilters((f) => ({ ...f, proposedBy: e.target.value })); setPage(1); }}
-                    className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <select
-                    value={colFilters.status}
-                    onChange={(e) => { setColFilters((f) => ({ ...f, status: e.target.value })); setPage(1); }}
-                    className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  >
-                    <option value="">Tất cả</option>
-                    {["Bản nháp", "Chờ duyệt", "Đã duyệt", "Từ chối"].map((s) => <option key={s}>{s}</option>)}
-                  </select>
-                </td>
-                <td className="px-4 py-2">
-                  <button
-                    onClick={() => { setColFilters({ proposalCode: "", proposedDate: "", proposedDateTo: "", necessity: "", proposedBy: "", status: "" }); setPage(1); }}
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 text-xs text-slate-500 hover:bg-slate-100 transition-all"
-                  >
-                    <Filter size={11} /> Xóa lọc
-                  </button>
-                </td>
+                  </td>
+                )}
+                {visibleColumns.proposedBy && (
+                  <td className="px-4 py-2">
+                    <input
+                      type="text"
+                      placeholder="Lọc người..."
+                      value={colFilters.proposedBy}
+                      onChange={(e) => { setColFilters((f) => ({ ...f, proposedBy: e.target.value })); setPage(1); }}
+                      className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                    />
+                  </td>
+                )}
+                {visibleColumns.status && (
+                  <td className="px-4 py-2">
+                    <select
+                      value={colFilters.status}
+                      onChange={(e) => { setColFilters((f) => ({ ...f, status: e.target.value })); setPage(1); }}
+                      className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                    >
+                      <option value="">Tất cả</option>
+                      {["Bản nháp", "Chờ duyệt", "Đã duyệt", "Từ chối"].map((s) => <option key={s}>{s}</option>)}
+                    </select>
+                  </td>
+                )}
+                {visibleColumns.actions && (
+                  <td className="px-4 py-2">
+                    <button
+                      onClick={() => { setColFilters({ proposalCode: "", proposedDate: "", proposedDateTo: "", necessity: "", proposedBy: "", status: "" }); setPage(1); }}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 text-xs text-slate-500 hover:bg-slate-100 transition-all"
+                    >
+                      <Filter size={11} /> Xóa lọc
+                    </button>
+                  </td>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={Object.values(visibleColumns).filter(Boolean).length} className="px-4 py-12 text-center">
                     <Package size={40} className="mx-auto mb-3 text-slate-200" />
                     <p className="text-slate-400 font-medium text-sm">Không tìm thấy phiếu đề xuất nào</p>
                   </td>
@@ -718,105 +788,117 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
                   const isRelatedThis = isRelated(p);
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-4 py-3.5">
-                        <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg">{p.proposalCode}</span>
-                      </td>
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span className="text-sm text-slate-600">{p.proposedDate ? formatDate(p.proposedDate) : <span className="text-slate-300 italic">Chưa gửi</span>}</span>
-                      </td>
-                      <td className="px-4 py-3.5 max-w-xs">
-                        <p className="text-sm text-slate-700 line-clamp-2">{p.necessity}</p>
-                      </td>
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-                            <User size={13} className="text-white" />
-                          </div>
-                          <span className="text-sm text-slate-700">{p.proposedBy}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${sc.bg} ${sc.color} ${sc.border}`}>
-                            {sc.icon}
-                            {p.status}
-                          </span>
-                          {p.status === "Từ chối" && p.rejectionReason && (
-                            <div className="relative group">
-                              <AlertCircle size={14} className="text-red-400 cursor-help" />
-                              <div className="absolute left-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                <p className="font-semibold mb-1">Lý do từ chối:</p>
-                                <p>{p.rejectionReason}</p>
-                              </div>
+                      {visibleColumns.proposalCode && (
+                        <td className="px-4 py-3.5">
+                          <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg">{p.proposalCode}</span>
+                        </td>
+                      )}
+                      {visibleColumns.proposedDate && (
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className="text-sm text-slate-600">{p.proposedDate ? formatDate(p.proposedDate) : <span className="text-slate-300 italic">Chưa gửi</span>}</span>
+                        </td>
+                      )}
+                      {visibleColumns.necessity && (
+                        <td className="px-4 py-3.5 max-w-xs">
+                          <p className="text-sm text-slate-700 line-clamp-2">{p.necessity}</p>
+                        </td>
+                      )}
+                      {visibleColumns.proposedBy && (
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                              <User size={13} className="text-white" />
                             </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          {/* View */}
-                          <button
-                            onClick={() => setViewProposal(p)}
-                            title="Xem phiếu"
-                            className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
-                          >
-                            <Eye size={14} className="text-blue-600" />
-                          </button>
-                          {/* Edit - owner + draft/rejected */}
-                          {isOwner && (p.status === "Bản nháp" || p.status === "Từ chối") && (
-                            <button
-                              onClick={() => p.status === "Từ chối" ? handleReopenProposal(p) : openEditForm(p)}
-                              title={p.status === "Từ chối" ? "Mở lại & chỉnh sửa" : "Chỉnh sửa"}
-                              className="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center transition-colors"
-                            >
-                              <Edit2 size={14} className="text-amber-600" />
-                            </button>
-                          )}
-                          {/* Export PDF */}
-                          <button
-                            onClick={() => handleExportPDF(p)}
-                            title="Xuất PDF"
-                            className="w-8 h-8 rounded-lg bg-purple-50 hover:bg-purple-100 flex items-center justify-center transition-colors"
-                          >
-                            <Download size={14} className="text-purple-600" />
-                          </button>
-                          {/* Approve - only for approvers on pending */}
-                          {canApproveThis && p.status === "Chờ duyệt" && (
-                            <>
-                              <button
-                                onClick={() => setApproveProposal(p)}
-                                title="Phê duyệt"
-                                className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition-colors"
-                              >
-                                <CheckCircle size={14} className="text-emerald-600" />
-                              </button>
-                              <button
-                                onClick={() => { setRejectProposal(p); setRejectReason(""); }}
-                                title="Từ chối"
-                                className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
-                              >
-                                <XCircle size={14} className="text-red-500" />
-                              </button>
-                            </>
-                          )}
-                          {/* Register device - only after approved and not yet registered */}
-                          {p.status === "Đã duyệt" && !p.registeredToSystem && (
-                            <button
-                              onClick={() => handleRegisterDevice(p)}
-                              title="Đăng ký thiết bị"
-                              className="w-8 h-8 rounded-lg bg-teal-50 hover:bg-teal-100 flex items-center justify-center transition-colors"
-                            >
-                              <ClipboardList size={14} className="text-teal-600" />
-                            </button>
-                          )}
-                          {/* Related person indicator */}
-                          {isRelatedThis && !canApproveThis && (
-                            <span title="Bạn là người liên quan" className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                              <UserCheck size={14} className="text-indigo-500" />
+                            <span className="text-sm text-slate-700">{p.proposedBy}</span>
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.status && (
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${sc.bg} ${sc.color} ${sc.border}`}>
+                              {sc.icon}
+                              {p.status}
                             </span>
-                          )}
-                        </div>
-                      </td>
+                            {p.status === "Từ chối" && p.rejectionReason && (
+                              <div className="relative group">
+                                <AlertCircle size={14} className="text-red-400 cursor-help" />
+                                <div className="absolute left-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                  <p className="font-semibold mb-1">Lý do từ chối:</p>
+                                  <p>{p.rejectionReason}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.actions && (
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-1.5">
+                            {/* View */}
+                            <button
+                              onClick={() => setViewProposal(p)}
+                              title="Xem phiếu"
+                              className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                            >
+                              <Eye size={14} className="text-blue-600" />
+                            </button>
+                            {/* Edit - owner + draft/rejected */}
+                            {isOwner && (p.status === "Bản nháp" || p.status === "Từ chối") && (
+                              <button
+                                onClick={() => p.status === "Từ chối" ? handleReopenProposal(p) : openEditForm(p)}
+                                title={p.status === "Từ chối" ? "Mở lại & chỉnh sửa" : "Chỉnh sửa"}
+                                className="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center transition-colors"
+                              >
+                                <Edit2 size={14} className="text-amber-600" />
+                              </button>
+                            )}
+                            {/* Export PDF */}
+                            <button
+                              onClick={() => handleExportPDF(p)}
+                              title="Xuất PDF"
+                              className="w-8 h-8 rounded-lg bg-purple-50 hover:bg-purple-100 flex items-center justify-center transition-colors"
+                            >
+                              <Download size={14} className="text-purple-600" />
+                            </button>
+                            {/* Approve - only for approvers on pending */}
+                            {canApproveThis && p.status === "Chờ duyệt" && (
+                              <>
+                                <button
+                                  onClick={() => setApproveProposal(p)}
+                                  title="Phê duyệt"
+                                  className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition-colors"
+                                >
+                                  <CheckCircle size={14} className="text-emerald-600" />
+                                </button>
+                                <button
+                                  onClick={() => { setRejectProposal(p); setRejectReason(""); }}
+                                  title="Từ chối"
+                                  className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
+                                >
+                                  <XCircle size={14} className="text-red-500" />
+                                </button>
+                              </>
+                            )}
+                            {/* Register device - only after approved and not yet registered */}
+                            {p.status === "Đã duyệt" && !p.registeredToSystem && (
+                              <button
+                                onClick={() => handleRegisterDevice(p)}
+                                title="Đăng ký thiết bị"
+                                className="w-8 h-8 rounded-lg bg-teal-50 hover:bg-teal-100 flex items-center justify-center transition-colors"
+                              >
+                                <ClipboardList size={14} className="text-teal-600" />
+                              </button>
+                            )}
+                            {/* Related person indicator */}
+                            {isRelatedThis && !canApproveThis && (
+                              <span title="Bạn là người liên quan" className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                                <UserCheck size={14} className="text-indigo-500" />
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })
@@ -946,13 +1028,14 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 mb-1">Năm sản xuất</label>
-                          <input
-                            type="text"
+                          <select
                             value={dev.yearOfManufacture}
                             onChange={(e) => handleDeviceChange(dev.id, "yearOfManufacture", e.target.value)}
-                            placeholder="VD: 2024"
                             className="w-full px-3 py-2 rounded-xl border-2 border-slate-200 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                          />
+                          >
+                            <option value="">Chọn năm</option>
+                            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                          </select>
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 mb-1">Nhà cung cấp phân phối</label>
@@ -1446,7 +1529,14 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
                 {/* Year of manufacture */}
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Năm sản xuất</label>
-                  <input type="number" min={1990} max={new Date().getFullYear()} value={regForm.yearOfManufacture} onChange={(e) => setRegForm((f) => ({ ...f, yearOfManufacture: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all" />
+                  <select
+                    value={regForm.yearOfManufacture}
+                    onChange={(e) => setRegForm((f) => ({ ...f, yearOfManufacture: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all"
+                  >
+                    <option value="">Chọn năm</option>
+                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
                 </div>
                 {/* Distributor */}
                 <div>
