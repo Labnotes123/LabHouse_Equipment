@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Settings,
   Users,
@@ -89,7 +89,8 @@ export default function AdminTab() {
   const [activeSection, setActiveSection] = useState<AdminSection>("users");
 
   // User management state
-  const [users, setUsers] = useState<UserProfile[]>(mockUserProfiles);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [userFilters, setUserFilters] = useState<Record<string, string>>({});
   const [visibleColumns, setVisibleColumns] = useState<Set<UserColumn>>(
@@ -139,6 +140,26 @@ export default function AdminTab() {
   const [historyConfig, setHistoryConfig] = useState(mockHistoryConfig);
 
   const canAccess = user?.role === "Admin" || user?.role === "Giám đốc";
+
+  // Fetch users from API
+  const fetchUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const res = await fetch("/api/users");
+      if (res.ok) {
+        const data = await res.json() as UserProfile[];
+        setUsers(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch users", e);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   if (!canAccess) {
     return (
@@ -211,24 +232,61 @@ export default function AdminTab() {
     setVisibleColumns(newSet);
   };
 
-  const handleSaveUser = () => {
-    if (editingUser) {
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+    try {
       if (editingUser.id) {
-        setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
+        // Update existing user
+        const res = await fetch(`/api/users/${editingUser.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editingUser),
+        });
+        if (!res.ok) {
+          const err = await res.json() as { error?: string };
+          error("Lỗi", err.error ?? "Không thể cập nhật người dùng");
+          return;
+        }
+        const updated = await res.json() as UserProfile;
+        setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
         success("Đã cập nhật", "Thông tin người dùng đã được cập nhật");
       } else {
-        const newUser = { ...editingUser, id: `u${Date.now()}`, createdAt: new Date().toISOString() };
-        setUsers(prev => [...prev, newUser]);
+        // Create new user
+        const res = await fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editingUser),
+        });
+        if (!res.ok) {
+          const err = await res.json() as { error?: string };
+          error("Lỗi", err.error ?? "Không thể thêm người dùng");
+          return;
+        }
+        const created = await res.json() as UserProfile;
+        setUsers(prev => [created, ...prev]);
         success("Đã thêm", "Người dùng mới đã được thêm");
       }
+    } catch (e) {
+      error("Lỗi", String(e));
+      return;
     }
     setShowUserModal(false);
     setEditingUser(null);
   };
 
-  const handleDeleteUser = (userId: string) => {
-    setUsers(prev => prev.filter(u => u.id !== userId));
-    success("Đã xóa", "Người dùng đã được xóa");
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        error("Lỗi", err.error ?? "Không thể xóa người dùng");
+        return;
+      }
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      success("Đã xóa", "Người dùng đã được xóa");
+    } catch (e) {
+      error("Lỗi", String(e));
+    }
   };
 
   // ============ PROFILE MANAGEMENT ============
@@ -474,6 +532,12 @@ export default function AdminTab() {
 
       {/* Users Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        {usersLoading ? (
+          <div className="flex items-center justify-center p-12 text-slate-400">
+            <RefreshCw size={20} className="animate-spin mr-2" />
+            <span className="text-sm">Đang tải danh sách người dùng...</span>
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -564,6 +628,8 @@ export default function AdminTab() {
             </tbody>
           </table>
         </div>
+        )}
+
 
         {/* Pagination */}
         {totalUserPages > 1 && (

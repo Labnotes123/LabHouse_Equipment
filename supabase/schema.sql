@@ -10,22 +10,34 @@ create extension if not exists "pgcrypto";
 -- ── 1. app_users ───────────────────────────────────────────
 -- Application users (username + password auth, not Supabase Auth)
 create table if not exists public.app_users (
-  id            bigserial primary key,
-  username      text        not null unique,
-  password_hash text        not null,           -- store bcrypt hash in production
-  full_name     text        not null,
-  role          text        not null,           -- see UserRole type
-  department    text,                           -- e.g. 'IT', 'Lab', 'Admin'
-  email         text,
-  phone         text,
-  avatar        text,
-  is_active     boolean     not null default true,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz
+  id              bigserial primary key,
+  username        text        not null unique,
+  password_hash   text        not null,           -- bcrypt hash via pgcrypto
+  full_name       text        not null,
+  role            text        not null,           -- see UserRole type
+  department      text,                           -- e.g. 'IT', 'Lab'
+  employee_id     text,
+  position        text,
+  branch          text,
+  signature       text,
+  managed_devices jsonb       not null default '[]',
+  profile_ids     jsonb       not null default '[]',
+  email           text,
+  phone           text,
+  avatar          text,
+  is_active       boolean     not null default true,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz
 );
 
--- Add department column to existing table if it doesn't exist yet (idempotent migration)
-alter table public.app_users add column if not exists department text;
+-- Add columns to existing table if they don't exist yet (idempotent migration)
+alter table public.app_users add column if not exists department      text;
+alter table public.app_users add column if not exists employee_id     text;
+alter table public.app_users add column if not exists position        text;
+alter table public.app_users add column if not exists branch          text;
+alter table public.app_users add column if not exists signature       text;
+alter table public.app_users add column if not exists managed_devices jsonb not null default '[]';
+alter table public.app_users add column if not exists profile_ids     jsonb not null default '[]';
 
 -- Seed default users – passwords are hashed with bcrypt via pgcrypto
 -- ON CONFLICT DO UPDATE refreshes metadata but PRESERVES existing passwords
@@ -243,7 +255,15 @@ create index if not exists idx_history_user_id        on public.history_logs(use
 create index if not exists idx_history_timestamp      on public.history_logs(timestamp);
 
 -- ── 12. Helper functions ────────────────────────────────────
--- verify_user_password: checks username + bcrypt password and returns the user row.
+-- hash_password: wraps pgcrypto bcrypt so the API can hash passwords without
+-- embedding the plain-text in the INSERT statement itself.
+create or replace function public.hash_password(plain_password text)
+returns text
+language sql
+security definer
+as $$
+  select crypt(plain_password, gen_salt('bf'));
+$$;
 -- Called from the /api/auth/login route so the plain-text password never needs
 -- to leave the database engine.
 create or replace function public.verify_user_password(

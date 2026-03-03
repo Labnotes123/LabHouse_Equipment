@@ -70,8 +70,20 @@ const sql = `
 -- Ensure pgcrypto is available for bcrypt
 create extension if not exists "pgcrypto";
 
--- Ensure the department column exists (idempotent)
-alter table public.app_users add column if not exists department text;
+-- Ensure all app_users columns exist (idempotent)
+alter table public.app_users add column if not exists department      text;
+alter table public.app_users add column if not exists employee_id     text;
+alter table public.app_users add column if not exists position        text;
+alter table public.app_users add column if not exists branch          text;
+alter table public.app_users add column if not exists signature       text;
+alter table public.app_users add column if not exists managed_devices jsonb not null default '[]';
+alter table public.app_users add column if not exists profile_ids     jsonb not null default '[]';
+
+-- Ensure hash_password helper exists for the /api/users route
+create or replace function public.hash_password(plain_password text)
+returns text language sql security definer as \$\$
+  select crypt(plain_password, gen_salt('bf'));
+\$\$;
 
 -- Insert or update the admin user
 insert into public.app_users (username, password_hash, full_name, role, department, email, phone, is_active)
