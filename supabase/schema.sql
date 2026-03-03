@@ -15,6 +15,7 @@ create table if not exists public.app_users (
   password_hash text        not null,           -- store bcrypt hash in production
   full_name     text        not null,
   role          text        not null,           -- see UserRole type
+  department    text,                           -- e.g. 'IT', 'Lab', 'Admin'
   email         text,
   phone         text,
   avatar        text,
@@ -23,15 +24,30 @@ create table if not exists public.app_users (
   updated_at    timestamptz
 );
 
+-- Add department column to existing table if it doesn't exist yet (idempotent migration)
+alter table public.app_users add column if not exists department text;
+
 -- Seed default users – passwords are hashed with bcrypt via pgcrypto
-insert into public.app_users (username, password_hash, full_name, role, email, phone) values
-  ('admin',       crypt('admin123', gen_salt('bf')), 'Nguyễn Văn Admin',      'Admin',                       'admin@labhouse.vn',       '0901234567'),
-  ('giamdoc',     crypt('gd123',    gen_salt('bf')), 'Trần Thị Giám Đốc',     'Giám đốc',                   'giamdoc@labhouse.vn',     '0902345678'),
-  ('truongphong', crypt('tp123',    gen_salt('bf')), 'Lê Văn Trưởng Phòng',  'Trưởng phòng xét nghiệm',   'truongphong@labhouse.vn', '0903456789'),
-  ('ktv',         crypt('ktv123',   gen_salt('bf')), 'Phạm Thị Kỹ Thuật',    'Kỹ thuật viên',              'ktv@labhouse.vn',         '0904567890'),
-  ('qlcl',        crypt('qlcl123',  gen_salt('bf')), 'Hoàng Văn Chất Lượng', 'Quản lý chất lượng',         'qlcl@labhouse.vn',        '0905678901'),
-  ('qltb',        crypt('qltb123',  gen_salt('bf')), 'Vũ Thị Thiết Bị',      'Quản lý trang thiết bị',     'qltb@labhouse.vn',        '0906789012')
-on conflict (username) do nothing;
+-- ON CONFLICT DO UPDATE refreshes metadata but PRESERVES existing passwords
+-- so re-running the schema does not lock out users who changed their passwords.
+insert into public.app_users (username, password_hash, full_name, role, department, email, phone) values
+  ('admin',       crypt('admin123', gen_salt('bf')), 'Nguyễn Văn Admin',      'Admin',                       'IT',  'admin@labhouse.vn',       '0901234567'),
+  ('giamdoc',     crypt('gd123',    gen_salt('bf')), 'Trần Thị Giám Đốc',     'Giám đốc',                   null, 'giamdoc@labhouse.vn',     '0902345678'),
+  ('truongphong', crypt('tp123',    gen_salt('bf')), 'Lê Văn Trưởng Phòng',  'Trưởng phòng xét nghiệm',   null, 'truongphong@labhouse.vn', '0903456789'),
+  ('ktv',         crypt('ktv123',   gen_salt('bf')), 'Phạm Thị Kỹ Thuật',    'Kỹ thuật viên',              null, 'ktv@labhouse.vn',         '0904567890'),
+  ('qlcl',        crypt('qlcl123',  gen_salt('bf')), 'Hoàng Văn Chất Lượng', 'Quản lý chất lượng',         null, 'qlcl@labhouse.vn',        '0905678901'),
+  ('qltb',        crypt('qltb123',  gen_salt('bf')), 'Vũ Thị Thiết Bị',      'Quản lý trang thiết bị',     null, 'qltb@labhouse.vn',        '0906789012')
+on conflict (username) do update set
+  full_name     = excluded.full_name,
+  role          = excluded.role,
+  department    = excluded.department,
+  email         = excluded.email,
+  phone         = excluded.phone,
+  is_active     = true,
+  updated_at    = now();
+  -- Note: password_hash is intentionally NOT updated here so that user-changed
+  -- passwords survive a schema re-run. Use `npm run seed-admin` to reset the
+  -- admin password to the default.
 
 -- ── 2. branches ────────────────────────────────────────────
 create table if not exists public.branches (
@@ -235,18 +251,19 @@ create or replace function public.verify_user_password(
   p_password text
 )
 returns table (
-  id        bigint,
-  username  text,
-  full_name text,
-  role      text,
-  email     text,
-  phone     text,
-  avatar    text
+  id         bigint,
+  username   text,
+  full_name  text,
+  role       text,
+  department text,
+  email      text,
+  phone      text,
+  avatar     text
 )
 language sql
 security definer
 as $$
-  select id, username, full_name, role, email, phone, avatar
+  select id, username, full_name, role, department, email, phone, avatar
   from   public.app_users
   where  username  = p_username
     and  is_active = true

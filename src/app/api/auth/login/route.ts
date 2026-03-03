@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       username: string;
       full_name: string;
       role: string;
+      department: string | null;
       email: string;
       phone: string;
       avatar?: string;
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
       username: userRow.username,
       fullName: userRow.full_name,
       role: userRow.role,
+      department: userRow.department ?? undefined,
       email: userRow.email,
       phone: userRow.phone,
       avatar: userRow.avatar,

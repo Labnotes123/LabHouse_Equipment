@@ -16,6 +16,7 @@ export interface User {
   username: string;
   fullName: string;
   role: UserRole;
+  department?: string;
   email: string;
   phone: string;
   avatar?: string;
