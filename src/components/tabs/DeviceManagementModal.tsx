@@ -222,8 +222,6 @@ export default function DeviceManagementModal({
 
   if (!isOpen) return null;
 
-  const d = device!;
-
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: "profile", label: "Xem lý lịch", icon: <BookOpen size={18} /> },
     { id: "manager", label: "Người quản lý", icon: <Users size={18} /> },
