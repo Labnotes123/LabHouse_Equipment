@@ -63,7 +63,7 @@ jobs:
 
       - name: Seed admin user
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: sbp_b8dc9ca2e061da26f4799303c2fac438dcfdff10
           SUPABASE_PROJECT_REF: zqykubyimjpofztuokfd
           RESET_ADMIN_PASSWORD: "1"
         run: node scripts/seed-admin.js
