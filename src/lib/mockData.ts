@@ -1654,3 +1654,414 @@ export const mockHistoryConfig: HistoryConfig = {
   autoDeleteEnabled: false,
   deleteAfterDays: 365,
 };
+
+// ============ MOCK TRANSFER PROPOSALS ============
+
+export interface TransferProposal {
+  id: string;
+  transferCode: string;
+  deviceId: string;
+  deviceCode: string;
+  deviceName: string;
+  fromLocation: string;
+  toLocation: string;
+  reason: string;
+  plannedTransferDate: string;
+  requestedBy: string;
+  approver: string;
+  status: "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành";
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export const mockTransferProposals: TransferProposal[] = [
+  {
+    id: "tp1",
+    transferCode: "DXC-2024-001",
+    deviceId: "d3",
+    deviceCode: "TB-003",
+    deviceName: "Máy miễn dịch tự động",
+    fromLocation: "Phòng nuôi cấy vi sinh",
+    toLocation: "Phòng hóa sinh – Huyết học",
+    reason: "Cần di chuyển máy sang phòng hóa sinh để phục vụ nhu cầu xét nghiệm tăng cao",
+    plannedTransferDate: "2024-04-15",
+    requestedBy: "Vũ Thị Thiết Bị",
+    approver: "Lê Văn Trưởng Phòng",
+    status: "Chờ duyệt",
+    createdAt: "2024-03-01T10:00:00",
+  },
+  {
+    id: "tp2",
+    transferCode: "DXC-2024-002",
+    deviceId: "d6",
+    deviceCode: "TB-006",
+    deviceName: "Tủ an toàn sinh học cấp II",
+    fromLocation: "Phòng nuôi cấy vi sinh",
+    toLocation: "Phòng Sinh học phân tử",
+    reason: "Chuyển sang phòng PCR do nhu cầu mở rộng xét nghiệm COVID-19",
+    plannedTransferDate: "2024-04-01",
+    requestedBy: "Vũ Thị Thiết Bị",
+    approver: "Trần Thị Giám Đốc",
+    status: "Đã duyệt",
+    createdAt: "2024-02-20T14:30:00",
+  },
+  {
+    id: "tp3",
+    transferCode: "DXC-2024-003",
+    deviceId: "d4",
+    deviceCode: "TB-004",
+    deviceName: "Máy PCR Real-time",
+    fromLocation: "Phòng tách chiết",
+    toLocation: "Phòng Vi sinh",
+    reason: "Tái phân bổ thiết bị theo kế hoạch sắp xếp lại phòng Lab",
+    plannedTransferDate: "2024-05-10",
+    requestedBy: "Hoàng Văn Chất Lượng",
+    approver: "Lê Văn Trưởng Phòng",
+    status: "Hoàn thành",
+    createdAt: "2024-01-15T09:00:00",
+    updatedAt: "2024-02-01T11:00:00",
+  },
+];
+
+// ============ MOCK LIQUIDATION PROPOSALS ============
+
+export interface LiquidationProposal {
+  id: string;
+  liquidationCode: string;
+  deviceId: string;
+  deviceCode: string;
+  deviceName: string;
+  reason: string;
+  method: string;
+  estimatedValue: string;
+  plannedDate: string;
+  requestedBy: string;
+  approver: string;
+  status: "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành";
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export const mockLiquidationProposals: LiquidationProposal[] = [
+  {
+    id: "lp1",
+    liquidationCode: "TL-2024-001",
+    deviceId: "d3",
+    deviceCode: "TB-003",
+    deviceName: "Máy miễn dịch tự động",
+    reason: "Thiết bị đã cũ, thường xuyên hỏng hóc, chi phí bảo trì cao. Máy không còn phù hợp với nhu cầu xét nghiệm hiện tại.",
+    method: "Thanh lý qua đấu thầu",
+    estimatedValue: "500.000.000 VNĐ",
+    plannedDate: "2024-06-30",
+    requestedBy: "Vũ Thị Thiết Bị",
+    approver: "Trần Thị Giám Đốc",
+    status: "Chờ duyệt",
+    createdAt: "2024-03-05T15:00:00",
+  },
+  {
+    id: "lp2",
+    liquidationCode: "TL-2024-002",
+    deviceId: "d1",
+    deviceCode: "TB-001",
+    deviceName: "Máy phân tích huyết học tự động",
+    reason: "Máy đã hết thời gian sử dụng theo quy định, cần thay thế bằng thiết bị mới",
+    method: "Thanh lý thanh lý",
+    estimatedValue: "800.000.000 VNĐ",
+    plannedDate: "2024-07-31",
+    requestedBy: "Phạm Thị Kỹ Thuật",
+    approver: "Trần Thị Giám Đốc",
+    status: "Đã duyệt",
+    createdAt: "2024-02-10T10:00:00",
+  },
+];
+
+// ============ MOCK TRAINING PROPOSALS ============
+
+export interface TrainingProposal {
+  id: string;
+  trainingCode: string;
+  deviceId: string;
+  deviceCode: string;
+  deviceName: string;
+  topic: string;
+  trainer: string;
+  traineeGroup: string;
+  plannedDate: string;
+  approver: string;
+  status: "Nháp" | "Chờ duyệt" | "Đã duyệt" | "Từ chối" | "Hoàn thành";
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export const mockTrainingProposals: TrainingProposal[] = [
+  {
+    id: "tr1",
+    trainingCode: "DT-2024-001",
+    deviceId: "d1",
+    deviceCode: "TB-001",
+    deviceName: "Máy phân tích huyết học tự động",
+    topic: "Hướng dẫn sử dụng và bảo trì cơ bản",
+    trainer: "Kỹ sư Sysmex - Nguyễn Văn A",
+    traineeGroup: "Nhân viên kỹ thuật",
+    plannedDate: "2024-04-20",
+    approver: "Lê Văn Trưởng Phòng",
+    status: "Chờ duyệt",
+    createdAt: "2024-03-10T08:00:00",
+  },
+  {
+    id: "tr2",
+    trainingCode: "DT-2024-002",
+    deviceId: "d2",
+    deviceCode: "TB-002",
+    deviceName: "Máy sinh hóa tự động",
+    topic: "Đào tạo nâng cao - Xử lý lỗi và bảo dưỡng",
+    trainer: "Kỹ sư Beckman Coulter - Trần Văn B",
+    traineeGroup: "Toàn bộ nhân viên phòng Hóa sinh",
+    plannedDate: "2024-05-15",
+    approver: "Trần Thị Giám Đốc",
+    status: "Đã duyệt",
+    createdAt: "2024-02-28T14:00:00",
+  },
+  {
+    id: "tr3",
+    trainingCode: "DT-2024-003",
+    deviceId: "d4",
+    deviceCode: "TB-004",
+    deviceName: "Máy PCR Real-time",
+    topic: "Thực hành xét nghiệm COVID-19",
+    trainer: "Kỹ sư Bio-Rad - Lê Văn C",
+    traineeGroup: "Nhân viên phòng Vi sinh",
+    plannedDate: "2024-03-25",
+    approver: "Lê Văn Trưởng Phòng",
+    status: "Hoàn thành",
+    createdAt: "2024-03-01T11:00:00",
+    updatedAt: "2024-03-25T17:00:00",
+  },
+];
+
+// ============ MOCK ACCEPTANCE RECORDS ============
+
+export interface AcceptanceItemKey {
+  key:
+    | "approvalForm"
+    | "handoverRecord"
+    | "installationSurvey"
+    | "userManual"
+    | "co"
+    | "cq"
+    | "contract"
+    | "installationReport"
+    | "usageConfirmation";
+  label: string;
+}
+
+export const acceptanceItemKeys: AcceptanceItemKey[] = [
+  { key: "approvalForm", label: "Phiếu đề nghị mua sắm/duyệt mua" },
+  { key: "handoverRecord", label: "Biên bàn bàn giao" },
+  { key: "installationSurvey", label: "Phiếu khảo sát lắp đặt (BM.05)" },
+  { key: "userManual", label: "Sổ tay hướng dẫn sử dụng" },
+  { key: "co", label: "Chứng chỉ CO" },
+  { key: "cq", label: "Chứng chỉ CQ" },
+  { key: "contract", label: "Hợp đồng mua bán" },
+  { key: "installationReport", label: "Biên bản lắp đặt/hiệu chuẩn" },
+  { key: "usageConfirmation", label: "Xác nhận bắt đầu sử dụng" },
+];
+
+export interface AcceptanceItemState {
+  status: "missing" | "pending" | "done";
+  files: AttachedFile[];
+  refCode?: string;
+}
+
+export interface InstallationSurveyFormState {
+  surveyDate: string;
+  hasPowerSupply: boolean | null;
+  hasGrounding: boolean | null;
+  hasBenchSpace: boolean | null;
+  hasTemperatureControl: boolean | null;
+  hasHumidityControl: boolean | null;
+  hasNetwork: boolean | null;
+  hasWaterLine: boolean | null;
+  conclusion: string;
+  approver: string;
+  surveyor: string;
+  relatedUsers: string[];
+  attachments: AttachedFile[];
+  status: "Nháp" | "Chờ duyệt" | "Đã duyệt";
+  approvedAt?: string;
+}
+
+export interface NewAcceptanceRecord {
+  approvalCode: string;
+  items: Record<string, AcceptanceItemState>;
+  installationSurveyForm: InstallationSurveyFormState;
+}
+
+export interface ReturnAcceptanceFormState {
+  formName: string;
+  formCode: string;
+  receiveCondition: string;
+  note: string;
+  handoverBy: string;
+  receivedAt: string;
+  receiver: string;
+  attachments: AttachedFile[];
+  completed: boolean;
+  completedAt?: string;
+  createdBy: string;
+}
+
+export interface ReturnAcceptanceRecord {
+  handoverCode: string;
+  handoverFiles: AttachedFile[];
+  acceptanceForm?: ReturnAcceptanceFormState;
+}
+
+export interface ReturnTransportRow {
+  id: string;
+  transferCode: string;
+  handoverCode: string;
+  acceptanceCode: string;
+  deviceCode: string;
+  deviceName: string;
+  model: string;
+  serial: string;
+  location: string;
+  handoverBy: string;
+  receiver: string;
+  receivedAt: string;
+  receiveCondition: string;
+}
+
+export const mockAcceptanceRecords: NewAcceptanceRecord[] = [
+  {
+    approvalCode: "PNV-2024-001",
+    items: {
+      approvalForm: { status: "done", files: [], refCode: "PNV-2024-001" },
+      handoverRecord: { status: "done", files: [], refCode: "BBBG-001" },
+      installationSurvey: { status: "pending", files: [], refCode: "" },
+      userManual: { status: "done", files: [{ id: "am1", name: "Manual_XN1000.pdf", type: "pdf", url: "", size: 2500000 }], refCode: "" },
+      co: { status: "done", files: [], refCode: "CO-Sysmex-001" },
+      cq: { status: "done", files: [], refCode: "CQ-2023-12345" },
+      contract: { status: "done", files: [], refCode: "HD-2023-001" },
+      installationReport: { status: "pending", files: [], refCode: "" },
+      usageConfirmation: { status: "missing", files: [], refCode: "" },
+    },
+    installationSurveyForm: {
+      surveyDate: "2024-03-15",
+      hasPowerSupply: true,
+      hasGrounding: true,
+      hasBenchSpace: true,
+      hasTemperatureControl: true,
+      hasHumidityControl: false,
+      hasNetwork: true,
+      hasWaterLine: false,
+      conclusion: "Đạt yêu cầu lắp đặt",
+      approver: "Lê Văn Trưởng Phòng",
+      surveyor: "Phạm Thị Kỹ Thuật",
+      relatedUsers: ["Vũ Thị Thiết Bị"],
+      attachments: [],
+      status: "Chờ duyệt",
+    },
+  },
+  {
+    approvalCode: "PNV-2024-002",
+    items: {
+      approvalForm: { status: "done", files: [], refCode: "PNV-2024-002" },
+      handoverRecord: { status: "done", files: [], refCode: "BBBG-002" },
+      installationSurvey: { status: "done", files: [], refCode: "BM.05-002" },
+      userManual: { status: "done", files: [], refCode: "" },
+      co: { status: "done", files: [], refCode: "CO-BC-001" },
+      cq: { status: "done", files: [], refCode: "CQ-2023-54321" },
+      contract: { status: "done", files: [], refCode: "HD-2022-015" },
+      installationReport: { status: "done", files: [], refCode: "BBLD-002" },
+      usageConfirmation: { status: "done", files: [], refCode: "XNVS-002" },
+    },
+    installationSurveyForm: {
+      surveyDate: "2023-06-20",
+      hasPowerSupply: true,
+      hasGrounding: true,
+      hasBenchSpace: true,
+      hasTemperatureControl: true,
+      hasHumidityControl: true,
+      hasNetwork: true,
+      hasWaterLine: true,
+      conclusion: "Đạt yêu cầu lắp đặt, sẵn sàng vận hành",
+      approver: "Trần Thị Giám Đốc",
+      surveyor: "Nguyễn Văn Admin",
+      relatedUsers: ["Lê Văn Trưởng Phòng", "Phạm Thị Kỹ Thuật"],
+      attachments: [],
+      status: "Đã duyệt",
+      approvedAt: "2023-06-25T10:00:00",
+    },
+  },
+];
+
+export const mockReturnAcceptanceRecords: ReturnAcceptanceRecord[] = [
+  {
+    handoverCode: "PNT-2024-001",
+    handoverFiles: [{ id: "rf1", name: "Bien_ban_chuyen_phong_TB001.pdf", type: "pdf", url: "", size: 1500000 }],
+    acceptanceForm: {
+      formName: "Phiếu tiếp nhận trở lại",
+      formCode: "BM.05-PNT-001",
+      receiveCondition: "Tốt",
+      note: "Thiết bị hoạt động bình thường sau khi bảo dưỡng",
+      handoverBy: "Kỹ sư Nguyễn Văn A",
+      receivedAt: "10:00 15/03/2024",
+      receiver: "Phạm Thị Kỹ Thuật",
+      attachments: [{ id: "af1", name: "Bien_ban_nghiem_thu.pdf", type: "pdf", url: "", size: 800000 }],
+      completed: true,
+      completedAt: "15/03/2024 11:00",
+      createdBy: "Phạm Thị Kỹ Thuật",
+    },
+  },
+  {
+    handoverCode: "PNT-2024-002",
+    handoverFiles: [],
+    acceptanceForm: {
+      formName: "Phiếu tiếp nhận trở lại",
+      formCode: "BM.05-PNT-002",
+      receiveCondition: "Cần kiểm tra",
+      note: "Cần hiệu chuẩn lại sau khi sửa chữa",
+      handoverBy: "Kỹ sư Trần Văn B",
+      receivedAt: "14:00 20/03/2024",
+      receiver: "Vũ Thị Thiết Bị",
+      attachments: [],
+      completed: false,
+      createdBy: "Vũ Thị Thiết Bị",
+    },
+  },
+];
+
+export const mockReturnTransportRows: ReturnTransportRow[] = [
+  {
+    id: "rt1",
+    transferCode: "DXC-2024-001",
+    handoverCode: "PNT-2024-001",
+    acceptanceCode: "PNV-2024-001",
+    deviceCode: "TB-003",
+    deviceName: "Máy miễn dịch tự động",
+    model: "ARCHITECT i2000SR",
+    serial: "ABB-i2000-2022-012",
+    location: "Phòng nuôi cấy vi sinh",
+    handoverBy: "Kỹ sư Nguyễn Văn A",
+    receiver: "Phạm Thị Kỹ Thuật",
+    receivedAt: "10:00 15/03/2024",
+    receiveCondition: "Tốt",
+  },
+  {
+    id: "rt2",
+    transferCode: "DXC-2024-002",
+    handoverCode: "PNT-2024-002",
+    acceptanceCode: "PNV-2024-002",
+    deviceCode: "TB-006",
+    deviceName: "Tủ an toàn sinh học cấp II",
+    model: "Safe 2020",
+    serial: "TF-SAFE2020-2022-007",
+    location: "Phòng nuôi cấy vi sinh",
+    handoverBy: "Kỹ sư Trần Văn B",
+    receiver: "Vũ Thị Thiết Bị",
+    receivedAt: "14:00 20/03/2024",
+    receiveCondition: "Cần kiểm tra",
+  },
+];
