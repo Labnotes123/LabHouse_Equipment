@@ -298,15 +298,45 @@ export default function AdminTab() {
   const paginatedProfiles = filteredProfiles.slice((profilePage - 1) * profilesPerPage, profilePage * profilesPerPage);
   const totalProfilePages = Math.ceil(filteredProfiles.length / profilesPerPage);
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (editingProfile) {
-      if (editingProfile.id) {
-        setProfiles(prev => prev.map(p => p.id === editingProfile.id ? { ...editingProfile, updatedAt: new Date().toISOString() } : p));
-        success("Đã cập nhật", "Profile đã được cập nhật");
-      } else {
-        const newProfile = { ...editingProfile, id: `p${Date.now()}`, createdAt: new Date().toISOString() };
-        setProfiles(prev => [...prev, newProfile]);
-        success("Đã tạo", "Profile mới đã được tạo");
+      try {
+        if (editingProfile.id) {
+          // Update existing profile
+          const res = await fetch(`/api/profiles/${editingProfile.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: editingProfile.name,
+              description: editingProfile.description,
+              permissions: editingProfile.permissions,
+              isActive: editingProfile.isActive,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to update profile");
+          const updated = await res.json();
+          setProfiles(prev => prev.map(p => p.id === editingProfile.id ? { ...updated, createdAt: p.createdAt, updatedAt: new Date().toISOString() } : p));
+          success("Đã cập nhật", "Profile đã được cập nhật");
+        } else {
+          // Create new profile
+          const res = await fetch("/api/profiles", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: editingProfile.name,
+              description: editingProfile.description,
+              permissions: editingProfile.permissions,
+              isActive: editingProfile.isActive ?? true,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to create profile");
+          const created = await res.json();
+          setProfiles(prev => [...prev, { ...created, createdAt: new Date().toISOString() }]);
+          success("Đã tạo", "Profile mới đã được tạo");
+        }
+      } catch (err) {
+        console.error("Profile save error:", err);
+        error("Lỗi", "Không thể lưu profile vào cơ sở dữ liệu");
       }
     }
     setShowProfileModal(false);
@@ -327,15 +357,43 @@ export default function AdminTab() {
   };
 
   // ============ BRANCH/DEPARTMENT MANAGEMENT ============
-  const handleSaveBranch = () => {
+  const handleSaveBranch = async () => {
     if (editingBranch) {
-      if (editingBranch.id) {
-        setBranches(prev => prev.map(b => b.id === editingBranch.id ? editingBranch : b));
-        success("Đã cập nhật", "Chi nhánh đã được cập nhật");
-      } else {
-        const newBranchData = { ...editingBranch, id: `b${Date.now()}`, departments: editingBranch.departments || [] };
-        setBranches(prev => [...prev, newBranchData]);
-        success("Đã thêm", "Chi nhánh mới đã được thêm");
+      try {
+        if (editingBranch.id) {
+          // Update existing branch
+          const res = await fetch(`/api/branches/${editingBranch.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: editingBranch.name,
+              departments: editingBranch.departments,
+              isActive: editingBranch.isActive,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to update branch");
+          const updated = await res.json();
+          setBranches(prev => prev.map(b => b.id === editingBranch.id ? { ...updated, createdAt: b.createdAt } : b));
+          success("Đã cập nhật", "Chi nhánh đã được cập nhật");
+        } else {
+          // Create new branch - code will be auto-generated
+          const res = await fetch("/api/branches", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: editingBranch.name,
+              departments: editingBranch.departments || [],
+              isActive: editingBranch.isActive ?? true,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to create branch");
+          const created = await res.json();
+          setBranches(prev => [...prev, { ...created, createdAt: new Date().toISOString() }]);
+          success("Đã thêm", "Chi nhánh mới đã được thêm");
+        }
+      } catch (err) {
+        console.error("Branch save error:", err);
+        error("Lỗi", "Không thể lưu chi nhánh vào cơ sở dữ liệu");
       }
     }
     setShowBranchModal(false);
@@ -348,15 +406,43 @@ export default function AdminTab() {
   };
 
   // ============ POSITION MANAGEMENT ============
-  const handleSavePosition = () => {
+  const handleSavePosition = async () => {
     if (editingPosition) {
-      if (editingPosition.id) {
-        setPositions(prev => prev.map(p => p.id === editingPosition.id ? editingPosition : p));
-        success("Đã cập nhật", "Chức vụ đã được cập nhật");
-      } else {
-        const newPositionData = { ...editingPosition, id: `pos${Date.now()}` };
-        setPositions(prev => [...prev, newPositionData]);
-        success("Đã thêm", "Chức vụ mới đã được thêm");
+      try {
+        if (editingPosition.id) {
+          // Update existing position
+          const res = await fetch(`/api/positions/${editingPosition.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: editingPosition.name,
+              description: editingPosition.description,
+              isActive: editingPosition.isActive,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to update position");
+          const updated = await res.json();
+          setPositions(prev => prev.map(p => p.id === editingPosition.id ? { ...updated, createdAt: p.createdAt } : p));
+          success("Đã cập nhật", "Chức vụ đã được cập nhật");
+        } else {
+          // Create new position - code will be auto-generated
+          const res = await fetch("/api/positions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: editingPosition.name,
+              description: editingPosition.description || "",
+              isActive: editingPosition.isActive ?? true,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to create position");
+          const created = await res.json();
+          setPositions(prev => [...prev, { ...created, createdAt: new Date().toISOString() }]);
+          success("Đã thêm", "Chức vụ mới đã được thêm");
+        }
+      } catch (err) {
+        console.error("Position save error:", err);
+        error("Lỗi", "Không thể lưu chức vụ vào cơ sở dữ liệu");
       }
     }
     setShowPositionModal(false);
@@ -391,15 +477,49 @@ export default function AdminTab() {
   const paginatedSuppliers = filteredSuppliers.slice((supplierPage - 1) * suppliersPerPage, supplierPage * suppliersPerPage);
   const totalSupplierPages = Math.ceil(filteredSuppliers.length / suppliersPerPage);
 
-  const handleSaveSupplier = () => {
+  const handleSaveSupplier = async () => {
     if (editingSupplier) {
-      if (editingSupplier.id) {
-        setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? editingSupplier : s));
-        success("Đã cập nhật", "Nhà cung cấp đã được cập nhật");
-      } else {
-        const newSupplierData = { ...editingSupplier, id: `sup${Date.now()}` };
-        setSuppliers(prev => [...prev, newSupplierData]);
-        success("Đã thêm", "Nhà cung cấp mới đã được thêm");
+      try {
+        if (editingSupplier.id) {
+          // Update existing supplier
+          const res = await fetch(`/api/suppliers/${editingSupplier.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: editingSupplier.name,
+              address: editingSupplier.address,
+              phone: editingSupplier.phone,
+              email: editingSupplier.email,
+              contactPerson: editingSupplier.contactPerson,
+              isActive: editingSupplier.isActive,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to update supplier");
+          const updated = await res.json();
+          setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? { ...updated, createdAt: s.createdAt } : s));
+          success("Đã cập nhật", "Nhà cung cấp đã được cập nhật");
+        } else {
+          // Create new supplier - code will be auto-generated
+          const res = await fetch("/api/suppliers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: editingSupplier.name,
+              address: editingSupplier.address || "",
+              phone: editingSupplier.phone || "",
+              email: editingSupplier.email || "",
+              contactPerson: editingSupplier.contactPerson || "",
+              isActive: editingSupplier.isActive ?? true,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to create supplier");
+          const created = await res.json();
+          setSuppliers(prev => [...prev, { ...created, createdAt: new Date().toISOString() }]);
+          success("Đã thêm", "Nhà cung cấp mới đã được thêm");
+        }
+      } catch (err) {
+        console.error("Supplier save error:", err);
+        error("Lỗi", "Không thể lưu nhà cung cấp vào cơ sở dữ liệu");
       }
     }
     setShowSupplierModal(false);
@@ -923,8 +1043,8 @@ export default function AdminTab() {
 
       {/* Profile Modal */}
       {showProfileModal && editingProfile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto my-auto">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <h3 className="font-bold text-lg text-slate-800">
                 {editingProfile.id ? "Chỉnh sửa Profile" : "Tạo Profile mới"}
@@ -934,6 +1054,17 @@ export default function AdminTab() {
               </button>
             </div>
             <div className="p-6 space-y-4">
+              {editingProfile.id && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-1">ID Profile</label>
+                  <input
+                    type="text"
+                    value={editingProfile.id}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-slate-600 mb-1">Tên Profile *</label>
                 <input
@@ -1056,8 +1187,8 @@ export default function AdminTab() {
 
       {/* Branch Modal */}
       {showBranchModal && editingBranch && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto my-auto">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-bold text-lg text-slate-800">
                 {editingBranch.id ? "Chỉnh sửa Chi nhánh" : "Thêm Chi nhánh mới"}
@@ -1067,6 +1198,17 @@ export default function AdminTab() {
               </button>
             </div>
             <div className="p-6 space-y-4">
+              {editingBranch.id && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-1">ID Chi nhánh</label>
+                  <input
+                    type="text"
+                    value={editingBranch.id}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-slate-600 mb-1">Tên Chi nhánh *</label>
                 <input
@@ -1077,12 +1219,13 @@ export default function AdminTab() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-600 mb-1">Mã Chi nhánh *</label>
+                <label className="block text-sm font-semibold text-slate-600 mb-1">Mã Chi nhánh</label>
                 <input
                   type="text"
                   value={editingBranch.code}
-                  onChange={(e) => setEditingBranch({ ...editingBranch, code: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-orange-500"
+                  disabled
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500"
+                  placeholder="Mã sẽ được tự sinh khi lưu"
                 />
               </div>
               <div>
@@ -1184,8 +1327,8 @@ export default function AdminTab() {
 
       {/* Position Modal */}
       {showPositionModal && editingPosition && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto my-auto">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-bold text-lg text-slate-800">
                 {editingPosition.id ? "Chỉnh sửa Chức vụ" : "Thêm Chức vụ mới"}
@@ -1195,6 +1338,17 @@ export default function AdminTab() {
               </button>
             </div>
             <div className="p-6 space-y-4">
+              {editingPosition.id && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-1">ID Chức vụ</label>
+                  <input
+                    type="text"
+                    value={editingPosition.id}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-slate-600 mb-1">Tên Chức vụ *</label>
                 <input
@@ -1205,12 +1359,13 @@ export default function AdminTab() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-600 mb-1">Mã Chức vụ *</label>
+                <label className="block text-sm font-semibold text-slate-600 mb-1">Mã Chức vụ</label>
                 <input
                   type="text"
                   value={editingPosition.code}
-                  onChange={(e) => setEditingPosition({ ...editingPosition, code: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-cyan-500"
+                  disabled
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500"
+                  placeholder="Mã sẽ được tự sinh khi lưu"
                 />
               </div>
               <div>
@@ -1392,8 +1547,8 @@ export default function AdminTab() {
 
       {/* Supplier Modal */}
       {showSupplierModal && editingSupplier && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto my-auto">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-bold text-lg text-slate-800">
                 {editingSupplier.id ? "Chỉnh sửa Nhà cung cấp" : "Thêm Nhà cung cấp mới"}
@@ -1403,6 +1558,17 @@ export default function AdminTab() {
               </button>
             </div>
             <div className="p-6 space-y-4">
+              {editingSupplier.id && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-1">ID Nhà cung cấp</label>
+                  <input
+                    type="text"
+                    value={editingSupplier.id}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-slate-600 mb-1">Tên NCC *</label>
                 <input
@@ -1413,12 +1579,13 @@ export default function AdminTab() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-600 mb-1">Mã NCC *</label>
+                <label className="block text-sm font-semibold text-slate-600 mb-1">Mã NCC</label>
                 <input
                   type="text"
                   value={editingSupplier.code}
-                  onChange={(e) => setEditingSupplier({ ...editingSupplier, code: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-pink-500"
+                  disabled
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500"
+                  placeholder="Mã sẽ được tự sinh khi lưu"
                 />
               </div>
               <div>

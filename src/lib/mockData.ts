@@ -5,6 +5,7 @@ export interface Profile {
   name: string;
   description: string;
   permissions: Permission[];
+  isActive?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -48,6 +49,7 @@ export interface Branch {
   code: string;
   departments: string[];
   isActive: boolean;
+  createdAt?: string;
 }
 
 export interface Position {
@@ -56,6 +58,7 @@ export interface Position {
   code: string;
   description?: string;
   isActive: boolean;
+  createdAt?: string;
 }
 
 export interface Supplier {
@@ -67,6 +70,7 @@ export interface Supplier {
   email?: string;
   contactPerson?: string;
   isActive: boolean;
+  createdAt?: string;
 }
 
 export interface HistoryConfig {
