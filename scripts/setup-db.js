@@ -21,7 +21,14 @@ const { readFileSync } = require("fs");
 const { resolve } = require("path");
 const https = require("https");
 
-const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || "zqykubyimjpofztuokfd";
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+if (!PROJECT_REF) {
+  console.error(
+    "❌  SUPABASE_PROJECT_REF is not set.\n" +
+    "   Set it to your Supabase project reference (e.g. zqykubyimjpofztuokfd)."
+  );
+  process.exit(1);
+}
 const SCHEMA_PATH = resolve(__dirname, "../supabase/schema.sql");
 
 const token = process.env.SUPABASE_ACCESS_TOKEN;
