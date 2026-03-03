@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { mockProfiles, Profile, Permission } from "@/lib/mockData";
+
+// In-memory store for profiles
+let profilesStore: Profile[] = [...mockProfiles];
+
+// Generate ID for new profiles
+function generateId(): string {
+  return `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
 
 export async function GET() {
   try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return NextResponse.json(data ?? []);
+    // Sort by created date descending
+    const result = [...profilesStore].sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
@@ -17,16 +25,10 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const body = await req.json() as {
       name: string;
       description?: string;
-      permissions?: Array<{
-        id: string;
-        name: string;
-        category: string;
-        enabled: boolean;
-      }>;
+      permissions?: Permission[];
       isActive?: boolean;
     };
 
@@ -34,26 +36,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tên profile là bắt buộc" }, { status: 400 });
     }
 
-    // Generate unique profile code
-    const year = new Date().getFullYear();
-    const { data: countData } = await supabase
-      .from("profiles")
-      .select("id", { count: "exact", head: true });
-    const count = (countData?.length ?? 0) + 1;
-    const code = `PRF-${year}-${String(count).padStart(4, "0")}`;
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .insert({
-        name: body.name,
-        description: body.description ?? null,
-        permissions: body.permissions ?? [],
-        is_active: body.isActive ?? true,
-      })
-      .select()
-      .single();
-    if (error) throw error;
-    return NextResponse.json(data, { status: 201 });
+    const newProfile: Profile = {
+      id: generateId(),
+      name: body.name,
+      description: body.description || "",
+      permissions: body.permissions || [],
+      isActive: body.isActive ?? true,
+      createdAt: new Date().toISOString(),
+    };
+    profilesStore = [newProfile, ...profilesStore];
+    return NextResponse.json(newProfile, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }

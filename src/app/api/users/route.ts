@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { dbToUser } from "@/lib/user-utils";
+import { mockUserProfiles, UserProfile } from "@/lib/mockData";
+
+// In-memory store for users
+let usersStore: UserProfile[] = [...mockUserProfiles];
+
+// Generate ID for new users
+function generateId(): string {
+  return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
 
 export async function GET() {
   try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("app_users")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return NextResponse.json((data ?? []).map(dbToUser));
+    // Sort by created date descending
+    const result = [...usersStore].sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
@@ -18,7 +25,6 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const body = await req.json() as {
       username: string;
       password: string;
@@ -26,7 +32,7 @@ export async function POST(req: NextRequest) {
       employeeId?: string;
       phone?: string;
       email?: string;
-      position?: string;   // UserProfile.position maps to app_users.role (auth role)
+      position?: string;
       department?: string;
       branch?: string;
       signature?: string;
@@ -42,34 +48,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Hash password via pgcrypto in the database
-    const { data: hashData, error: hashError } = await supabase
-      .rpc("hash_password", { plain_password: body.password });
-    if (hashError) throw hashError;
-    const passwordHash = hashData as string;
-
-    const { data, error } = await supabase
-      .from("app_users")
-      .insert({
-        username: body.username,
-        password_hash: passwordHash,
-        full_name: body.fullName,
-        role: body.position || "Kỹ thuật viên",  // UserProfile.position = auth role
-        department: body.department ?? null,
-        employee_id: body.employeeId ?? null,
-        position: body.position ?? null,          // also store in position column
-        branch: body.branch ?? null,
-        signature: body.signature ?? null,
-        managed_devices: body.managedDevices ?? [],
-        profile_ids: body.profileIds ?? [],
-        email: body.email ?? null,
-        phone: body.phone ?? null,
-        is_active: body.isActive ?? true,
-      })
-      .select()
-      .single();
-    if (error) throw error;
-    return NextResponse.json(dbToUser(data), { status: 201 });
+    const newUser: UserProfile = {
+      id: generateId(),
+      username: body.username,
+      password: body.password,
+      fullName: body.fullName,
+      employeeId: body.employeeId || "",
+      phone: body.phone || "",
+      email: body.email || "",
+      position: body.position || "",
+      department: body.department || "",
+      branch: body.branch || "",
+      signature: body.signature || "",
+      managedDevices: body.managedDevices || [],
+      profileIds: body.profileIds || [],
+      isActive: body.isActive ?? true,
+      createdAt: new Date().toISOString(),
+    };
+    usersStore = [newUser, ...usersStore];
+    return NextResponse.json(newUser, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }

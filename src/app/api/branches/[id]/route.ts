@@ -1,71 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { mockBranches, Branch } from "@/lib/mockData";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// In-memory store for branches
+let branchesStore: Branch[] = [...mockBranches];
+
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("branches")
-      .select("*")
-      .eq("id", parseInt(id))
-      .single();
-    if (error) throw error;
-    return NextResponse.json(data);
+    const branch = branchesStore.find((b) => b.id === id);
+    if (!branch) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(branch);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const supabase = getSupabaseAdmin();
-    const body = await req.json() as {
-      name?: string;
-      code?: string;
-      departments?: string[];
-      isActive?: boolean;
+    const body = await req.json();
+    const index = branchesStore.findIndex((b) => b.id === id);
+    if (index === -1) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const updatedBranch = {
+      ...branchesStore[index],
+      ...body,
     };
-
-    const updateData: Record<string, unknown> = {};
-
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.code !== undefined) updateData.code = body.code;
-    if (body.departments !== undefined) updateData.departments = body.departments;
-    if (body.isActive !== undefined) updateData.is_active = body.isActive;
-
-    const { data, error } = await supabase
-      .from("branches")
-      .update(updateData)
-      .eq("id", parseInt(id))
-      .select()
-      .single();
-    if (error) throw error;
-    return NextResponse.json(data);
+    branchesStore[index] = updatedBranch;
+    return NextResponse.json(updatedBranch);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const supabase = getSupabaseAdmin();
-    const { error } = await supabase
-      .from("branches")
-      .delete()
-      .eq("id", parseInt(id));
-    if (error) throw error;
+    const index = branchesStore.findIndex((b) => b.id === id);
+    if (index === -1) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    branchesStore = branchesStore.filter((b) => b.id !== id);
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

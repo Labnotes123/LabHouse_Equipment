@@ -1,48 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { mockSchedules, CalibrationSchedule } from "@/lib/mockData";
 
-function dbToSchedule(row: Record<string, unknown>) {
-  return {
-    id: String(row.id),
-    deviceId: String(row.device_id ?? ""),
-    deviceName: row.device_name,
-    deviceCode: row.device_code,
-    scheduledDate: row.scheduled_date,
-    type: row.type,
-    status: row.status,
-    assignedTo: row.assigned_to,
-    notes: row.notes,
-  };
-}
+// In-memory store for schedules
+let schedulesStore: CalibrationSchedule[] = [...mockSchedules];
 
-function scheduleToDb(data: Record<string, unknown>) {
-  return {
-    device_id: data.deviceId,
-    device_name: data.deviceName,
-    device_code: data.deviceCode,
-    scheduled_date: data.scheduledDate,
-    type: data.type,
-    status: data.status,
-    assigned_to: data.assignedTo,
-    notes: data.notes,
-  };
+// Generate ID for new schedules
+function generateId(): string {
+  return `schedule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
 
-    let query = supabase
-      .from("calibration_schedules")
-      .select("*")
-      .order("scheduled_date", { ascending: true });
-    if (type) query = query.eq("type", type);
+    let result = [...schedulesStore];
+    if (type) {
+      result = result.filter((s) => s.type === type);
+    }
 
-    const { data, error } = await query;
-    if (error) throw error;
-    return NextResponse.json((data ?? []).map(dbToSchedule));
+    // Sort by scheduled date ascending
+    result.sort((a, b) => {
+      const dateA = new Date(a.scheduledDate || 0).getTime();
+      const dateB = new Date(b.scheduledDate || 0).getTime();
+      return dateA - dateB;
+    });
+
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
@@ -50,15 +34,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const body = await req.json();
-    const { data, error } = await supabase
-      .from("calibration_schedules")
-      .insert(scheduleToDb(body))
-      .select()
-      .single();
-    if (error) throw error;
-    return NextResponse.json(dbToSchedule(data), { status: 201 });
+    const newSchedule: CalibrationSchedule = {
+      ...body,
+      id: generateId(),
+    };
+    schedulesStore = [...schedulesStore, newSchedule];
+    return NextResponse.json(newSchedule, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
