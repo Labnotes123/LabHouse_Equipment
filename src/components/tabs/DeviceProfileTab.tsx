@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState, useMemo, useRef, useId } from "react";
+import { useState, useMemo, useRef, useId, useEffect } from "react";
 import {
   Cpu,
   Search,
@@ -92,7 +92,6 @@ import {
   DeviceContact,
   DeviceAccessory,
   DeviceManagerHistory,
-  mockDevices,
   generateDeviceCode,
   formatDate,
   MOCK_USERS_LIST,
@@ -101,11 +100,11 @@ import {
   deviceTypes,
   deviceLocations,
   countries,
-  mockIncidents,
   IncidentReport,
   WorkOrder,
   AttachedFile,
 } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -460,7 +459,9 @@ export default function DeviceProfileTab() {
   const returnHandoverAttachmentInputRef = useRef<HTMLInputElement>(null);
   const returnAcceptanceFormAttachmentInputRef = useRef<HTMLInputElement>(null);
   
-  const [devices, setDevices] = useState<Device[]>(mockDevices);
+  const { devices: contextDevices } = useData();
+  const [devices, setDevices] = useState<Device[]>([]);
+  useEffect(() => { setDevices(contextDevices); }, [contextDevices]);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");

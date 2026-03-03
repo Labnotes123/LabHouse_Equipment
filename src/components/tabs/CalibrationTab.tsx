@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Gauge,
   Plus,
@@ -23,12 +23,11 @@ import {
 } from "lucide-react";
 import {
   CalibrationSchedule,
-  mockSchedules,
   Device,
-  mockDevices,
   MOCK_USERS_LIST,
   WorkOrder,
 } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -46,8 +45,11 @@ export default function CalibrationTab() {
   // State
   const [activeTab, setActiveTab] = useState<CalibrationTab>("request");
   const [calibrationRequests, setCalibrationRequests] = useState<any[]>([]);
-  const [schedules] = useState<CalibrationSchedule[]>(mockSchedules);
-  const [devices] = useState<Device[]>(mockDevices);
+  const { schedules: contextSchedules, devices: contextDevices } = useData();
+  const [schedules, setSchedules] = useState<CalibrationSchedule[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+  useEffect(() => { setSchedules(contextSchedules); }, [contextSchedules]);
+  useEffect(() => { setDevices(contextDevices); }, [contextDevices]);
   const [showForm, setShowForm] = useState(false);
   const [calibrationCounter, setCalibrationCounter] = useState(1);
 

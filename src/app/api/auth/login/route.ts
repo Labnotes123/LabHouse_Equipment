@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables"
-  );
-}
-
-// Use the service-role key so RLS does not block the login query.
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,8 +12,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify password using pgcrypto's crypt() – the DB stores bcrypt hashes.
-    // We use a single RPC call so the plain-text password never leaves the DB engine.
+    const supabaseAdmin = getSupabaseAdmin();
+
     const { data: rows, error: dbError } = await supabaseAdmin
       .rpc("verify_user_password", { p_username: username, p_password: password });
 

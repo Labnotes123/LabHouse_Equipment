@@ -41,12 +41,11 @@ import {
 import {
   IncidentReport,
   WorkOrder,
-  mockIncidents,
   Device,
-  mockDevices,
   MOCK_USERS_LIST,
   AttachedFile,
 } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -79,8 +78,11 @@ export default function IncidentReportTab() {
   const workOrderAttachmentInputRef = useRef<HTMLInputElement>(null);
 
   // State
-  const [incidentReports, setIncidentReports] = useState<IncidentReport[]>(mockIncidents);
-  const [devices] = useState<Device[]>(mockDevices);
+  const { incidents: contextIncidents, devices: contextDevices } = useData();
+  const [incidentReports, setIncidentReports] = useState<IncidentReport[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+  useEffect(() => { setIncidentReports(contextIncidents); }, [contextIncidents]);
+  useEffect(() => { setDevices(contextDevices); }, [contextDevices]);
   const [showForm, setShowForm] = useState(false);
   const [showSupplierContact, setShowSupplierContact] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);

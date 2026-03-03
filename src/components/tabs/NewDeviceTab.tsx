@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Plus,
   Package,
@@ -35,7 +35,6 @@ import {
   Filter,
 } from "lucide-react";
 import {
-  mockProposals,
   mockNotifications,
   NewDeviceProposal,
   DeviceRequirement,
@@ -52,6 +51,7 @@ import {
 } from "@/lib/mockData";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useData } from "@/contexts/DataContext";
 import { MOCK_USERS_LIST } from "@/lib/mockData";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -149,8 +149,10 @@ export default function NewDeviceTab({ filterPending = false, onNavigate }: NewD
   const { user } = useAuth();
   const { success, error, info } = useToast();
 
+  const { proposals: contextProposals } = useData();
   // ── State ──
-  const [proposals, setProposals] = useState<NewDeviceProposal[]>(mockProposals);
+  const [proposals, setProposals] = useState<NewDeviceProposal[]>([]);
+  useEffect(() => { setProposals(contextProposals); }, [contextProposals]);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
 
   // Table state

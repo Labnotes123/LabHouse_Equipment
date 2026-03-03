@@ -2,6 +2,7 @@
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/contexts/ToastContext";
+import { DataProvider } from "@/contexts/DataContext";
 import LoginPage from "@/components/LoginPage";
 import MainApp from "@/components/MainApp";
 
@@ -14,7 +15,9 @@ export default function Home() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <AppContent />
+        <DataProvider>
+          <AppContent />
+        </DataProvider>
       </AuthProvider>
     </ToastProvider>
   );
