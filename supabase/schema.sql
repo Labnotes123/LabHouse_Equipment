@@ -31,6 +31,7 @@ create table if not exists public.app_users (
 );
 
 -- Add columns to existing table if they don't exist yet (idempotent migration)
+alter table public.app_users add column if not exists password_hash   text;
 alter table public.app_users add column if not exists department      text;
 alter table public.app_users add column if not exists employee_id     text;
 alter table public.app_users add column if not exists position        text;

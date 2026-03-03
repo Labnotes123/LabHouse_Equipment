@@ -79,6 +79,7 @@ const sql = `
 create extension if not exists "pgcrypto";
 
 -- Ensure all app_users columns exist (idempotent)
+alter table public.app_users add column if not exists password_hash   text;
 alter table public.app_users add column if not exists department      text;
 alter table public.app_users add column if not exists employee_id     text;
 alter table public.app_users add column if not exists position        text;
