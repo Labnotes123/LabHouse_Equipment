@@ -81,6 +81,17 @@ create table if not exists public.positions (
   created_at  timestamptz not null default now()
 );
 
+-- ── 3a. profiles ───────────────────────────────────────────
+create table if not exists public.profiles (
+  id           bigserial primary key,
+  name         text    not null,
+  description  text,
+  permissions  jsonb   not null default '[]',
+  is_active    boolean not null default true,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz
+);
+
 -- ── 4. suppliers ───────────────────────────────────────────
 create table if not exists public.suppliers (
   id             bigserial primary key,
@@ -237,6 +248,7 @@ create table if not exists public.history_logs (
 alter table public.app_users          enable row level security;
 alter table public.branches           enable row level security;
 alter table public.positions          enable row level security;
+alter table public.profiles           enable row level security;
 alter table public.suppliers          enable row level security;
 alter table public.devices            enable row level security;
 alter table public.new_device_proposals enable row level security;
