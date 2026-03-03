@@ -779,18 +779,30 @@ export default function AdminTab() {
 
       {/* User Modal */}
       {showUserModal && editingUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-800">
-                {editingUser.id ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
-              </h3>
-              <button onClick={() => { setShowUserModal(false); setEditingUser(null); }} className="p-2 rounded-lg hover:bg-slate-100">
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl transform transition-all">
+            {/* Header with gradient */}
+            <div className="relative px-6 py-5 rounded-t-3xl bg-gradient-to-r from-violet-600 to-indigo-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Users size={22} className="text-white" />
+                  </div>
+                  <h3 className="font-bold text-xl text-white">
+                    {editingUser.id ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => { setShowUserModal(false); setEditingUser(null); }} 
+                  className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            {/* Content */}
+            <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">Tên đăng nhập *</label>
                   <input
@@ -850,7 +862,7 @@ export default function AdminTab() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">Chức vụ *</label>
                   <select
@@ -918,20 +930,21 @@ export default function AdminTab() {
                 <span className="text-sm text-slate-600">Hoạt động</span>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
+            {/* Footer */}
+            <div className="px-6 py-5 bg-slate-50 rounded-b-3xl flex justify-end gap-3 border-t border-slate-100">
               <button
                 onClick={() => { setShowUserModal(false); setEditingUser(null); }}
-                className="px-4 py-2.5 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-200 transition-colors"
               >
-                Hủy
+                Hủy bỏ
               </button>
               <button
                 onClick={handleSaveUser}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm shadow-sm"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
                 style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
               >
-                <Save size={16} />
-                Lưu
+                <Save size={18} />
+                Lưu thông tin
               </button>
             </div>
           </div>
@@ -1043,17 +1056,29 @@ export default function AdminTab() {
 
       {/* Profile Modal */}
       {showProfileModal && editingProfile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto my-auto">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-              <h3 className="font-bold text-lg text-slate-800">
-                {editingProfile.id ? "Chỉnh sửa Profile" : "Tạo Profile mới"}
-              </h3>
-              <button onClick={() => { setShowProfileModal(false); setEditingProfile(null); }} className="p-2 rounded-lg hover:bg-slate-100">
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-3xl shadow-2xl transform transition-all">
+            {/* Header with gradient */}
+            <div className="relative px-6 py-5 rounded-t-3xl bg-gradient-to-r from-blue-600 to-indigo-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <UserCheck size={22} className="text-white" />
+                  </div>
+                  <h3 className="font-bold text-xl text-white">
+                    {editingProfile.id ? "Chỉnh sửa Profile" : "Tạo Profile mới"}
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => { setShowProfileModal(false); setEditingProfile(null); }} 
+                  className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
             </div>
-            <div className="p-6 space-y-4">
+            {/* Content */}
+            <div className="p-6 space-y-5 max-h-[65vh] overflow-y-auto">
               {editingProfile.id && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">ID Profile</label>
@@ -1090,8 +1115,11 @@ export default function AdminTab() {
                 <label className="block text-sm font-semibold text-slate-600 mb-3">Phân quyền</label>
                 <div className="space-y-4">
                   {permissionCategories.map(cat => (
-                    <div key={cat.id} className="border border-slate-200 rounded-xl p-4">
-                      <h4 className="font-semibold text-slate-700 mb-3">{cat.label}</h4>
+                    <div key={cat.id} className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                      <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                        {cat.label}
+                      </h4>
                       <div className="space-y-2">
                         {editingProfile.permissions.filter(p => p.category === cat.id).map(perm => (
                           <label key={perm.id} className="flex items-center gap-3 cursor-pointer">
@@ -1113,16 +1141,16 @@ export default function AdminTab() {
             <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
               <button
                 onClick={() => { setShowProfileModal(false); setEditingProfile(null); }}
-                className="px-4 py-2.5 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-200 transition-colors"
               >
-                Hủy
+                Hủy bỏ
               </button>
               <button
                 onClick={handleSaveProfile}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm shadow-sm"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
                 style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}
               >
-                <Save size={16} />
+                <Save size={18} />
                 Lưu Profile
               </button>
             </div>
@@ -1187,17 +1215,29 @@ export default function AdminTab() {
 
       {/* Branch Modal */}
       {showBranchModal && editingBranch && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto my-auto">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-800">
-                {editingBranch.id ? "Chỉnh sửa Chi nhánh" : "Thêm Chi nhánh mới"}
-              </h3>
-              <button onClick={() => { setShowBranchModal(false); setEditingBranch(null); }} className="p-2 rounded-lg hover:bg-slate-100">
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl transform transition-all">
+            {/* Header with gradient */}
+            <div className="relative px-6 py-5 rounded-t-3xl bg-gradient-to-r from-orange-500 to-amber-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Building2 size={22} className="text-white" />
+                  </div>
+                  <h3 className="font-bold text-xl text-white">
+                    {editingBranch.id ? "Chỉnh sửa Chi nhánh" : "Thêm Chi nhánh mới"}
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => { setShowBranchModal(false); setEditingBranch(null); }} 
+                  className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
             </div>
-            <div className="p-6 space-y-4">
+            {/* Content */}
+            <div className="p-6 space-y-5 max-h-[65vh] overflow-y-auto">
               {editingBranch.id && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">ID Chi nhánh</label>
@@ -1238,20 +1278,21 @@ export default function AdminTab() {
                 />
               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
+            {/* Footer */}
+            <div className="px-6 py-5 bg-slate-50 rounded-b-3xl flex justify-end gap-3 border-t border-slate-100">
               <button
                 onClick={() => { setShowBranchModal(false); setEditingBranch(null); }}
-                className="px-4 py-2.5 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-200 transition-colors"
               >
-                Hủy
+                Hủy bỏ
               </button>
               <button
                 onClick={handleSaveBranch}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm shadow-sm"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
                 style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}
               >
-                <Save size={16} />
-                Lưu
+                <Save size={18} />
+                Lưu thông tin
               </button>
             </div>
           </div>
@@ -1327,17 +1368,29 @@ export default function AdminTab() {
 
       {/* Position Modal */}
       {showPositionModal && editingPosition && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto my-auto">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-800">
-                {editingPosition.id ? "Chỉnh sửa Chức vụ" : "Thêm Chức vụ mới"}
-              </h3>
-              <button onClick={() => { setShowPositionModal(false); setEditingPosition(null); }} className="p-2 rounded-lg hover:bg-slate-100">
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl transform transition-all">
+            {/* Header with gradient */}
+            <div className="relative px-6 py-5 rounded-t-3xl bg-gradient-to-r from-cyan-500 to-blue-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Briefcase size={22} className="text-white" />
+                  </div>
+                  <h3 className="font-bold text-xl text-white">
+                    {editingPosition.id ? "Chỉnh sửa Chức vụ" : "Thêm Chức vụ mới"}
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => { setShowPositionModal(false); setEditingPosition(null); }} 
+                  className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
             </div>
-            <div className="p-6 space-y-4">
+            {/* Content */}
+            <div className="p-6 space-y-5 max-h-[65vh] overflow-y-auto">
               {editingPosition.id && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">ID Chức vụ</label>
@@ -1386,20 +1439,21 @@ export default function AdminTab() {
                 <span className="text-sm text-slate-600">Hoạt động</span>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
+            {/* Footer */}
+            <div className="px-6 py-5 bg-slate-50 rounded-b-3xl flex justify-end gap-3 border-t border-slate-100">
               <button
                 onClick={() => { setShowPositionModal(false); setEditingPosition(null); }}
-                className="px-4 py-2.5 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-200 transition-colors"
               >
-                Hủy
+                Hủy bỏ
               </button>
               <button
                 onClick={handleSavePosition}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm shadow-sm"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
                 style={{ background: "linear-gradient(135deg, #06b6d4, #0891b2)" }}
               >
-                <Save size={16} />
-                Lưu
+                <Save size={18} />
+                Lưu thông tin
               </button>
             </div>
           </div>
@@ -1547,17 +1601,29 @@ export default function AdminTab() {
 
       {/* Supplier Modal */}
       {showSupplierModal && editingSupplier && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto my-auto">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-800">
-                {editingSupplier.id ? "Chỉnh sửa Nhà cung cấp" : "Thêm Nhà cung cấp mới"}
-              </h3>
-              <button onClick={() => { setShowSupplierModal(false); setEditingSupplier(null); }} className="p-2 rounded-lg hover:bg-slate-100">
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl transform transition-all">
+            {/* Header with gradient */}
+            <div className="relative px-6 py-5 rounded-t-3xl bg-gradient-to-r from-pink-500 to-rose-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Truck size={22} className="text-white" />
+                  </div>
+                  <h3 className="font-bold text-xl text-white">
+                    {editingSupplier.id ? "Chỉnh sửa Nhà cung cấp" : "Thêm Nhà cung cấp mới"}
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => { setShowSupplierModal(false); setEditingSupplier(null); }} 
+                  className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
             </div>
-            <div className="p-6 space-y-4">
+            {/* Content */}
+            <div className="p-6 space-y-5 max-h-[65vh] overflow-y-auto">
               {editingSupplier.id && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">ID Nhà cung cấp</label>
@@ -1596,7 +1662,7 @@ export default function AdminTab() {
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-pink-500 h-20 resize-none"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">SĐT</label>
                   <input
@@ -1625,30 +1691,30 @@ export default function AdminTab() {
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-pink-500"
                 />
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 p-3 bg-pink-50 rounded-xl">
                 <input
                   type="checkbox"
                   checked={editingSupplier.isActive}
                   onChange={(e) => setEditingSupplier({ ...editingSupplier, isActive: e.target.checked })}
                   className="w-4 h-4 rounded text-pink-600"
                 />
-                <span className="text-sm text-slate-600">Hoạt động</span>
+                <span className="text-sm text-slate-600 font-medium">Hoạt động</span>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
+            <div className="px-6 py-5 bg-slate-50 rounded-b-3xl flex justify-end gap-3 border-t border-slate-100">
               <button
                 onClick={() => { setShowSupplierModal(false); setEditingSupplier(null); }}
-                className="px-4 py-2.5 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-200 transition-colors"
               >
-                Hủy
+                Hủy bỏ
               </button>
               <button
                 onClick={handleSaveSupplier}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm shadow-sm"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
                 style={{ background: "linear-gradient(135deg, #ec4899, #f43f5e)" }}
               >
-                <Save size={16} />
-                Lưu
+                <Save size={18} />
+                Lưu thông tin
               </button>
             </div>
           </div>
