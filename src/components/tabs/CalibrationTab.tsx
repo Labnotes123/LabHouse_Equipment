@@ -24,7 +24,6 @@ import {
 import {
   CalibrationSchedule,
   Device,
-  MOCK_USERS_LIST,
   WorkOrder,
 } from "@/lib/mockData";
 import { useData } from "@/contexts/DataContext";
@@ -45,7 +44,7 @@ export default function CalibrationTab() {
   // State
   const [activeTab, setActiveTab] = useState<CalibrationTab>("request");
   const [calibrationRequests, setCalibrationRequests] = useState<any[]>([]);
-  const { schedules: contextSchedules, devices: contextDevices, addSchedule } = useData();
+  const { schedules: contextSchedules, devices: contextDevices, addSchedule, users } = useData();
   const [schedules, setSchedules] = useState<CalibrationSchedule[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   useEffect(() => { setSchedules(contextSchedules); }, [contextSchedules]);
@@ -576,9 +575,9 @@ export default function CalibrationTab() {
                     className="w-full px-4 py-2 border border-slate-200 rounded-lg"
                   >
                     <option value="">-- Chọn người phê duyệt --</option>
-                    {MOCK_USERS_LIST.filter((u) => u.role === "Giám đốc" || u.role === "Trưởng phòng xét nghiệm").map((u) => (
+                    {users.filter((u) => u.position === "Giám đốc" || u.position === "Trưởng phòng xét nghiệm").map((u) => (
                       <option key={u.id} value={u.fullName}>
-                        {u.fullName} - {u.role}
+                        {u.fullName} - {u.position}
                       </option>
                     ))}
                   </select>
@@ -586,7 +585,7 @@ export default function CalibrationTab() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Người liên quan</label>
                   <div className="flex flex-wrap gap-2">
-                    {MOCK_USERS_LIST.filter((u) => u.id !== user?.id).slice(0, 5).map((u) => (
+                    {users.filter((u) => u.id !== user?.id).slice(0, 5).map((u) => (
                       <button
                         key={u.id}
                         type="button"

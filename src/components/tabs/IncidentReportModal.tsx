@@ -22,13 +22,13 @@ import {
 } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
 import { User } from "@/contexts/AuthContext";
+import { useData } from "@/contexts/DataContext";
 import {
   AttachedFile,
   Device,
   DeviceStatus,
   IncidentReport,
   WorkOrder,
-  mockIncidents,
 } from "@/lib/mockData";
 
 type IncidentModalTab = "reports" | "work-orders";
@@ -121,10 +121,10 @@ export default function IncidentReportModal({
   onUpdateDeviceStatus,
 }: IncidentReportModalProps) {
   const { success, error } = useToast();
+  const { incidents, addIncident, updateIncident } = useData();
   const workOrderAttachmentInputRef = useRef<HTMLInputElement>(null);
 
-  const [incidentReports, setIncidentReports] = useState<IncidentReport[]>(mockIncidents);
-  const [incidentCounter, setIncidentCounter] = useState(() => mockIncidents.length + 1);
+  const [incidentCounter, setIncidentCounter] = useState(() => incidents.length + 1);
   const [workOrderCounter, setWorkOrderCounter] = useState(1);
   const [incidentModalTab, setIncidentModalTab] = useState<IncidentModalTab>("reports");
   const [incidentViewMode, setIncidentViewMode] = useState<IncidentViewMode>("list");
@@ -136,8 +136,8 @@ export default function IncidentReportModal({
   const [workOrderForm, setWorkOrderForm] = useState<Partial<WorkOrder>>(createDefaultWorkOrderForm());
 
   const deviceIncidents = useMemo(
-    () => incidentReports.filter((incident) => incident.deviceId === device.id),
-    [incidentReports, device.id]
+    () => incidents.filter((incident) => incident.deviceId === device.id),
+    [incidents, device.id]
   );
 
   const allDeviceWorkOrders = useMemo(() => {
@@ -196,14 +196,13 @@ export default function IncidentReportModal({
       workOrders: incidentForm.workOrders || [],
     };
 
-    setIncidentReports((prev) => {
-      const exists = prev.some((incident) => incident.id === baseIncident.id);
-      if (exists) {
-        return prev.map((incident) => (incident.id === baseIncident.id ? baseIncident : incident));
-      }
+    if (editingIncidentId) {
+      updateIncident(editingIncidentId, baseIncident).catch((e) => console.error("Failed to update incident", e));
+    } else {
+      const { id: _id, ...incidentWithoutId } = baseIncident;
+      addIncident(incidentWithoutId).catch((e) => console.error("Failed to add incident", e));
       setIncidentCounter((count) => count + 1);
-      return [baseIncident, ...prev];
-    });
+    }
 
     if (status === "Chờ duyệt") {
       onUpdateDeviceStatus(device.id, "Tạm dừng");
@@ -311,16 +310,16 @@ export default function IncidentReportModal({
       signatureUrl: workOrderForm.signatureUrl,
     };
 
-    setIncidentReports((prev) => {
-      return prev.map((incident) => {
-        if (incident.id !== targetIncident.id) return incident;
-        const existingWorkOrders = incident.workOrders || [];
-        const updatedWorkOrders = editingWorkOrder
-          ? existingWorkOrders.map((wo) => (wo.id === editingWorkOrder.id ? newWorkOrder : wo))
-          : [...existingWorkOrders, newWorkOrder];
-        return { ...incident, workOrders: updatedWorkOrders, updatedAt: new Date().toISOString() };
-      });
-    });
+    const existingIncident = incidents.find((i) => i.id === targetIncident.id);
+    if (existingIncident) {
+      const existingWorkOrders = existingIncident.workOrders || [];
+      const updatedWorkOrders = editingWorkOrder
+        ? existingWorkOrders.map((wo) => (wo.id === editingWorkOrder.id ? newWorkOrder : wo))
+        : [...existingWorkOrders, newWorkOrder];
+      updateIncident(targetIncident.id, { workOrders: updatedWorkOrders, updatedAt: new Date().toISOString() }).catch(
+        (e) => console.error("Failed to update work orders", e)
+      );
+    }
 
     if (!editingWorkOrder) {
       setWorkOrderCounter((prev) => prev + 1);

@@ -94,7 +94,6 @@ import {
   DeviceManagerHistory,
   generateDeviceCode,
   formatDate,
-  MOCK_USERS_LIST,
   specialties,
   deviceCategories,
   deviceTypes,
@@ -459,7 +458,7 @@ export default function DeviceProfileTab() {
   const returnHandoverAttachmentInputRef = useRef<HTMLInputElement>(null);
   const returnAcceptanceFormAttachmentInputRef = useRef<HTMLInputElement>(null);
   
-  const { devices: contextDevices, addDevice, updateDevice } = useData();
+  const { devices: contextDevices, addDevice, updateDevice, users } = useData();
   const [devices, setDevices] = useState<Device[]>([]);
   useEffect(() => { setDevices(contextDevices); }, [contextDevices]);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -973,17 +972,17 @@ export default function DeviceProfileTab() {
   
   // Filtered managers for dropdown
   const filteredManagers = useMemo(() => {
-    const managers = MOCK_USERS_LIST.filter(u => 
+    const managers = users.filter(u =>
       u.fullName.toLowerCase().includes(newManagerSearch.toLowerCase())
     );
     return managers;
-  }, [newManagerSearch]);
+  }, [users, newManagerSearch]);
 
   const acceptanceUsers = useMemo(() => {
     const normalized = surveyUserSearch.trim().toLowerCase();
-    if (!normalized) return MOCK_USERS_LIST;
-    return MOCK_USERS_LIST.filter((userItem) => userItem.fullName.toLowerCase().includes(normalized));
-  }, [surveyUserSearch]);
+    if (!normalized) return users;
+    return users.filter((userItem) => userItem.fullName.toLowerCase().includes(normalized));
+  }, [users, surveyUserSearch]);
 
   const getAttachmentTypeFromName = (filename: string): AttachedFile["type"] => {
     const lower = filename.toLowerCase();
@@ -1387,9 +1386,9 @@ export default function DeviceProfileTab() {
   };
 
   const filteredReceiverUsers = useMemo(() => {
-    if (!returnReceiverSearch.trim()) return MOCK_USERS_LIST;
-    return MOCK_USERS_LIST.filter((u) => u.fullName.toLowerCase().includes(returnReceiverSearch.toLowerCase()));
-  }, [returnReceiverSearch]);
+    if (!returnReceiverSearch.trim()) return users;
+    return users.filter((u) => u.fullName.toLowerCase().includes(returnReceiverSearch.toLowerCase()));
+  }, [users, returnReceiverSearch]);
 
   const saveReturnAcceptanceForm = (deviceId: string, completeNow: boolean) => {
     if (!editingReturnForm) return;
