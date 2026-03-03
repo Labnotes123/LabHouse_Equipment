@@ -23,13 +23,11 @@ import UserProfileModal from "@/components/UserProfileModal";
 import DashboardTab from "@/components/tabs/DashboardTab";
 import NewDeviceTab from "@/components/tabs/NewDeviceTab";
 import DeviceProfileTab from "@/components/tabs/DeviceProfileTab";
-import IncidentReportTab from "@/components/tabs/IncidentReportTab";
-import CalibrationTab from "@/components/tabs/CalibrationTab";
 import AdminTab from "@/components/tabs/AdminTab";
 import HistoryTab from "@/components/tabs/HistoryTab";
 import { useData } from "@/contexts/DataContext";
 
-type TabId = "dashboard" | "new-device" | "device-profile" | "incident" | "calibration" | "admin" | "history";
+type TabId = "dashboard" | "new-device" | "device-profile" | "admin" | "history";
 type NewDeviceFilter = "all" | "pending";
 
 const tabs: {
@@ -60,20 +58,7 @@ const tabs: {
     gradient: "from-purple-500 to-violet-600",
     desc: "Quản lý thiết bị",
   },
-  {
-    id: "incident",
-    label: "Báo cáo sự cố",
-    icon: <AlertTriangle size={20} />,
-    gradient: "from-red-500 to-orange-600",
-    desc: "Báo cáo sự cố thiết bị",
-  },
-  {
-    id: "calibration",
-    label: "Hiệu chuẩn",
-    icon: <Settings size={20} />,
-    gradient: "from-teal-500 to-cyan-600",
-    desc: "Hiệu chuẩn & Bảo dưỡng",
-  },
+  // Incident and Calibration are now inside Device Profile
   {
     id: "admin",
     label: "Quản trị",
@@ -103,8 +88,7 @@ const roleColors: Record<string, string> = {
 export default function MainApp() {
   const { user, logout } = useAuth();
   const { success } = useToast();
-  const { proposals, incidents } = useData();
-  const pendingIncidentCount = incidents.filter((i) => i.status === "Chờ duyệt").length;
+  const { proposals } = useData();
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [newDeviceFilter, setNewDeviceFilter] = useState<NewDeviceFilter>("all");
   const [showProfile, setShowProfile] = useState(false);
@@ -129,8 +113,6 @@ export default function MainApp() {
       case "dashboard": return <DashboardTab onNavigateNewDevicePending={navigateToNewDevicePending} />;
       case "new-device": return <NewDeviceTab filterPending={newDeviceFilter === "pending"} onNavigate={(tab) => { setNewDeviceFilter("all"); setActiveTab(tab as TabId); }} />;
       case "device-profile": return <DeviceProfileTab />;
-      case "incident": return <IncidentReportTab />;
-      case "calibration": return <CalibrationTab />;
       case "admin": return <AdminTab />;
       case "history": return <HistoryTab />;
     }
@@ -164,7 +146,7 @@ export default function MainApp() {
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
-            const badgeCount = tab.id === "dashboard" ? pendingCount : (tab.id === "incident" ? pendingIncidentCount : 0);
+            const badgeCount = tab.id === "dashboard" ? pendingCount : 0;
             return (
               <button
                 key={tab.id}

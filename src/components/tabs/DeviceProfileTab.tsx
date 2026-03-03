@@ -459,13 +459,14 @@ export default function DeviceProfileTab() {
   const returnHandoverAttachmentInputRef = useRef<HTMLInputElement>(null);
   const returnAcceptanceFormAttachmentInputRef = useRef<HTMLInputElement>(null);
   
-  const { devices: contextDevices, addDevice, updateDevice } = useData();
+  const { devices: contextDevices, addDevice, updateDevice, incidents, schedules } = useData();
   const [devices, setDevices] = useState<Device[]>([]);
   useEffect(() => { setDevices(contextDevices); }, [contextDevices]);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [deviceDetailSubTab, setDeviceDetailSubTab] = useState<"info" | "incidents" | "calibration">("info");
   const [showAddForm, setShowAddForm] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
   
@@ -2984,15 +2985,75 @@ export default function DeviceProfileTab() {
       {/* Device Detail Modal */}
       {selectedDevice && !infoSubmenu && activeModal !== "accept" && activeModal !== "accept-return" && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedDevice(null)}>
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-800">Chi tiết thiết bị</h2>
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Hồ sơ thiết bị</h2>
+                <p className="text-sm text-slate-500">{selectedDevice.name} - {selectedDevice.code}</p>
+              </div>
               <button onClick={() => setSelectedDevice(null)} className="p-2 hover:bg-slate-100 rounded-lg">
                 <X size={20} />
               </button>
             </div>
+            
+            {/* Sub-tabs */}
+            <div className="border-b border-slate-200 px-6">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setDeviceDetailSubTab("info")}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    deviceDetailSubTab === "info"
+                      ? "border-purple-500 text-purple-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Cpu size={16} />
+                    Thông tin thiết bị
+                  </div>
+                </button>
+                <button
+                  onClick={() => setDeviceDetailSubTab("incidents")}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    deviceDetailSubTab === "incidents"
+                      ? "border-red-500 text-red-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    Báo cáo sự cố
+                    {incidents.filter(i => i.deviceId === selectedDevice.id).length > 0 && (
+                      <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
+                        {incidents.filter(i => i.deviceId === selectedDevice.id).length}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => setDeviceDetailSubTab("calibration")}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    deviceDetailSubTab === "calibration"
+                      ? "border-teal-500 text-teal-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings size={16} />
+                    Hiệu chuẩn & Bảo dưỡng
+                    {schedules.filter(s => s.deviceId === selectedDevice.id).length > 0 && (
+                      <span className="bg-teal-100 text-teal-600 text-xs px-2 py-0.5 rounded-full">
+                        {schedules.filter(s => s.deviceId === selectedDevice.id).length}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              </div>
+            </div>
+            
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {deviceDetailSubTab === "info" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column - Image */}
                 <div>
                   <div className="aspect-video bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center overflow-hidden">
@@ -3138,6 +3199,148 @@ export default function DeviceProfileTab() {
                   </div>
                 </div>
               </div>
+              )}
+              
+              {/* Incidents Sub-tab */}
+              {deviceDetailSubTab === "incidents" && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-slate-800">Danh sách báo cáo sự cố</h3>
+                    <button
+                      onClick={() => {
+                        setSelectedDeviceForAction(selectedDevice);
+                        setActiveModal("incident");
+                      }}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                    >
+                      <AlertTriangle size={16} />
+                      Báo cáo sự cố
+                    </button>
+                  </div>
+                  
+                  {incidents.filter(i => i.deviceId === selectedDevice.id).length === 0 ? (
+                    <div className="text-center py-12 text-slate-500">
+                      <AlertTriangle size={48} className="mx-auto mb-4 text-slate-300" />
+                      <p>Chưa có báo cáo sự cố nào cho thiết bị này</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {incidents.filter(i => i.deviceId === selectedDevice.id).map((incident) => (
+                        <div key={incident.id} className="p-4 bg-red-50 rounded-xl border border-red-100">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-semibold text-red-800">{incident.reportCode}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                  incident.status === "Đã duyệt" || incident.status === "Hoàn thành" 
+                                    ? "bg-green-100 text-green-700" 
+                                    : incident.status === "Chờ duyệt"
+                                    ? "bg-yellow-100 text-yellow-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}>
+                                  {incident.status}
+                                </span>
+                              </div>
+                              <p className="text-sm text-slate-600 mb-1">{incident.description}</p>
+                              <p className="text-xs text-slate-500">
+                                Phát hiện: {incident.incidentDateTime} bởi {incident.discoveredBy}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button className="p-2 hover:bg-white rounded-lg" title="Xem chi tiết">
+                                <Eye size={16} className="text-slate-600" />
+                              </button>
+                              <button className="p-2 hover:bg-white rounded-lg" title="Tải PDF">
+                                <Download size={16} className="text-slate-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Calibration Sub-tab */}
+              {deviceDetailSubTab === "calibration" && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-slate-800">Lịch sử hiệu chuẩn & bảo dưỡng</h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedDeviceForAction(selectedDevice);
+                          setActiveModal("calibration");
+                        }}
+                        className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2"
+                      >
+                        <Settings size={16} />
+                        Yêu cầu hiệu chuẩn
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedDeviceForAction(selectedDevice);
+                          setActiveModal("maintenance");
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <Wrench size={16} />
+                        Yêu cầu bảo dưỡng
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {schedules.filter(s => s.deviceId === selectedDevice.id).length === 0 ? (
+                    <div className="text-center py-12 text-slate-500">
+                      <Settings size={48} className="mx-auto mb-4 text-slate-300" />
+                      <p>Chưa có lịch sử hiệu chuẩn/bảo dưỡng cho thiết bị này</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {schedules.filter(s => s.deviceId === selectedDevice.id).map((schedule) => (
+                        <div key={schedule.id} className={`p-4 rounded-xl border ${
+                          schedule.type === "Hiệu chuẩn" 
+                            ? "bg-teal-50 border-teal-100" 
+                            : "bg-blue-50 border-blue-100"
+                        }`}>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`font-semibold ${
+                                  schedule.type === "Hiệu chuẩn" ? "text-teal-800" : "text-blue-800"
+                                }`}>
+                                  {schedule.type}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                  schedule.status === "Đã hoàn thành" 
+                                    ? "bg-green-100 text-green-700" 
+                                    : schedule.status === "Quá hạn"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-yellow-100 text-yellow-700"
+                                }`}>
+                                  {schedule.status}
+                                </span>
+                              </div>
+                              <p className="text-sm text-slate-600">
+                                Ngày: {schedule.scheduledDate} | Người phụ trách: {schedule.assignedTo}
+                              </p>
+                              {schedule.notes && (
+                                <p className="text-xs text-slate-500 mt-1">Ghi chú: {schedule.notes}</p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <button className="p-2 hover:bg-white rounded-lg" title="Xem chi tiết">
+                                <Eye size={16} className="text-slate-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
