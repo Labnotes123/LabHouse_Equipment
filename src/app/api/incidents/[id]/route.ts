@@ -3,9 +3,9 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 function dbToIncident(row: Record<string, unknown>) {
   return {
-    id: row.id,
+    id: String(row.id),
     reportCode: row.report_code,
-    deviceId: row.device_id,
+    deviceId: String(row.device_id ?? ""),
     deviceName: row.device_name,
     deviceCode: row.device_code,
     specialty: row.specialty,

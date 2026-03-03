@@ -45,7 +45,7 @@ export default function CalibrationTab() {
   // State
   const [activeTab, setActiveTab] = useState<CalibrationTab>("request");
   const [calibrationRequests, setCalibrationRequests] = useState<any[]>([]);
-  const { schedules: contextSchedules, devices: contextDevices } = useData();
+  const { schedules: contextSchedules, devices: contextDevices, addSchedule } = useData();
   const [schedules, setSchedules] = useState<CalibrationSchedule[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   useEffect(() => { setSchedules(contextSchedules); }, [contextSchedules]);
@@ -175,6 +175,17 @@ export default function CalibrationTab() {
           : r
       )
     );
+    // When approved, also persist as a calibration/maintenance schedule in Supabase
+    addSchedule({
+      deviceId: request.deviceId,
+      deviceName: request.deviceName,
+      deviceCode: request.deviceCode,
+      scheduledDate: request.expectedDate,
+      type: "Hiệu chuẩn",
+      status: "Chờ thực hiện",
+      assignedTo: user?.fullName ?? "",
+      notes: request.notes,
+    }).catch(console.error);
     success("Thành công", "Đã phê duyệt yêu cầu hiệu chuẩn");
   };
 

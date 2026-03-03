@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 function dbToProposal(row: Record<string, unknown>) {
   return {
-    id: row.id,
+    id: String(row.id),
     proposalCode: row.proposal_code,
     necessity: row.necessity,
     deviceRequirements: row.device_requirements ?? [],

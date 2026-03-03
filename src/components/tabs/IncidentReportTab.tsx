@@ -78,7 +78,7 @@ export default function IncidentReportTab() {
   const workOrderAttachmentInputRef = useRef<HTMLInputElement>(null);
 
   // State
-  const { incidents: contextIncidents, devices: contextDevices } = useData();
+  const { incidents: contextIncidents, devices: contextDevices, addIncident, updateIncident } = useData();
   const [incidentReports, setIncidentReports] = useState<IncidentReport[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   useEffect(() => { setIncidentReports(contextIncidents); }, [contextIncidents]);
@@ -256,6 +256,9 @@ export default function IncidentReportTab() {
     };
 
     setIncidentReports([newIncident, ...incidentReports]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id: _incCreateId, ...incidentCreateData } = newIncident;
+    addIncident(incidentCreateData).catch(console.error);
     setIncidentCounter(newCounter);
     setWorkOrderCounters({ ...workOrderCounters, [newIncident.reportCode]: 0 });
     
@@ -334,6 +337,9 @@ export default function IncidentReportTab() {
     };
 
     setIncidentReports([newIncident, ...incidentReports]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id: _incInProgId, ...incidentInProgData } = newIncident;
+    addIncident(incidentInProgData).catch(console.error);
     setIncidentCounter(newCounter);
     setWorkOrderCounters({ ...workOrderCounters, [newIncident.reportCode]: 0 });
     setShowForm(false);
@@ -389,17 +395,13 @@ export default function IncidentReportTab() {
       return;
     }
 
+    const finalSubmitUpdates = { status: "Chờ duyệt" as const, updatedAt: new Date().toISOString() };
     setIncidentReports(
       incidentReports.map((i) =>
-        i.id === incident.id
-          ? { 
-              ...i, 
-              status: "Chờ duyệt" as const, 
-              updatedAt: new Date().toISOString() 
-            }
-          : i
+        i.id === incident.id ? { ...i, ...finalSubmitUpdates } : i
       )
     );
+    updateIncident(incident.id, finalSubmitUpdates).catch(console.error);
     
     // Send notification (simulated)
     info("Thông báo", `Đã gửi thông báo tới ${incident.deviceManager} và ${incident.reportedBy}`);
@@ -408,19 +410,16 @@ export default function IncidentReportTab() {
 
   // Handle approve
   const handleApprove = (incident: IncidentReport) => {
+    const approveUpdates = {
+      status: "Hoàn thành" as const,
+      approvedBy: user?.fullName || "",
+      approvedDate: new Date().toLocaleString("vi-VN"),
+      updatedAt: new Date().toISOString(),
+    };
     setIncidentReports(
-      incidentReports.map((i) =>
-        i.id === incident.id
-          ? {
-              ...i,
-              status: "Hoàn thành" as const,
-              approvedBy: user?.fullName || "",
-              approvedDate: new Date().toLocaleString("vi-VN"),
-              updatedAt: new Date().toISOString(),
-            }
-          : i
-      )
+      incidentReports.map((i) => i.id === incident.id ? { ...i, ...approveUpdates } : i)
     );
+    updateIncident(incident.id, approveUpdates).catch(console.error);
     success("Thành công", "Đã phê duyệt phiếu báo cáo sự cố");
   };
 
@@ -450,13 +449,15 @@ export default function IncidentReportTab() {
       createdAt: new Date().toISOString(),
     };
 
+    const updatedWorkOrders = [...(selectedIncident.workOrders || []), newWorkOrder];
     setIncidentReports(
       incidentReports.map((i) =>
         i.id === selectedIncident.id
-          ? { ...i, workOrders: [...(i.workOrders || []), newWorkOrder] }
+          ? { ...i, workOrders: updatedWorkOrders }
           : i
       )
     );
+    updateIncident(selectedIncident.id, { workOrders: updatedWorkOrders }).catch(console.error);
 
     setWorkOrderCounters({ ...workOrderCounters, [selectedIncident.reportCode]: newCounter });
     setWorkOrderForm({
@@ -501,6 +502,7 @@ export default function IncidentReportTab() {
           : i
       )
     );
+    updateIncident(selectedIncident.id, { workOrders: updatedWorkOrders || [] }).catch(console.error);
 
     // Update selected incident to reflect changes
     const updated = incidentReports.find(i => i.id === selectedIncident.id);
@@ -533,20 +535,17 @@ export default function IncidentReportTab() {
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const year = now.getFullYear();
 
+    const completeRepairUpdates = {
+      supplierAction: supplierActions || "",
+      status: "Nháp" as const,
+      conclusion: "đã khắc phục" as const,
+      completionDateTime: `${hours}:${minutes} ${day}/${month}/${year}`,
+      updatedAt: new Date().toISOString(),
+    };
     setIncidentReports(
-      incidentReports.map((i) =>
-        i.id === incident.id
-          ? {
-              ...i,
-              supplierAction: supplierActions || "",
-              status: "Nháp" as const,
-              conclusion: "đã khắc phục",
-              completionDateTime: `${hours}:${minutes} ${day}/${month}/${year}`,
-              updatedAt: new Date().toISOString(),
-            }
-          : i
-      )
+      incidentReports.map((i) => i.id === incident.id ? { ...i, ...completeRepairUpdates } : i)
     );
+    updateIncident(incident.id, completeRepairUpdates).catch(console.error);
     setShowSupplierContact(false);
     success("Thành công", "Đã hoàn tất sửa chữa. Vui lòng hoàn tất phiếu báo cáo sự cố.");
   };
@@ -621,14 +620,13 @@ export default function IncidentReportTab() {
   // Update form state when editing
   const handleUpdateIncident = () => {
     if (!selectedIncident) return;
-
+    const updateData = { ...form, updatedAt: new Date().toISOString() };
     setIncidentReports(
       incidentReports.map((i) =>
-        i.id === selectedIncident.id
-          ? { ...i, ...form, updatedAt: new Date().toISOString() }
-          : i
+        i.id === selectedIncident.id ? { ...i, ...updateData } : i
       )
     );
+    updateIncident(selectedIncident.id, updateData).catch(console.error);
     setShowEditForm(false);
     success("Thành công", "Đã cập nhật phiếu báo cáo sự cố");
   };
@@ -1270,6 +1268,9 @@ export default function IncidentReportTab() {
                         };
 
                         setIncidentReports([newIncident, ...incidentReports]);
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        const { id: _inProgId, ...inProgData } = newIncident;
+                        addIncident(inProgData).catch(console.error);
                         setIncidentCounter(newCounter);
                         setWorkOrderCounters({ ...workOrderCounters, [newIncident.reportCode]: 0 });
                         setForm({
@@ -1334,6 +1335,9 @@ export default function IncidentReportTab() {
                         };
 
                         setIncidentReports([newIncident, ...incidentReports]);
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        const { id: _doneId, ...doneData } = newIncident;
+                        addIncident(doneData).catch(console.error);
                         setIncidentCounter(newCounter);
                         setForm({
                           deviceId: "", deviceName: "", deviceCode: "", specialty: "",

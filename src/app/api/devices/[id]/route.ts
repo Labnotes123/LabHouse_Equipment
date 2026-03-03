@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 function dbToDevice(row: Record<string, unknown>) {
   return {
-    id: row.id,
+    id: String(row.id),
     code: row.code,
     name: row.name,
     specialty: row.specialty,

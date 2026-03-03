@@ -3,8 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 function dbToSchedule(row: Record<string, unknown>) {
   return {
-    id: row.id,
-    deviceId: row.device_id,
+    id: String(row.id),
+    deviceId: String(row.device_id ?? ""),
     deviceName: row.device_name,
     deviceCode: row.device_code,
     scheduledDate: row.scheduled_date,

@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 function dbToHistory(row: Record<string, unknown>) {
   return {
-    id: row.id,
+    id: String(row.id),
     actionCode: row.action_code,
     actionNumber: row.action_number,
     userId: row.user_id,

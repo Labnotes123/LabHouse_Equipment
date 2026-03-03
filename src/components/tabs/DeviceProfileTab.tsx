@@ -459,7 +459,7 @@ export default function DeviceProfileTab() {
   const returnHandoverAttachmentInputRef = useRef<HTMLInputElement>(null);
   const returnAcceptanceFormAttachmentInputRef = useRef<HTMLInputElement>(null);
   
-  const { devices: contextDevices } = useData();
+  const { devices: contextDevices, addDevice, updateDevice } = useData();
   const [devices, setDevices] = useState<Device[]>([]);
   useEffect(() => { setDevices(contextDevices); }, [contextDevices]);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -1633,6 +1633,7 @@ export default function DeviceProfileTab() {
     setDevices(devices.map(d => 
       d.id === deviceId ? { ...d, status: newStatus } : d
     ));
+    updateDevice(deviceId, { status: newStatus }).catch(console.error);
     success('Cập nhật trạng thái', `Thiết bị đã chuyển sang trạng thái ${newStatus}`);
   };
 
@@ -1672,31 +1673,22 @@ export default function DeviceProfileTab() {
       return;
     }
     
-    setDevices(devices.map(d => {
-      if (d.id === deviceId) {
-        const currentManager = d.managerHistory?.find(m => m.isCurrent);
-        const updatedHistory = d.managerHistory || [];
-        
-        // Mark current manager as ended
-        if (currentManager) {
-          const idx = updatedHistory.findIndex(m => m.isCurrent);
-          if (idx !== -1) {
-            updatedHistory[idx] = { ...updatedHistory[idx], isCurrent: false, endDate: newManagerStartDate };
-          }
-        }
-        
-        // Add new manager
-        updatedHistory.push({
-          userId: selectedNewManager.id,
-          fullName: selectedNewManager.fullName,
-          startDate: newManagerStartDate,
-          isCurrent: true,
-        });
-        
-        return { ...d, managerHistory: updatedHistory };
-      }
-      return d;
-    }));
+    const device = devices.find(d => d.id === deviceId);
+    if (!device) return;
+
+    const prevHistory = device.managerHistory || [];
+    const updatedHistory = prevHistory.map(m =>
+      m.isCurrent ? { ...m, isCurrent: false, endDate: newManagerStartDate } : m
+    );
+    updatedHistory.push({
+      userId: selectedNewManager.id,
+      fullName: selectedNewManager.fullName,
+      startDate: newManagerStartDate,
+      isCurrent: true,
+    });
+
+    setDevices(devices.map(d => d.id === deviceId ? { ...d, managerHistory: updatedHistory } : d));
+    updateDevice(deviceId, { managerHistory: updatedHistory }).catch(console.error);
     
     success("Thành công", `Đã thay đổi người quản lý thiết bị`);
     setInfoSubmenu(null);
@@ -1713,6 +1705,9 @@ export default function DeviceProfileTab() {
       return;
     }
     
+    const device = devices.find(d => d.id === deviceId);
+    if (!device) return;
+
     const newContact: DeviceContact = {
       id: `c${uniqueId}`,
       fullName: editingContact.fullName || "",
@@ -1721,13 +1716,12 @@ export default function DeviceProfileTab() {
       address: editingContact.address,
     };
     
-    setDevices(devices.map(d => {
-      if (d.id === deviceId) {
-        const updatedContacts = d.contacts?.length ? d.contacts.map(c => ({...c, ...newContact, id: c.id })) : [newContact];
-        return { ...d, contacts: updatedContacts };
-      }
-      return d;
-    }));
+    const updatedContacts = device.contacts?.length
+      ? device.contacts.map(c => ({ ...c, ...newContact, id: c.id }))
+      : [newContact];
+
+    setDevices(devices.map(d => d.id === deviceId ? { ...d, contacts: updatedContacts } : d));
+    updateDevice(deviceId, { contacts: updatedContacts }).catch(console.error);
     
     success("Thành công", "Đã cập nhật thông tin liên hệ");
     setInfoSubmenu(null);
@@ -1788,6 +1782,9 @@ export default function DeviceProfileTab() {
     };
     
     setDevices((prev) => [newDevice, ...prev]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id: _id, ...deviceWithoutId } = newDevice;
+    addDevice(deviceWithoutId).catch(console.error);
     setShowAddForm(false);
     resetForm();
     setDeviceCounter(deviceCounter + 1);
