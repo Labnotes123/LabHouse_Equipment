@@ -89,6 +89,8 @@ function createDefaultIncidentForm(device: Device, user: User | null): Partial<I
     resolvedBy: undefined,
     resolvedByType: undefined,
     linkedWorkOrderCode: undefined,
+    approvedBy: undefined,
+    completionDateTime: undefined,
   };
 }
 
@@ -157,6 +159,22 @@ export default function IncidentReportModal({
       return;
     }
 
+    // Validation for report submission
+    if (status === "Chờ duyệt") {
+      if (!incidentForm.conclusion) {
+        error("Lỗi", "Vui lòng chọn kết quả sau xử trí");
+        return;
+      }
+      if (incidentForm.conclusion === "đã khắc phục" && !incidentForm.resolvedBy) {
+        error("Lỗi", "Vui lòng chọn người khắc phục sự cố");
+        return;
+      }
+      if (!incidentForm.approvedBy) {
+        error("Lỗi", "Vui lòng chọn người phê duyệt");
+        return;
+      }
+    }
+
     const nowYear = new Date().getFullYear();
     const baseIncident: IncidentReport = {
       id: editingIncidentId || `ir-${Date.now()}`,
@@ -191,8 +209,10 @@ export default function IncidentReportModal({
       resolvedBy: incidentForm.resolvedBy,
       resolvedByType: incidentForm.resolvedByType,
       linkedWorkOrderCode: incidentForm.linkedWorkOrderCode,
+      completionDateTime: incidentForm.completionDateTime,
       createdAt: incidentForm.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      approvedBy: incidentForm.approvedBy,
       workOrders: incidentForm.workOrders || [],
     };
 
@@ -597,6 +617,232 @@ export default function IncidentReportModal({
                       />
                       Có đề xuất bổ sung
                     </label>
+                  </div>
+
+                  {/* Kết quả sau xử trí */}
+                  <div className="border-t border-slate-200 pt-4 mt-4">
+                    <h4 className="font-semibold text-slate-800 mb-3">Kết quả sau xử trí</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Kết quả sau xử trí</label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 text-sm text-slate-700">
+                            <input
+                              type="radio"
+                              name="conclusion"
+                              checked={incidentForm.conclusion === "đã khắc phục"}
+                              onChange={() => setIncidentForm({ ...incidentForm, conclusion: "đã khắc phục", resolvedByType: undefined })}
+                              className="w-4 h-4"
+                            />
+                            Sự cố đã được khắc phục
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-slate-700">
+                            <input
+                              type="radio"
+                              name="conclusion"
+                              checked={incidentForm.conclusion === "chưa khắc phục"}
+                              onChange={() => setIncidentForm({ ...incidentForm, conclusion: "chưa khắc phục" })}
+                              className="w-4 h-4"
+                            />
+                            Sự cố chưa được khắc phục
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* If resolved - show resolver fields */}
+                    {incidentForm.conclusion === "đã khắc phục" && (
+                      <div className="mt-4 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Người khắc phục sự cố</label>
+                            <div className="flex gap-2 mb-2">
+                              <button
+                                type="button"
+                                onClick={() => setIncidentForm({ ...incidentForm, resolvedByType: "nhân viên lab", resolvedBy: undefined })}
+                                className={`px-3 py-1.5 text-sm rounded-lg border ${
+                                  incidentForm.resolvedByType === "nhân viên lab"
+                                    ? "bg-blue-500 text-white border-blue-500"
+                                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                                }`}
+                              >
+                                Nhân viên Lab
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIncidentForm({ ...incidentForm, resolvedByType: "nhà sản xuất", resolvedBy: undefined })}
+                                className={`px-3 py-1.5 text-sm rounded-lg border ${
+                                  incidentForm.resolvedByType === "nhà sản xuất"
+                                    ? "bg-blue-500 text-white border-blue-500"
+                                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                                }`}
+                              >
+                                Kỹ sư hãng
+                              </button>
+                            </div>
+                            {incidentForm.resolvedByType && (
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={incidentForm.resolvedBy || ""}
+                                  onChange={(e) => setIncidentForm({ ...incidentForm, resolvedBy: e.target.value })}
+                                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                  placeholder={`Tìm ${incidentForm.resolvedByType === "nhân viên lab" ? "nhân viên" : "kỹ sư"}...`}
+                                />
+                                {/* Show resolved user info if selected */}
+                                {incidentForm.resolvedBy && (
+                                  <div className="p-2 bg-blue-50 rounded-lg text-sm">
+                                    <p className="font-medium text-blue-800">{incidentForm.resolvedBy}</p>
+                                    {incidentForm.resolvedByType === "nhân viên lab" && (
+                                      <p className="text-blue-600 text-xs">Mã NV: NV001 | Chức vụ: Kỹ thuật viên | Khoa: Khoa xét nghiệm</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Thời gian hoàn thành</label>
+                            <input
+                              type="datetime-local"
+                              value={incidentForm.completionDateTime || ""}
+                              onChange={(e) => setIncidentForm({ ...incidentForm, completionDateTime: e.target.value })}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Patient impact */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="flex items-center gap-2 text-sm text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={!!incidentForm.affectsPatientResult}
+                                onChange={(e) => setIncidentForm({ ...incidentForm, affectsPatientResult: e.target.checked })}
+                                className="w-4 h-4"
+                              />
+                              Có ảnh hưởng tới kết quả bệnh nhân
+                            </label>
+                            {incidentForm.affectsPatientResult && (
+                              <div className="mt-2 space-y-2">
+                                <input
+                                  type="text"
+                                  value={incidentForm.affectedPatientSid || ""}
+                                  onChange={(e) => setIncidentForm({ ...incidentForm, affectedPatientSid: e.target.value })}
+                                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                  placeholder="SID bệnh nhân"
+                                />
+                                <textarea
+                                  value={incidentForm.howAffected || ""}
+                                  onChange={(e) => setIncidentForm({ ...incidentForm, howAffected: e.target.value })}
+                                  rows={2}
+                                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                                  placeholder="Bị ảnh hưởng như thế nào"
+                                />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="flex items-center gap-2 text-sm text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={!!incidentForm.requiresDeviceStop}
+                                onChange={(e) => setIncidentForm({ ...incidentForm, requiresDeviceStop: e.target.checked })}
+                                className="w-4 h-4"
+                              />
+                              Có phải dừng hoạt động của máy
+                            </label>
+                            {incidentForm.requiresDeviceStop && (
+                              <div className="mt-2 grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-slate-500 mb-1">Từ</label>
+                                  <input
+                                    type="datetime-local"
+                                    value={incidentForm.stopFrom || ""}
+                                    onChange={(e) => setIncidentForm({ ...incidentForm, stopFrom: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-slate-500 mb-1">Đến</label>
+                                  <input
+                                    type="datetime-local"
+                                    value={incidentForm.stopTo || ""}
+                                    onChange={(e) => setIncidentForm({ ...incidentForm, stopTo: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* If unresolved - show work order contact info */}
+                    {incidentForm.conclusion === "chưa khắc phục" && (
+                      <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-amber-800 font-medium">Chưa khắc phục - Cần liên hệ nhà cung ứng</p>
+                            <p className="text-xs text-amber-600 mt-1">
+                              {deviceIncidents.find((i) => i.id === editingIncidentId)?.workOrders && deviceIncidents.find((i) => i.id === editingIncidentId)!.workOrders!.length > 0
+                                ? `Đã liên hệ: ${deviceIncidents.find((i) => i.id === editingIncidentId)?.workOrders?.[0]?.contactPerson || "Chưa có thông tin"}`
+                                : "Chưa liên hệ nhà cung ứng"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCurrentIncidentForWorkOrder(deviceIncidents.find((i) => i.id === editingIncidentId) || null);
+                              setIncidentModalTab("work-orders");
+                            }}
+                            className="px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
+                          >
+                            <PhoneCall size={16} /> Liên hệ NCC
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Approver and related users */}
+                  <div className="border-t border-slate-200 pt-4 mt-4">
+                    <h4 className="font-semibold text-slate-800 mb-3">Thông tin phê duyệt</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Người phụ trách thiết bị</label>
+                        <input
+                          type="text"
+                          value={incidentForm.deviceManager || ""}
+                          onChange={(e) => setIncidentForm({ ...incidentForm, deviceManager: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50"
+                          placeholder="Tự động điền từ thiết bị"
+                          readOnly
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Người phê duyệt <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          value={incidentForm.approvedBy || ""}
+                          onChange={(e) => setIncidentForm({ ...incidentForm, approvedBy: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                          placeholder="Tìm người phê duyệt..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Người liên quan</label>
+                        <input
+                          type="text"
+                          value={incidentForm.relatedUsers?.join(", ") || ""}
+                          onChange={(e) => setIncidentForm({ ...incidentForm, relatedUsers: e.target.value.split(", ").filter(Boolean) })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                          placeholder="Tìm người liên quan..."
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
