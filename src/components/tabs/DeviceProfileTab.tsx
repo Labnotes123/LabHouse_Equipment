@@ -86,6 +86,7 @@ import TransferModal from "./TransferModal";
 import LiquidationModal from "./LiquidationModal";
 import TrainingModal from "./TrainingModal";
 import IncidentReportModal from "./IncidentReportModal";
+import DeviceManagementModal from "./DeviceManagementModal";
 import {
   Device,
   DeviceStatus,
@@ -103,6 +104,8 @@ import {
   IncidentReport,
   WorkOrder,
   AttachedFile,
+  mockUserProfiles,
+  UserProfile,
 } from "@/lib/mockData";
 import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -567,6 +570,7 @@ export default function DeviceProfileTab() {
   
   // Info submenu state
   const [infoSubmenu, setInfoSubmenu] = useState<"history" | "change-manager" | "change-contact" | "print-label" | null>(null);
+  const [showManagementModal, setShowManagementModal] = useState(false);
   const [showInfoDropdown, setShowInfoDropdown] = useState<string | null>(null);
   
   // Change manager state
@@ -1603,6 +1607,12 @@ export default function DeviceProfileTab() {
         setInfoSubmenu("change-contact");
         setShowInfoDropdown(null);
         break;
+      case "info-management":
+        // Open unified management modal with 4 tabs
+        setSelectedDevice(device);
+        setShowManagementModal(true);
+        setShowInfoDropdown(null);
+        break;
       case "incident":
         setActiveModal("incident");
         break;
@@ -2031,39 +2041,14 @@ export default function DeviceProfileTab() {
                               <btn.icon size={16} />
                               <span className="whitespace-nowrap">{btn.label}</span>
                             </button>
-                            {/* Info submenu dropdown */}
-                            {showInfoDropdown === device.id && (
-                              <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl py-1 min-w-[160px] z-30">
+                            {/* Unified Management Modal button */}
                                 <button
-                                  onClick={() => handleActionClick(device, "info-history")}
+                                  onClick={() => handleActionClick(device, "info-management")}
                                   className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-purple-50 flex items-center gap-2"
                                 >
-                                  <FileText size={14} className="text-purple-600" />
-                                  Xem lý lịch thiết bị
+                                  <Settings size={14} className="text-purple-600" />
+                                  Thông tin quản lý
                                 </button>
-                                <button
-                                  onClick={() => handleActionClick(device, "info-change-manager")}
-                                  className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-purple-50 flex items-center gap-2"
-                                >
-                                  <User size={14} className="text-blue-600" />
-                                  Thay đổi người quản lý
-                                </button>
-                                <button
-                                  onClick={() => handleActionClick(device, "info-change-contact")}
-                                  className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-purple-50 flex items-center gap-2"
-                                >
-                                  <Phone size={14} className="text-green-600" />
-                                  Thay đổi thông tin liên hệ
-                                </button>
-                                <button
-                                  onClick={() => handleActionClick(device, "info-print-label")}
-                                  className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-purple-50 flex items-center gap-2"
-                                >
-                                  <Printer size={14} className="text-green-600" />
-                                  In nhãn thiết bị
-                                </button>
-                              </div>
-                            )}
                           </>
                         ) : (
                           <button
@@ -2341,51 +2326,17 @@ export default function DeviceProfileTab() {
                                           </span>
                                           <ChevronRight size={14} className="rotate-90" />
                                         </button>
-                                        {/* Info submenu dropdown */}
-                                        {showInfoDropdown === device.id && (
-                                          <div className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-slate-200 py-2 min-w-[180px]">
+                                        {/* Unified Management button */}
                                             <button
                                               onClick={() => {
-                                                handleActionClick(device, "info-history");
+                                                handleActionClick(device, "info-management");
                                                 setShowInfoDropdown(null);
                                               }}
                                               className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-purple-50 flex items-center gap-3"
                                             >
-                                              <FileText size={16} className="text-purple-600" />
-                                              Xem lý lịch thiết bị
+                                              <Settings size={16} className="text-purple-600" />
+                                              Thông tin quản lý
                                             </button>
-                                            <button
-                                              onClick={() => {
-                                                handleActionClick(device, "info-change-manager");
-                                                setShowInfoDropdown(null);
-                                              }}
-                                              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-purple-50 flex items-center gap-3"
-                                            >
-                                              <User size={16} className="text-blue-600" />
-                                              Thay đổi người quản lý
-                                            </button>
-                                            <button
-                                              onClick={() => {
-                                                handleActionClick(device, "info-change-contact");
-                                                setShowInfoDropdown(null);
-                                              }}
-                                              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-purple-50 flex items-center gap-3"
-                                            >
-                                              <Phone size={16} className="text-green-600" />
-                                              Thay đổi thông tin liên hệ
-                                            </button>
-                                            <button
-                                              onClick={() => {
-                                                handleActionClick(device, "info-print-label");
-                                                setShowInfoDropdown(null);
-                                              }}
-                                              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-purple-50 flex items-center gap-3"
-                                            >
-                                              <Printer size={16} className="text-green-600" />
-                                              In nhãn thiết bị
-                                            </button>
-                                          </div>
-                                        )}
                                       </>
                                     ) : (
                                       <button
@@ -3839,6 +3790,18 @@ export default function DeviceProfileTab() {
         show={activeModal === "maintenance"}
         device={selectedDeviceForAction}
         onClose={() => setActiveModal(null)}
+      />
+
+      <DeviceManagementModal
+        device={selectedDevice || null}
+        isOpen={showManagementModal}
+        onClose={() => { setShowManagementModal(false); setSelectedDevice(null); }}
+        currentUser={user as unknown as UserProfile | null}
+        allUsers={mockUserProfiles}
+        onUpdateDevice={(deviceId, updates) => {
+          updateDevice(deviceId, updates).catch(console.error);
+          setDevices(prev => prev.map(d => d.id === deviceId ? { ...d, ...updates } : d));
+        }}
       />
     </div>
   );
