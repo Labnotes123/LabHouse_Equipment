@@ -26,6 +26,7 @@ LabHouse is a laboratory equipment management system for medical laboratories wi
 - [x] **Completed DeviceProfileTab workflows for Điều chuyển / Thanh lý / Đào tạo** - Create draft/send approval, list tracking by status, edit/view/export PDF & Excel actions with mock data
 - [x] **Fixed incident report action buttons inside DeviceProfileTab** - Edit/View/Attachment/PDF/Excel now wired with real handlers and supplier work order save logic
 - [x] **Rebuilt Tiếp nhận workflow in DeviceProfileTab** - One acceptance modal with 2 main tabs (Tiếp nhận mới / Tiếp nhận trở lại), BM.05 survey flow, BM.07 transport records, attachment upload/view/download/remove, configurable list columns/filter/export, and complete-status gating
+- [x] **Removed Supabase dependencies** - All API routes now use mock data directly from `src/lib/mockData.ts`, deleted database scripts and updated package.json
 
 ## Current Structure
 
@@ -47,6 +48,7 @@ LabHouse is a laboratory equipment management system for medical laboratories wi
 | 2026-03-02 | **Integrated Incident Report & Calibration modals into DeviceProfileTab** |
 | 2026-03-02 | **Added DeviceProfileTab transfer/liquidation/training workflows + fixed incident action buttons in report list** |
 | 2026-03-02 | **Rebuilt DeviceProfileTab acceptance modal to tab-first flow (new/return) with BM.05/BM.07 + attachment actions + list/filter/export** |
+| 2026-03-04 | **Removed Supabase dependencies** - All API routes now use mock data directly from `src/lib/mockData.ts`, deleted database scripts and updated package.json |
 
 ## Current Focus
 
