@@ -15,10 +15,14 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
+    const deviceId = searchParams.get("deviceId");
 
     let result = [...schedulesStore];
     if (type) {
       result = result.filter((s) => s.type === type);
+    }
+    if (deviceId) {
+      result = result.filter((s) => s.deviceId === deviceId);
     }
 
     // Sort by scheduled date ascending

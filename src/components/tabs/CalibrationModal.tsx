@@ -124,6 +124,36 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
   useEffect(() => {
     if (!device || !show) return;
 
+    // Fetch calibration data for this device
+    const fetchCalibrationData = async () => {
+      try {
+        // Fetch requests
+        const requestsRes = await fetch(`/api/calibration-requests?deviceId=${device.id}`);
+        const requestsData = await requestsRes.json();
+        if (requestsData && Array.isArray(requestsData)) {
+          setCalibrationRequests(requestsData);
+        }
+
+        // Fetch schedules
+        const schedulesRes = await fetch(`/api/schedules?deviceId=${device.id}&type=Hiệu chuẩn`);
+        const schedulesData = await schedulesRes.json();
+        if (schedulesData && Array.isArray(schedulesData)) {
+          setCalibrationSchedules(schedulesData);
+        }
+
+        // Fetch results
+        const resultsRes = await fetch(`/api/calibration-results?deviceId=${device.id}`);
+        const resultsData = await resultsRes.json();
+        if (resultsData && Array.isArray(resultsData)) {
+          setCalibrationResults(resultsData);
+        }
+      } catch (err) {
+        console.error("Failed to fetch calibration data:", err);
+      }
+    };
+
+    fetchCalibrationData();
+
     const baseRequestCode = `PHC-${new Date().getFullYear()}-${String(calibrationCounter).padStart(3, "0")}`;
 
     setCalibrationModalTab("request");
