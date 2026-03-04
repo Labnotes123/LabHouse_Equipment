@@ -1102,6 +1102,7 @@ export default function IncidentReportModal({
                     setEditingWorkOrder(null);
                     setCurrentIncidentForWorkOrder(currentIncidentForWorkOrder || deviceIncidents[0] || null);
                     setWorkOrderForm(createDefaultWorkOrderForm());
+                    setEngineerSignature("");
                     setShowWorkOrderForm(true);
                   }}
                   className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
@@ -1144,6 +1145,7 @@ export default function IncidentReportModal({
                                 setCurrentIncidentForWorkOrder(ownerIncident);
                                 setEditingWorkOrder(wo as WorkOrder);
                                 setWorkOrderForm({ ...wo });
+                                setEngineerSignature(wo.signatureUrl || "");
                                 setShowWorkOrderForm(true);
                               }}
                               className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
