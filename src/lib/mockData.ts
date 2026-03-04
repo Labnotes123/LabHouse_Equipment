@@ -149,6 +149,63 @@ export interface CalibrationSchedule {
   notes?: string;
 }
 
+// Calibration Request - for Tab Yêu cầu Hiệu chuẩn (BM.08)
+export type CalibrationRequestStatus = "Bản nháp" | "Chờ duyệt" | "Đã duyệt" | "Hoàn thành";
+
+export interface CalibrationRequest {
+  id: string;
+  requestCode: string; // Format: PHC-[Năm]-[STT]
+  deviceId: string;
+  deviceName: string;
+  deviceCode: string;
+  serial: string;
+  quantity: number;
+  expectedDate: string;
+  content: string; // Nội dung hiệu chuẩn
+  notes: string;
+  attachments: AttachedFile[]; // Báo giá từ nhà cung cấp
+  proposedBy: string;
+  proposedById: string;
+  department: string;
+  position: string;
+  approver: string;
+  relatedUsers: string[];
+  status: CalibrationRequestStatus;
+  approvedBy?: string;
+  approvedDate?: string;
+  rejectedBy?: string;
+  rejectedDate?: string;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// Calibration Result - for Tab Kết quả Hiệu chuẩn (BM.09)
+export type CalibrationResultStatus = "Bản nháp" | "Đã hoàn tất";
+export type CalibrationConclusion = "Đạt" | "Không đạt";
+
+export interface CalibrationResult {
+  id: string;
+  resultCode: string;
+  requestId: string; // Link to CalibrationRequest
+  deviceId: string;
+  deviceName: string;
+  deviceCode: string;
+  serial: string;
+  executionDate: string; // Ngày thực hiện
+  content: string; // Nội dung hiệu chuẩn
+  executionUnit: string; // Đơn vị thực hiện
+  calibrationResult: string; // Kết quả hiệu chuẩn
+  standard: string; // Tiêu chuẩn
+  attachments: AttachedFile[]; // Chứng nhận hiệu chuẩn (PDF)
+  conclusion: CalibrationConclusion;
+  notes: string;
+  status: CalibrationResultStatus;
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface IncidentReport {
   id: string;
   reportCode: string; // Format: PSC-năm-STT (e.g., PSC-2024-001)
@@ -678,7 +735,7 @@ export const mockSchedules: CalibrationSchedule[] = [
     deviceId: "d1",
     deviceName: "Máy phân tích huyết học tự động",
     deviceCode: "TB-001",
-    scheduledDate: "2024-07-10",
+    scheduledDate: "10/07/2024",
     type: "Hiệu chuẩn",
     status: "Chờ thực hiện",
     assignedTo: "Phạm Thị Kỹ Thuật",
@@ -689,7 +746,7 @@ export const mockSchedules: CalibrationSchedule[] = [
     deviceId: "d2",
     deviceName: "Máy sinh hóa tự động",
     deviceCode: "TB-002",
-    scheduledDate: "2024-05-01",
+    scheduledDate: "01/05/2024",
     type: "Bảo dưỡng",
     status: "Chờ thực hiện",
     assignedTo: "Nguyễn Văn Admin",
@@ -700,7 +757,7 @@ export const mockSchedules: CalibrationSchedule[] = [
     deviceId: "d3",
     deviceName: "Máy miễn dịch tự động",
     deviceCode: "TB-003",
-    scheduledDate: "2024-03-15",
+    scheduledDate: "15/03/2024",
     type: "Hiệu chuẩn",
     status: "Quá hạn",
     assignedTo: "Vũ Thị Thiết Bị",
@@ -711,7 +768,7 @@ export const mockSchedules: CalibrationSchedule[] = [
     deviceId: "d4",
     deviceName: "Máy PCR Real-time",
     deviceCode: "TB-004",
-    scheduledDate: "2024-07-25",
+    scheduledDate: "25/07/2024",
     type: "Hiệu chuẩn",
     status: "Chờ thực hiện",
     assignedTo: "Hoàng Văn Chất Lượng",
@@ -721,10 +778,263 @@ export const mockSchedules: CalibrationSchedule[] = [
     deviceId: "d6",
     deviceName: "Tủ an toàn sinh học cấp II",
     deviceCode: "TB-006",
-    scheduledDate: "2024-05-20",
+    scheduledDate: "20/05/2024",
     type: "Hiệu chuẩn",
     status: "Chờ thực hiện",
     assignedTo: "Vũ Thị Thiết Bị",
+  },
+  {
+    id: "s6",
+    deviceId: "d1",
+    deviceName: "Máy phân tích huyết học tự động",
+    deviceCode: "TB-001",
+    scheduledDate: "10/01/2024",
+    type: "Hiệu chuẩn",
+    status: "Đã hoàn thành",
+    assignedTo: "Phạm Thị Kỹ Thuật",
+    notes: "Hiệu chuẩn định kỳ",
+  },
+  {
+    id: "s7",
+    deviceId: "d2",
+    deviceName: "Máy sinh hóa tự động",
+    deviceCode: "TB-002",
+    scheduledDate: "01/02/2024",
+    type: "Bảo dưỡng",
+    status: "Đã hoàn thành",
+    assignedTo: "Nguyễn Văn Admin",
+    notes: "Bảo dưỡng định kỳ",
+  },
+  {
+    id: "s8",
+    deviceId: "d4",
+    deviceName: "Máy PCR Real-time",
+    deviceCode: "TB-004",
+    scheduledDate: "25/01/2024",
+    type: "Hiệu chuẩn",
+    status: "Đã hoàn thành",
+    assignedTo: "Hoàng Văn Chất Lượng",
+    notes: "Hiệu chuẩn định kỳ",
+  },
+];
+
+// Mock Calibration Requests - Tab Yêu cầu Hiệu chuẩn (BM.08)
+export const mockCalibrationRequests: CalibrationRequest[] = [
+  {
+    id: "phc1",
+    requestCode: "PHC-2024-001",
+    deviceId: "d1",
+    deviceName: "Máy phân tích huyết học tự động",
+    deviceCode: "TB-001",
+    serial: "SN-2023-001",
+    quantity: 1,
+    expectedDate: "10/07/2024",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189, Sở ban ngành.",
+    notes: "Hiệu chuẩn định kỳ 6 tháng theo lịch",
+    attachments: [],
+    proposedBy: "Phạm Thị Kỹ Thuật",
+    proposedById: "user1",
+    department: "Khoa Xét nghiệm",
+    position: "Kỹ thuật viên",
+    approver: "Dr. Nguyễn Văn Giám đốc",
+    relatedUsers: ["Vũ Thị Thiết Bị"],
+    status: "Chờ duyệt",
+    createdAt: "2024-06-15T08:30:00Z",
+  },
+  {
+    id: "phc2",
+    requestCode: "PHC-2024-002",
+    deviceId: "d2",
+    deviceName: "Máy sinh hóa tự động",
+    deviceCode: "TB-002",
+    serial: "SN-2023-002",
+    quantity: 1,
+    expectedDate: "15/08/2024",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189.",
+    notes: "Kiểm tra độ chính xác các thông số sinh hóa",
+    attachments: [],
+    proposedBy: "Nguyễn Văn Admin",
+    proposedById: "user2",
+    department: "Khoa Xét nghiệm",
+    position: "Kỹ thuật viên",
+    approver: "Dr. Nguyễn Văn Giám đốc",
+    relatedUsers: ["Hoàng Văn Chất Lượng"],
+    status: "Đã duyệt",
+    approvedBy: "Dr. Nguyễn Văn Giám đốc",
+    approvedDate: "18/06/2024 09:00",
+    createdAt: "2024-06-10T10:00:00Z",
+  },
+  {
+    id: "phc3",
+    requestCode: "PHC-2024-003",
+    deviceId: "d3",
+    deviceName: "Máy miễn dịch tự động",
+    deviceCode: "TB-003",
+    serial: "SN-2023-003",
+    quantity: 1,
+    expectedDate: "20/06/2024",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu khẩn cấp - máy báo lỗi.",
+    notes: "Máy báo lỗi E-1001 cần kiểm tra",
+    attachments: [],
+    proposedBy: "Vũ Thị Thiết Bị",
+    proposedById: "user3",
+    department: "Khoa Xét nghiệm",
+    position: "Quản lý thiết bị",
+    approver: "Dr. Nguyễn Văn Giám đốc",
+    relatedUsers: ["Phạm Thị Kỹ Thuật"],
+    status: "Hoàn thành",
+    approvedBy: "Dr. Nguyễn Văn Giám đốc",
+    approvedDate: "12/06/2024 14:30",
+    createdAt: "2024-06-08T07:00:00Z",
+  },
+  {
+    id: "phc4",
+    requestCode: "PHC-2024-004",
+    deviceId: "d4",
+    deviceName: "Máy PCR Real-time",
+    deviceCode: "TB-004",
+    serial: "SN-2023-004",
+    quantity: 1,
+    expectedDate: "25/07/2024",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189.",
+    notes: "Hiệu chuẩn định kỳ",
+    attachments: [],
+    proposedBy: "Hoàng Văn Chất Lượng",
+    proposedById: "user4",
+    department: "Khoa Xét nghiệm",
+    position: "Kỹ thuật viên",
+    approver: "Dr. Nguyễn Văn Giám đốc",
+    relatedUsers: ["Vũ Thị Thiết Bị"],
+    status: "Bản nháp",
+    createdAt: "2024-06-20T11:00:00Z",
+  },
+  {
+    id: "phc5",
+    requestCode: "PHC-2024-005",
+    deviceId: "d5",
+    deviceName: "Máy gây mê",
+    deviceCode: "TB-005",
+    serial: "SN-2023-005",
+    quantity: 1,
+    expectedDate: "30/08/2024",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189.",
+    notes: "Kiểm tra độ chính xác",
+    attachments: [],
+    proposedBy: "Trần Văn Bác sĩ",
+    proposedById: "user5",
+    department: "Khoa Gây mê",
+    position: "Bác sĩ",
+    approver: "Dr. Nguyễn Văn Giám đốc",
+    relatedUsers: ["Vũ Thị Thiết Bị"],
+    status: "Chờ duyệt",
+    createdAt: "2024-06-22T09:00:00Z",
+  },
+  {
+    id: "phc6",
+    requestCode: "PHC-2024-006",
+    deviceId: "d6",
+    deviceName: "Tủ an toàn sinh học cấp II",
+    deviceCode: "TB-006",
+    serial: "SN-2023-006",
+    quantity: 1,
+    expectedDate: "20/05/2024",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189.",
+    notes: "Kiểm tra dòng khí",
+    attachments: [],
+    proposedBy: "Vũ Thị Thiết Bị",
+    proposedById: "user3",
+    department: "Khoa Xét nghiệm",
+    position: "Quản lý thiết bị",
+    approver: "Dr. Nguyễn Văn Giám đốc",
+    relatedUsers: ["Phạm Thị Kỹ Thuật"],
+    status: "Đã duyệt",
+    approvedBy: "Dr. Nguyễn Văn Giám đốc",
+    approvedDate: "10/05/2024 10:00",
+    createdAt: "2024-05-05T08:00:00Z",
+  },
+];
+
+// Mock Calibration Results - Tab Kết quả Hiệu chuẩn (BM.09)
+export const mockCalibrationResults: CalibrationResult[] = [
+  {
+    id: "kq1",
+    resultCode: "KQ-2024-001",
+    requestId: "phc3",
+    deviceId: "d3",
+    deviceName: "Máy miễn dịch tự động",
+    deviceCode: "TB-003",
+    serial: "SN-2023-003",
+    executionDate: "18/06/2024",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189.",
+    executionUnit: "Trung tâm Kiểm định Quốc gia",
+    calibrationResult: "Tất cả các thông số đo được nằm trong giới hạn cho phép.",
+    standard: "ISO 15189:2022",
+    attachments: [],
+    conclusion: "Đạt",
+    notes: "Máy hoạt động bình thường sau khi hiệu chuẩn",
+    status: "Đã hoàn tất",
+    createdBy: "Vũ Thị Thiết Bị",
+    createdAt: "2024-06-20T14:00:00Z",
+  },
+  {
+    id: "kq2",
+    resultCode: "KQ-2024-002",
+    requestId: "phc1",
+    deviceId: "d1",
+    deviceName: "Máy phân tích huyết học tự động",
+    deviceCode: "TB-001",
+    serial: "SN-2023-001",
+    executionDate: "10/01/2024",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189.",
+    executionUnit: "Trung tâm Kiểm định Quốc gia",
+    calibrationResult: "Các thông số WBC, RBC, Hgb, Hct đạt chuẩn.",
+    standard: "ISO 15189:2022",
+    attachments: [],
+    conclusion: "Đạt",
+    notes: "Hiệu chuẩn định kỳ thành công",
+    status: "Đã hoàn tất",
+    createdBy: "Phạm Thị Kỹ Thuật",
+    createdAt: "2024-01-12T10:00:00Z",
+  },
+  {
+    id: "kq3",
+    resultCode: "KQ-2024-003",
+    requestId: "phc2",
+    deviceId: "d2",
+    deviceName: "Máy sinh hóa tự động",
+    deviceCode: "TB-002",
+    serial: "SN-2023-002",
+    executionDate: "01/02/2024",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189.",
+    executionUnit: "Công ty Vimed",
+    calibrationResult: "Các thông số Enzyme, Lipid, Glucose nằm trong giới hạn.",
+    standard: "ISO 15189:2022",
+    attachments: [],
+    conclusion: "Đạt",
+    notes: "Bảo dưỡng định kỳ hoàn tất",
+    status: "Đã hoàn tất",
+    createdBy: "Nguyễn Văn Admin",
+    createdAt: "2024-02-05T09:00:00Z",
+  },
+  {
+    id: "kq4",
+    resultCode: "KQ-2024-004",
+    requestId: "phc6",
+    deviceId: "d6",
+    deviceName: "Tủ an toàn sinh học cấp II",
+    deviceCode: "TB-006",
+    serial: "SN-2023-006",
+    executionDate: "25/01/2024",
+    content: "Hiệu chuẩn thiết bị theo yêu cầu của ISO 15189.",
+    executionUnit: "Công ty An toàn sinh học",
+    calibrationResult: "Dòng khí đạt chuẩn Class II.",
+    standard: "ISO 15189:2022",
+    attachments: [],
+    conclusion: "Đạt",
+    notes: "Tủ hoạt động bình thường",
+    status: "Đã hoàn tất",
+    createdBy: "Hoàng Văn Chất Lượng",
+    createdAt: "2024-01-28T11:00:00Z",
   },
 ];
 
