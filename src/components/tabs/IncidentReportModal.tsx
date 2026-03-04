@@ -8,6 +8,7 @@ import {
   Edit,
   Eye,
   FileText,
+  Headphones,
   Mail,
   MessageSquare,
   Paperclip,
@@ -136,6 +137,8 @@ export default function IncidentReportModal({
   const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrder | null>(null);
   const [currentIncidentForWorkOrder, setCurrentIncidentForWorkOrder] = useState<IncidentReport | null>(null);
   const [workOrderForm, setWorkOrderForm] = useState<Partial<WorkOrder>>(createDefaultWorkOrderForm());
+  const [showAddRelatedUser, setShowAddRelatedUser] = useState(false);
+  const [newRelatedUser, setNewRelatedUser] = useState("");
 
   const deviceIncidents = useMemo(
     () => incidentReports.filter((incident) => incident.deviceId === device.id),
@@ -151,6 +154,27 @@ export default function IncidentReportModal({
   const resetIncidentForm = () => {
     setIncidentForm(createDefaultIncidentForm(device, user));
     setEditingIncidentId(null);
+    setShowAddRelatedUser(false);
+    setNewRelatedUser("");
+  };
+
+  // Calculate device stop duration
+  const calculateStopDuration = (start: string, end: string): string => {
+    if (!start || !end) return "";
+    const startTime = new Date(start).getTime();
+    const endTime = new Date(end).getTime();
+    const diffMs = endTime - startTime;
+    if (diffMs <= 0) return "";
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours} giờ ${minutes} phút`;
+  };
+
+  // Check if user can edit the incident
+  const canEditIncident = (incident: IncidentReport): boolean => {
+    if (incident.status === "Nháp") return true;
+    if (incident.status === "Từ chối") return true;
+    return false;
   };
 
   const handleSubmitIncident = (status: IncidentReport["status"]) => {
@@ -165,8 +189,27 @@ export default function IncidentReportModal({
         error("Lỗi", "Vui lòng chọn kết quả sau xử trí");
         return;
       }
-      if (incidentForm.conclusion === "đã khắc phục" && !incidentForm.resolvedBy) {
-        error("Lỗi", "Vui lòng chọn người khắc phục sự cố");
+      if (incidentForm.conclusion === "đã khắc phục") {
+        if (!incidentForm.resolvedBy) {
+          error("Lỗi", "Vui lòng chọn người khắc phục sự cố");
+          return;
+        }
+        // Validate 3 evaluation questions when resolved
+        if (incidentForm.affectsPatientResult && (!incidentForm.affectedPatientSid || !incidentForm.howAffected)) {
+          error("Lỗi", "Vui lòng nhập SID bệnh nhân và mô tả ảnh hưởng");
+          return;
+        }
+        if (incidentForm.requiresDeviceStop && (!incidentForm.stopFrom || !incidentForm.stopTo)) {
+          error("Lỗi", "Vui lòng nhập thời gian bắt đầu và kết thúc dừng máy");
+          return;
+        }
+        if (incidentForm.hasProposal && !incidentForm.proposal) {
+          error("Lỗi", "Vui lòng nhập nội dung đề xuất");
+          return;
+        }
+      }
+      if (incidentForm.conclusion === "chưa khắc phục" && (!incidentForm.workOrders || incidentForm.workOrders.length === 0)) {
+        error("Lỗi", "Vui lòng thêm công việc liên hệ nhà cung ứng trước khi gửi duyệt");
         return;
       }
       if (!incidentForm.approvedBy) {
@@ -496,9 +539,9 @@ export default function IncidentReportModal({
                                     setIncidentModalTab("work-orders");
                                   }}
                                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
-                                  title="Thêm công việc"
+                                  title="Liên hệ NCC"
                                 >
-                                  <Paperclip size={16} />
+                                  <Headphones size={16} />
                                 </button>
                               </div>
                             </td>
@@ -589,37 +632,7 @@ export default function IncidentReportModal({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <label className="flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={!!incidentForm.affectsPatientResult}
-                        onChange={(e) => setIncidentForm({ ...incidentForm, affectsPatientResult: e.target.checked })}
-                        className="w-4 h-4"
-                      />
-                      Ảnh hưởng kết quả bệnh nhân
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={!!incidentForm.requiresDeviceStop}
-                        onChange={(e) => setIncidentForm({ ...incidentForm, requiresDeviceStop: e.target.checked })}
-                        className="w-4 h-4"
-                      />
-                      Yêu cầu dừng thiết bị
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={!!incidentForm.hasProposal}
-                        onChange={(e) => setIncidentForm({ ...incidentForm, hasProposal: e.target.checked })}
-                        className="w-4 h-4"
-                      />
-                      Có đề xuất bổ sung
-                    </label>
-                  </div>
-
-                  {/* Kết quả sau xử trí */}
+                  {/* Kết quả sau xử trí - chỉ hiển thị khi đã khắc phục */}
                   <div className="border-t border-slate-200 pt-4 mt-4">
                     <h4 className="font-semibold text-slate-800 mb-3">Kết quả sau xử trí</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -712,67 +725,149 @@ export default function IncidentReportModal({
                           </div>
                         </div>
 
-                        {/* Patient impact */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="flex items-center gap-2 text-sm text-slate-700">
-                              <input
-                                type="checkbox"
-                                checked={!!incidentForm.affectsPatientResult}
-                                onChange={(e) => setIncidentForm({ ...incidentForm, affectsPatientResult: e.target.checked })}
-                                className="w-4 h-4"
-                              />
-                              Có ảnh hưởng tới kết quả bệnh nhân
+                        {/* 3 câu hỏi đánh giá ảnh hưởng sau khắc phục */}
+                        <div className="mt-4 space-y-4">
+                          {/* Câu 1: Ảnh hưởng kết quả bệnh nhân */}
+                          <div className="border border-slate-200 rounded-lg p-4">
+                            <label className="flex items-center gap-3 text-sm font-medium text-slate-700 mb-3">
+                              <span>1. Có ảnh hưởng tới kết quả bệnh nhân?</span>
                             </label>
+                            <div className="flex gap-4 mb-3">
+                              <label className="flex items-center gap-2 text-sm text-slate-700">
+                                <input
+                                  type="radio"
+                                  name="affectsPatientResult"
+                                  checked={incidentForm.affectsPatientResult === true}
+                                  onChange={() => setIncidentForm({ ...incidentForm, affectsPatientResult: true })}
+                                  className="w-4 h-4"
+                                />
+                                Có
+                              </label>
+                              <label className="flex items-center gap-2 text-sm text-slate-700">
+                                <input
+                                  type="radio"
+                                  name="affectsPatientResult"
+                                  checked={incidentForm.affectsPatientResult === false}
+                                  onChange={() => setIncidentForm({ ...incidentForm, affectsPatientResult: false, affectedPatientSid: "", howAffected: "" })}
+                                  className="w-4 h-4"
+                                />
+                                Không
+                              </label>
+                            </div>
                             {incidentForm.affectsPatientResult && (
-                              <div className="mt-2 space-y-2">
+                              <div className="pl-7 space-y-2">
                                 <input
                                   type="text"
                                   value={incidentForm.affectedPatientSid || ""}
                                   onChange={(e) => setIncidentForm({ ...incidentForm, affectedPatientSid: e.target.value })}
                                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                  placeholder="SID bệnh nhân"
+                                  placeholder="SID bệnh nhân bị ảnh hưởng"
                                 />
                                 <textarea
                                   value={incidentForm.howAffected || ""}
                                   onChange={(e) => setIncidentForm({ ...incidentForm, howAffected: e.target.value })}
                                   rows={2}
                                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                                  placeholder="Bị ảnh hưởng như thế nào"
+                                  placeholder="Mô tả ảnh hưởng như thế nào"
                                 />
                               </div>
                             )}
                           </div>
-                          <div>
-                            <label className="flex items-center gap-2 text-sm text-slate-700">
-                              <input
-                                type="checkbox"
-                                checked={!!incidentForm.requiresDeviceStop}
-                                onChange={(e) => setIncidentForm({ ...incidentForm, requiresDeviceStop: e.target.checked })}
-                                className="w-4 h-4"
-                              />
-                              Có phải dừng hoạt động của máy
+
+                          {/* Câu 2: Dừng máy */}
+                          <div className="border border-slate-200 rounded-lg p-4">
+                            <label className="flex items-center gap-3 text-sm font-medium text-slate-700 mb-3">
+                              <span>2. Có dừng máy hay không?</span>
                             </label>
+                            <div className="flex gap-4 mb-3">
+                              <label className="flex items-center gap-2 text-sm text-slate-700">
+                                <input
+                                  type="radio"
+                                  name="requiresDeviceStop"
+                                  checked={incidentForm.requiresDeviceStop === true}
+                                  onChange={() => setIncidentForm({ ...incidentForm, requiresDeviceStop: true })}
+                                  className="w-4 h-4"
+                                />
+                                Có
+                              </label>
+                              <label className="flex items-center gap-2 text-sm text-slate-700">
+                                <input
+                                  type="radio"
+                                  name="requiresDeviceStop"
+                                  checked={incidentForm.requiresDeviceStop === false}
+                                  onChange={() => setIncidentForm({ ...incidentForm, requiresDeviceStop: false, stopFrom: "", stopTo: "" })}
+                                  className="w-4 h-4"
+                                />
+                                Không
+                              </label>
+                            </div>
                             {incidentForm.requiresDeviceStop && (
-                              <div className="mt-2 grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="block text-xs text-slate-500 mb-1">Từ</label>
-                                  <input
-                                    type="datetime-local"
-                                    value={incidentForm.stopFrom || ""}
-                                    onChange={(e) => setIncidentForm({ ...incidentForm, stopFrom: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                  />
+                              <div className="pl-7 space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs text-slate-500 mb-1">Thời gian bắt đầu</label>
+                                    <input
+                                      type="datetime-local"
+                                      value={incidentForm.stopFrom || ""}
+                                      onChange={(e) => setIncidentForm({ ...incidentForm, stopFrom: e.target.value })}
+                                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs text-slate-500 mb-1">Thời gian kết thúc</label>
+                                    <input
+                                      type="datetime-local"
+                                      value={incidentForm.stopTo || ""}
+                                      onChange={(e) => setIncidentForm({ ...incidentForm, stopTo: e.target.value })}
+                                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                    />
+                                  </div>
                                 </div>
-                                <div>
-                                  <label className="block text-xs text-slate-500 mb-1">Đến</label>
-                                  <input
-                                    type="datetime-local"
-                                    value={incidentForm.stopTo || ""}
-                                    onChange={(e) => setIncidentForm({ ...incidentForm, stopTo: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                  />
-                                </div>
+                                {incidentForm.stopFrom && incidentForm.stopTo && (
+                                  <p className="text-sm text-blue-600 font-medium">
+                                    Thời gian dừng máy: {calculateStopDuration(incidentForm.stopFrom, incidentForm.stopTo)}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Câu 3: Đề xuất */}
+                          <div className="border border-slate-200 rounded-lg p-4">
+                            <label className="flex items-center gap-3 text-sm font-medium text-slate-700 mb-3">
+                              <span>3. Có đề xuất gì không?</span>
+                            </label>
+                            <div className="flex gap-4 mb-3">
+                              <label className="flex items-center gap-2 text-sm text-slate-700">
+                                <input
+                                  type="radio"
+                                  name="hasProposal"
+                                  checked={incidentForm.hasProposal === true}
+                                  onChange={() => setIncidentForm({ ...incidentForm, hasProposal: true })}
+                                  className="w-4 h-4"
+                                />
+                                Có
+                              </label>
+                              <label className="flex items-center gap-2 text-sm text-slate-700">
+                                <input
+                                  type="radio"
+                                  name="hasProposal"
+                                  checked={incidentForm.hasProposal === false}
+                                  onChange={() => setIncidentForm({ ...incidentForm, hasProposal: false, proposal: "" })}
+                                  className="w-4 h-4"
+                                />
+                                Không
+                              </label>
+                            </div>
+                            {incidentForm.hasProposal && (
+                              <div className="pl-7">
+                                <textarea
+                                  value={incidentForm.proposal || ""}
+                                  onChange={(e) => setIncidentForm({ ...incidentForm, proposal: e.target.value })}
+                                  rows={3}
+                                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                                  placeholder="Nhập nội dung đề xuất"
+                                />
                               </div>
                             )}
                           </div>
@@ -834,13 +929,86 @@ export default function IncidentReportModal({
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Người liên quan</label>
-                        <input
-                          type="text"
-                          value={incidentForm.relatedUsers?.join(", ") || ""}
-                          onChange={(e) => setIncidentForm({ ...incidentForm, relatedUsers: e.target.value.split(", ").filter(Boolean) })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                          placeholder="Tìm người liên quan..."
-                        />
+                        <div className="space-y-2">
+                          {incidentForm.relatedUsers && incidentForm.relatedUsers.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {incidentForm.relatedUsers.map((user, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm"
+                                >
+                                  {user}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newUsers = [...(incidentForm.relatedUsers || [])];
+                                      newUsers.splice(idx, 1);
+                                      setIncidentForm({ ...incidentForm, relatedUsers: newUsers });
+                                    }}
+                                    className="ml-1 text-blue-600 hover:text-blue-800"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {showAddRelatedUser ? (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={newRelatedUser}
+                                onChange={(e) => setNewRelatedUser(e.target.value)}
+                                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                placeholder="Nhập tên người liên quan..."
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && newRelatedUser.trim()) {
+                                    setIncidentForm({
+                                      ...incidentForm,
+                                      relatedUsers: [...(incidentForm.relatedUsers || []), newRelatedUser.trim()],
+                                    });
+                                    setNewRelatedUser("");
+                                    setShowAddRelatedUser(false);
+                                  }
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (newRelatedUser.trim()) {
+                                    setIncidentForm({
+                                      ...incidentForm,
+                                      relatedUsers: [...(incidentForm.relatedUsers || []), newRelatedUser.trim()],
+                                    });
+                                    setNewRelatedUser("");
+                                    setShowAddRelatedUser(false);
+                                  }
+                                }}
+                                className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                              >
+                                <Plus size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setNewRelatedUser("");
+                                  setShowAddRelatedUser(false);
+                                }}
+                                className="px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setShowAddRelatedUser(true)}
+                              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                            >
+                              <Plus size={16} /> Thêm người liên quan
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
