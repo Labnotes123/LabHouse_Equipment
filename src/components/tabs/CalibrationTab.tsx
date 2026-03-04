@@ -18,6 +18,7 @@ import {
   Users,
   Building2,
   AlertTriangle,
+  Download,
 } from "lucide-react";
 import {
   CalibrationSchedule,
@@ -133,7 +134,85 @@ export default function CalibrationTab() {
     }
   };
 
-  // Column definitions for SmartTable
+  // Column definitions for schedule table
+  const scheduleColumns: Column<CalibrationSchedule>[] = [
+    { key: "deviceName", label: "Tên thiết bị", sortable: true, filterable: true },
+    { key: "deviceCode", label: "Mã thiết bị", sortable: true, filterable: true },
+    { key: "type", label: "Nội dung", sortable: true, filterable: true },
+    { key: "scheduledDate", label: "Ngày dự kiến", sortable: true, filterable: true, dateFilter: true },
+    { key: "assignedTo", label: "Người phụ trách", sortable: true, filterable: true },
+    {
+      key: "status",
+      label: "Trạng thái",
+      sortable: true,
+      render: (item: CalibrationSchedule) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+          {item.status}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Thao tác",
+      sortable: false,
+      filterable: false,
+      render: (item: CalibrationSchedule) => (
+        <div className="flex items-center gap-2">
+          <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xem chi tiết">
+            <Eye size={16} />
+          </button>
+          <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="In PDF">
+            <Printer size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  // Column definitions for result table
+  const resultColumns: Column<any>[] = [
+    { key: "resultCode", label: "Mã kết quả", sortable: true, filterable: true },
+    { key: "deviceName", label: "Thiết bị", sortable: true, filterable: true },
+    { key: "deviceCode", label: "Mã TB", sortable: true, filterable: true },
+    { key: "executionDate", label: "Ngày thực hiện", sortable: true, filterable: true, dateFilter: true },
+    {
+      key: "conclusion",
+      label: "Kết luận",
+      sortable: true,
+      render: (item: any) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.conclusion === "Đạt" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+          {item.conclusion || "Chưa đánh giá"}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      label: "Trạng thái",
+      sortable: true,
+      render: (item: any) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+          {item.status || "Bản nháp"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Thao tác",
+      sortable: false,
+      filterable: false,
+      render: (item: any) => (
+        <div className="flex items-center gap-2">
+          <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xem chi tiết">
+            <Eye size={16} />
+          </button>
+          <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="In PDF">
+            <Printer size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+  // Column definitions for request table
   const requestColumns: Column<any>[] = [
     { key: "requestCode", label: "Mã yêu cầu", sortable: true, filterable: true },
     { key: "deviceName", label: "Thiết bị", sortable: true, filterable: true },
@@ -316,13 +395,22 @@ export default function CalibrationTab() {
           </div>
         </div>
         {activeTab === "request" && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
-          >
-            <Plus size={18} />
-            Tạo yêu cầu hiệu chuẩn
-          </button>
+          <>
+            <button
+              onClick={() => setShowForm(true)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
+            >
+              <Plus size={18} />
+              Tạo yêu cầu hiệu chuẩn
+            </button>
+            <button
+              onClick={exportToExcel}
+              className="px-4 py-2 border border-purple-200 text-purple-600 rounded-lg hover:bg-purple-50 flex items-center gap-2"
+            >
+              <Download size={18} />
+              Xuất Excel
+            </button>
+          </>
         )}
       </div>
 
@@ -393,109 +481,24 @@ export default function CalibrationTab() {
 
       {/* Schedule Table */}
       {activeTab === "schedule" && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">STT</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Tên thiết bị</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mã thiết bị</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Nội dung</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Ngày dự kiến</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Người phụ trách</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Trạng thái</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredSchedules.map((schedule, index) => (
-                <tr key={schedule.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm text-slate-600">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-slate-800">{schedule.deviceName}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{schedule.deviceCode}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{schedule.type}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{schedule.scheduledDate}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{schedule.assignedTo}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(schedule.status)}`}>
-                      {schedule.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xem chi tiết">
-                        <Eye size={16} />
-                      </button>
-                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="In PDF">
-                        <Printer size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredSchedules.length === 0 && (
-            <div className="text-center py-12 text-slate-500">Không có dữ liệu</div>
-          )}
-        </div>
+        <SmartTable
+          data={filteredSchedules}
+          columns={scheduleColumns}
+          keyField="id"
+          settingsKey="calibration_schedules"
+          defaultPageSize={10}
+        />
       )}
 
       {/* Result Table */}
       {activeTab === "result" && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          {calibrationResults.length > 0 ? (
-            <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mã kết quả</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thiết bị</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mã TB</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Ngày thực hiện</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Kết luận</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Trạng thái</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {calibrationResults.map((result: any) => (
-                  <tr key={result.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 text-sm font-medium text-purple-600">{result.resultCode || result.id}</td>
-                    <td className="px-4 py-3 text-sm text-slate-800">{result.deviceName}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{result.deviceCode}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{result.executionDate}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${result.conclusion === "Đạt" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                        {result.conclusion || "Chưa đánh giá"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(result.status)}`}>
-                        {result.status || "Bản nháp"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xem chi tiết">
-                          <Eye size={16} />
-                        </button>
-                        <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="In PDF">
-                          <Printer size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="text-center py-12 text-slate-500">
-              <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-              <p>Chưa có kết quả hiệu chuẩn nào</p>
-              <p className="text-sm text-slate-400 mt-2">Kết quả hiệu chuẩn sẽ hiển thị sau khi hoàn thành lịch hiệu chuẩn</p>
-            </div>
-          )}
-        </div>
+        <SmartTable
+          data={calibrationResults}
+          columns={resultColumns}
+          keyField="id"
+          settingsKey="calibration_results"
+          defaultPageSize={10}
+        />
       )}
 
       {/* Create Request Form Modal */}
