@@ -30,6 +30,7 @@ import {
   IncidentReport,
   WorkOrder,
   mockIncidents,
+  mockUserProfiles,
 } from "@/lib/mockData";
 
 type IncidentModalTab = "reports" | "work-orders";
@@ -139,11 +140,47 @@ export default function IncidentReportModal({
   const [workOrderForm, setWorkOrderForm] = useState<Partial<WorkOrder>>(createDefaultWorkOrderForm());
   const [showAddRelatedUser, setShowAddRelatedUser] = useState(false);
   const [newRelatedUser, setNewRelatedUser] = useState("");
+  
+  // User search states
+  const [deviceManagerSearch, setDeviceManagerSearch] = useState("");
+  const [approverSearch, setApproverSearch] = useState("");
+  const [relatedUserSearch, setRelatedUserSearch] = useState("");
+  const [showDeviceManagerDropdown, setShowDeviceManagerDropdown] = useState(false);
+  const [showApproverDropdown, setShowApproverDropdown] = useState(false);
+  const [showRelatedUserDropdown, setShowRelatedUserDropdown] = useState(false);
+  const [engineerSignature, setEngineerSignature] = useState<string>("");
 
   const deviceIncidents = useMemo(
     () => incidentReports.filter((incident) => incident.deviceId === device.id),
     [incidentReports, device.id]
   );
+
+  // Filter users based on search
+  const filteredUsers = useMemo(() => {
+    const allUsers = mockUserProfiles.filter(u => u.isActive).map(u => u.fullName);
+    return allUsers;
+  }, []);
+
+  const filteredDeviceManagers = useMemo(() => {
+    if (!deviceManagerSearch) return filteredUsers.slice(0, 5);
+    return filteredUsers.filter(name => 
+      name.toLowerCase().includes(deviceManagerSearch.toLowerCase())
+    ).slice(0, 5);
+  }, [deviceManagerSearch, filteredUsers]);
+
+  const filteredApprovers = useMemo(() => {
+    if (!approverSearch) return filteredUsers.slice(0, 5);
+    return filteredUsers.filter(name => 
+      name.toLowerCase().includes(approverSearch.toLowerCase())
+    ).slice(0, 5);
+  }, [approverSearch, filteredUsers]);
+
+  const filteredRelatedUsers = useMemo(() => {
+    if (!relatedUserSearch) return filteredUsers.slice(0, 5);
+    return filteredUsers.filter(name => 
+      name.toLowerCase().includes(relatedUserSearch.toLowerCase())
+    ).slice(0, 5);
+  }, [relatedUserSearch, filteredUsers]);
 
   const allDeviceWorkOrders = useMemo(() => {
     return deviceIncidents.flatMap((incident) => {
@@ -908,24 +945,56 @@ export default function IncidentReportModal({
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Người phụ trách thiết bị</label>
-                        <input
-                          type="text"
-                          value={incidentForm.deviceManager || ""}
-                          onChange={(e) => setIncidentForm({ ...incidentForm, deviceManager: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50"
-                          placeholder="Tự động điền từ thiết bị"
-                          readOnly
-                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={incidentForm.deviceManager || ""}
+                            onChange={(e) => {
+                              setIncidentForm({ ...incidentForm, deviceManager: e.target.value });
+                              setDeviceManagerSearch(e.target.value);
+                              setShowDeviceManagerDropdown(true);
+                            }}
+                            onFocus={() => setShowDeviceManagerDropdown(true)}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50"
+                            placeholder="Tìm người phụ trách..."
+                            readOnly
+                          />
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Người phê duyệt <span className="text-red-500">*</span></label>
-                        <input
-                          type="text"
-                          value={incidentForm.approvedBy || ""}
-                          onChange={(e) => setIncidentForm({ ...incidentForm, approvedBy: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                          placeholder="Tìm người phê duyệt..."
-                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={incidentForm.approvedBy || ""}
+                            onChange={(e) => {
+                              setIncidentForm({ ...incidentForm, approvedBy: e.target.value });
+                              setApproverSearch(e.target.value);
+                              setShowApproverDropdown(true);
+                            }}
+                            onFocus={() => setShowApproverDropdown(true)}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                            placeholder="Tìm người phê duyệt..."
+                          />
+                          {showApproverDropdown && filteredApprovers.length > 0 && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {filteredApprovers.map((name) => (
+                                <button
+                                  key={name}
+                                  type="button"
+                                  onClick={() => {
+                                    setIncidentForm({ ...incidentForm, approvedBy: name });
+                                    setApproverSearch(name);
+                                    setShowApproverDropdown(false);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-sm hover:bg-slate-100"
+                                >
+                                  {name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Người liên quan</label>
@@ -953,79 +1022,68 @@ export default function IncidentReportModal({
                               ))}
                             </div>
                           )}
-                          {showAddRelatedUser ? (
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                value={newRelatedUser}
-                                onChange={(e) => setNewRelatedUser(e.target.value)}
-                                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                                placeholder="Nhập tên người liên quan..."
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" && newRelatedUser.trim()) {
-                                    setIncidentForm({
-                                      ...incidentForm,
-                                      relatedUsers: [...(incidentForm.relatedUsers || []), newRelatedUser.trim()],
-                                    });
-                                    setNewRelatedUser("");
-                                    setShowAddRelatedUser(false);
-                                  }
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (newRelatedUser.trim()) {
-                                    setIncidentForm({
-                                      ...incidentForm,
-                                      relatedUsers: [...(incidentForm.relatedUsers || []), newRelatedUser.trim()],
-                                    });
-                                    setNewRelatedUser("");
-                                    setShowAddRelatedUser(false);
-                                  }
-                                }}
-                                className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                              >
-                                <Plus size={16} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setNewRelatedUser("");
-                                  setShowAddRelatedUser(false);
-                                }}
-                                className="px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setShowAddRelatedUser(true)}
-                              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                            >
-                              <Plus size={16} /> Thêm người liên quan
-                            </button>
-                          )}
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={relatedUserSearch}
+                              onChange={(e) => {
+                                setRelatedUserSearch(e.target.value);
+                                setShowRelatedUserDropdown(true);
+                              }}
+                              onFocus={() => setShowRelatedUserDropdown(true)}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                              placeholder="Tìm người liên quan..."
+                            />
+                            {showRelatedUserDropdown && filteredRelatedUsers.length > 0 && (
+                              <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                {filteredRelatedUsers
+                                  .filter(name => !(incidentForm.relatedUsers || []).includes(name))
+                                  .map((name) => (
+                                  <button
+                                    key={name}
+                                    type="button"
+                                    onClick={() => {
+                                      setIncidentForm({
+                                        ...incidentForm,
+                                        relatedUsers: [...(incidentForm.relatedUsers || []), name],
+                                      });
+                                      setRelatedUserSearch("");
+                                      setShowRelatedUserDropdown(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm hover:bg-slate-100"
+                                  >
+                                    {name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2">
+                  <div className="flex justify-between items-center pt-2">
                     <button
-                      onClick={() => handleSubmitIncident("Nháp")}
+                      onClick={onClose}
                       className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2"
                     >
-                      <Save size={16} /> Lưu nháp
+                      <X size={16} /> Đóng
                     </button>
-                    <button
-                      onClick={() => handleSubmitIncident("Chờ duyệt")}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2"
-                    >
-                      <Send size={16} /> Gửi duyệt
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSubmitIncident("Nháp")}
+                        className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+                      >
+                        <Save size={16} /> Lưu nháp
+                      </button>
+                      <button
+                        onClick={() => handleSubmitIncident("Chờ duyệt")}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2"
+                      >
+                        <Send size={16} /> Gửi duyệt
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1306,6 +1364,110 @@ export default function IncidentReportModal({
                           />
                           Kết luận: Xử trí 1 phần
                         </label>
+                      </div>
+
+                      {/* Chữ ký kỹ sư */}
+                      <div className="border-t border-slate-200 pt-4 mt-4">
+                        <h4 className="font-semibold text-slate-800 mb-3">Chữ ký kỹ sư</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Tên kỹ sư</label>
+                            <input
+                              type="text"
+                              value={workOrderForm.engineerName || ""}
+                              onChange={(e) => setWorkOrderForm({ ...workOrderForm, engineerName: e.target.value })}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                              placeholder="Nhập tên kỹ sư..."
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Chữ ký (ký trên màn hình cảm ứng)</label>
+                            <div className="border border-slate-200 rounded-lg bg-white">
+                              <canvas
+                                ref={(el) => {
+                                  if (el) {
+                                    el.width = 300;
+                                    el.height = 100;
+                                    const ctx = el.getContext("2d");
+                                    if (ctx) {
+                                      ctx.strokeStyle = "#1e293b";
+                                      ctx.lineWidth = 2;
+                                      ctx.lineCap = "round";
+                                      
+                                      let isDrawing = false;
+                                      let lastX = 0;
+                                      let lastY = 0;
+                                      
+                                      const startDrawing = (e: MouseEvent | TouchEvent) => {
+                                        isDrawing = true;
+                                        const rect = el.getBoundingClientRect();
+                                        const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+                                        const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+                                        lastX = clientX - rect.left;
+                                        lastY = clientY - rect.top;
+                                      };
+                                      
+                                      const draw = (e: MouseEvent | TouchEvent) => {
+                                        if (!isDrawing) return;
+                                        e.preventDefault();
+                                        const rect = el.getBoundingClientRect();
+                                        const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+                                        const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+                                        const x = clientX - rect.left;
+                                        const y = clientY - rect.top;
+                                        ctx.beginPath();
+                                        ctx.moveTo(lastX, lastY);
+                                        ctx.lineTo(x, y);
+                                        ctx.stroke();
+                                        lastX = x;
+                                        lastY = y;
+                                      };
+                                      
+                                      const stopDrawing = () => {
+                                        if (isDrawing) {
+                                          isDrawing = false;
+                                          const dataUrl = el.toDataURL();
+                                          setEngineerSignature(dataUrl);
+                                          setWorkOrderForm((prev: any) => ({ ...prev, signatureUrl: dataUrl }));
+                                        }
+                                      };
+                                      
+                                      el.onmousedown = startDrawing;
+                                      el.onmousemove = draw;
+                                      el.onmouseup = stopDrawing;
+                                      el.onmouseleave = stopDrawing;
+                                      el.ontouchstart = startDrawing;
+                                      el.ontouchmove = draw;
+                                      el.ontouchend = stopDrawing;
+                                    }
+                                  }
+                                }}
+                                className="w-full touch-none cursor-crosshair"
+                                style={{ height: "100px" }}
+                              />
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <span className="text-xs text-slate-500">Ký hoặc vẽ chữ ký ở đây</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+                                  if (canvas) {
+                                    const ctx = canvas.getContext("2d");
+                                    if (ctx) {
+                                      ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                      setEngineerSignature("");
+                                      setWorkOrderForm((prev: any) => ({ ...prev, signatureUrl: "" }));
+                                    }
+                                  }
+                                }}
+                                className="text-xs text-red-500 hover:text-red-700"
+                              >
+                                Xóa chữ ký
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
