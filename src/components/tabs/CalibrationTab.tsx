@@ -4,8 +4,6 @@ import { useState, useMemo, useEffect } from "react";
 import {
   Gauge,
   Plus,
-  Search,
-  Download,
   Calendar,
   CheckCircle2,
   Clock,
@@ -30,6 +28,7 @@ import {
 import { useData } from "@/contexts/DataContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { SmartTable, Column } from "@/components/SmartTable";
 
 // Generate calibration request code
 function generateCalibrationCode(year: number, counter: number): string {
@@ -133,6 +132,59 @@ export default function CalibrationTab() {
         return "bg-slate-100 text-slate-700";
     }
   };
+
+  // Column definitions for SmartTable
+  const requestColumns: Column<any>[] = [
+    { key: "requestCode", label: "Mã yêu cầu", sortable: true, filterable: true },
+    { key: "deviceName", label: "Thiết bị", sortable: true, filterable: true },
+    { key: "deviceCode", label: "Mã TB", sortable: true, filterable: true },
+    { key: "serial", label: "Serial", sortable: true, filterable: true },
+    { key: "expectedDate", label: "Ngày dự kiến", sortable: true, filterable: true, dateFilter: true },
+    {
+      key: "status",
+      label: "Trạng thái",
+      sortable: true,
+      render: (item: any) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+          {item.status}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Thao tác",
+      sortable: false,
+      filterable: false,
+      render: (item: any) => (
+        <div className="flex items-center gap-2">
+          <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xem chi tiết">
+            <Eye size={16} />
+          </button>
+          {item.status === "Nháp" && (
+            <button
+              onClick={() => handleSendForApproval(item)}
+              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
+              title="Gửi duyệt"
+            >
+              <Send size={16} />
+            </button>
+          )}
+          {item.status === "Chờ duyệt" && (
+            <button
+              onClick={() => handleApprove(item)}
+              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
+              title="Phê duyệt"
+            >
+              <CheckCircle2 size={16} />
+            </button>
+          )}
+          <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="In PDF">
+            <Printer size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   // Handle device selection
   const handleDeviceSelect = (deviceId: string) => {
@@ -313,16 +365,6 @@ export default function CalibrationTab() {
 
       {/* Search and Filter */}
       <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm..."
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm"
-          />
-        </div>
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
@@ -336,88 +378,17 @@ export default function CalibrationTab() {
           <option value="Đã hoàn thành">Đã hoàn thành</option>
           <option value="Quá hạn">Quá hạn</option>
         </select>
-        <button
-          onClick={exportToExcel}
-          className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2"
-        >
-          <Download size={18} />
-          Xuất Excel
-        </button>
       </div>
 
       {/* Request Table */}
       {activeTab === "request" && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mã yêu cầu</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thiết bị</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mã TB</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Serial</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Ngày dự kiến</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Trạng thái</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {calibrationRequests.map((request) => (
-                <tr key={request.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm font-medium text-purple-600">{request.requestCode}</td>
-                  <td className="px-4 py-3 text-sm text-slate-800">{request.deviceName}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{request.deviceCode}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{request.serialNumber}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{request.expectedDate}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-                      {request.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Xem chi tiết">
-                        <Eye size={16} />
-                      </button>
-                      {request.status === "Nháp" && (
-                        <button
-                          onClick={() => handleSendForApproval(request)}
-                          className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
-                          title="Gửi duyệt"
-                        >
-                          <Send size={16} />
-                        </button>
-                      )}
-                      {request.status === "Chờ duyệt" && (
-                        <button
-                          onClick={() => handleApprove(request)}
-                          className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
-                          title="Phê duyệt"
-                        >
-                          <CheckCircle2 size={16} />
-                        </button>
-                      )}
-                      <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="In PDF">
-                        <Printer size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {calibrationRequests.length === 0 && (
-            <div className="text-center py-12 text-slate-500">
-              <Gauge className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-              <p>Chưa có yêu cầu hiệu chuẩn nào</p>
-              <button
-                onClick={() => setShowForm(true)}
-                className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-              >
-                Tạo yêu cầu hiệu chuẩn
-              </button>
-            </div>
-          )}
-        </div>
+        <SmartTable
+          data={calibrationRequests}
+          columns={requestColumns}
+          keyField="id"
+          settingsKey="calibration_requests"
+          defaultPageSize={10}
+        />
       )}
 
       {/* Schedule Table */}
