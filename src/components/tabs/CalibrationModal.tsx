@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
-  AlertTriangle,
   Calendar,
   CheckCircle2,
   ChevronRight,
@@ -8,13 +7,17 @@ import {
   FileText,
   Plus,
   Save,
+  Search,
   Send,
+  Trash2,
   Upload,
   X,
+  Download,
+  File,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Device, MOCK_USERS_LIST } from "@/lib/mockData";
+import { Device, MOCK_USERS_LIST, AttachedFile } from "@/lib/mockData";
 
 interface CalibrationModalProps {
   show: boolean;
@@ -39,6 +42,7 @@ type CalibrationRequest = {
   relatedUsers: string[];
   status: CalibrationRequestStatus;
   requestedBy: string;
+  attachments: AttachedFile[];
 };
 
 type CalibrationSchedule = {
@@ -89,9 +93,34 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
     relatedUsers: [],
     status: "Nháp",
     requestedBy: "",
+    attachments: [],
   });
   const [calibrationCounter, setCalibrationCounter] = useState(1);
   const [calibrationRequests, setCalibrationRequests] = useState<CalibrationRequest[]>([]);
+
+  // Search states
+  const [approverSearch, setApproverSearch] = useState("");
+  const [showApproverDropdown, setShowApproverDropdown] = useState(false);
+  const [relatedUserSearch, setRelatedUserSearch] = useState("");
+  const [showRelatedUserDropdown, setShowRelatedUserDropdown] = useState(false);
+  const approverDropdownRef = useRef<HTMLDivElement>(null);
+  const relatedUserDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Filter approvers (only managers)
+  const approvers = MOCK_USERS_LIST.filter((u) =>
+    ["Quản lý trang thiết bị", "Trưởng phòng xét nghiệm", "Admin", "Giám đốc"].includes(u.role)
+  );
+  const filteredApprovers = approvers.filter((a) =>
+    a.fullName.toLowerCase().includes(approverSearch.toLowerCase())
+  );
+
+  // Filter all users for related users
+  const allUsers = MOCK_USERS_LIST;
+  const filteredRelatedUsers = allUsers.filter(
+    (u) =>
+      u.fullName.toLowerCase().includes(relatedUserSearch.toLowerCase()) &&
+      !(calibrationForm.relatedUsers || []).includes(u.fullName)
+  );
 
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [scheduleForm, setScheduleForm] = useState({
@@ -174,6 +203,7 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
       notes: "",
       approver: "",
       relatedUsers: [],
+      attachments: [],
       status: "Nháp",
       requestedBy: user?.fullName || "",
     }));
@@ -192,8 +222,28 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
       standard: "",
       conclusion: "",
     });
+    
+    // Reset search states
+    setApproverSearch("");
+    setRelatedUserSearch("");
+    setShowApproverDropdown(false);
+    setShowRelatedUserDropdown(false);
   }, [device, show, calibrationCounter, user?.fullName]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (approverDropdownRef.current && !approverDropdownRef.current.contains(event.target as Node)) {
+        setShowApproverDropdown(false);
+      }
+      if (relatedUserDropdownRef.current && !relatedUserDropdownRef.current.contains(event.target as Node)) {
+        setShowRelatedUserDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (!show || !device) return null;
 
@@ -217,6 +267,45 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
     setCalibrationCounter((prev) => prev + 1);
     setCalibrationRequestViewMode("list");
     success("Thành công", status === "Chờ duyệt" ? `Đã gửi yêu cầu hiệu chuẩn ${requestCode}` : "Đã lưu bản nháp yêu cầu hiệu chuẩn");
+  };
+
+  const handleAddRelatedUser = (userName: string) => {
+    const current = calibrationForm.relatedUsers || [];
+    if (!current.includes(userName)) {
+      setCalibrationForm({ ...calibrationForm, relatedUsers: [...current, userName] });
+    }
+    setRelatedUserSearch("");
+    setShowRelatedUserDropdown(false);
+  };
+
+  const handleRemoveRelatedUser = (userName: string) => {
+    const current = calibrationForm.relatedUsers || [];
+    setCalibrationForm({ ...calibrationForm, relatedUsers: current.filter((name) => name !== userName) });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newAttachments: AttachedFile[] = Array.from(files).map((file) => ({
+      id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: file.name,
+      type: file.name.toLowerCase().endsWith(".pdf") ? "pdf" : file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? "image" : "doc",
+      url: URL.createObjectURL(file),
+      size: file.size,
+    }));
+
+    setCalibrationForm({
+      ...calibrationForm,
+      attachments: [...(calibrationForm.attachments || []), ...newAttachments],
+    });
+  };
+
+  const handleRemoveAttachment = (attId: string) => {
+    setCalibrationForm({
+      ...calibrationForm,
+      attachments: (calibrationForm.attachments || []).filter((a) => a.id !== attId),
+    });
   };
 
   const handleAddSchedule = () => {
@@ -255,6 +344,12 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
     setCalibrationResults((prev) => [...prev, result]);
     setShowResultForm(false);
     success("Thành công", "Đã lưu kết quả hiệu chuẩn");
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
   return (
@@ -469,50 +564,204 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
                     />
                   </div>
 
+                  {/* Người phê duyệt - Search/Autocomplete */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Người phê duyệt <span className="text-red-500">*</span></label>
-                    <div className="flex flex-wrap gap-2">
-                      {MOCK_USERS_LIST.filter((u) => ["Quản lý trang thiết bị", "Trưởng phòng xét nghiệm", "Admin"].includes(u.role)).map((approver) => (
-                        <button
-                          key={approver.id}
-                          type="button"
-                          onClick={() => setCalibrationForm({ ...calibrationForm, approver: approver.fullName })}
-                          className={`px-3 py-1 rounded-full text-sm transition-all ${
-                            calibrationForm.approver === approver.fullName
-                              ? "bg-purple-500 text-white"
-                              : "bg-white border border-slate-300 text-slate-700 hover:bg-purple-50"
-                          }`}
-                        >
-                          {approver.fullName}
-                        </button>
-                      ))}
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Người phê duyệt <span className="text-red-500">*</span></label>
+                    <div className="relative" ref={approverDropdownRef}>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input
+                          type="text"
+                          value={approverSearch}
+                          onChange={(e) => {
+                            setApproverSearch(e.target.value);
+                            setShowApproverDropdown(true);
+                            if (!e.target.value) {
+                              setCalibrationForm({ ...calibrationForm, approver: "" });
+                            }
+                          }}
+                          onFocus={() => setShowApproverDropdown(true)}
+                          placeholder="Gõ để tìm kiếm..."
+                          className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500"
+                        />
+                      </div>
+                      
+                      {showApproverDropdown && filteredApprovers.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {filteredApprovers.map((approver) => (
+                            <button
+                              key={approver.id}
+                              type="button"
+                              onClick={() => {
+                                setCalibrationForm({ ...calibrationForm, approver: approver.fullName });
+                                setApproverSearch(approver.fullName);
+                                setShowApproverDropdown(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 hover:bg-purple-50 text-sm ${
+                                calibrationForm.approver === approver.fullName ? "bg-purple-50 text-purple-700 font-medium" : "text-slate-700"
+                              }`}
+                            >
+                              {approver.fullName}
+                              <span className="text-xs text-slate-400 ml-2">- {approver.role}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {calibrationForm.approver && !showApproverDropdown && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
+                            {calibrationForm.approver}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCalibrationForm({ ...calibrationForm, approver: "" });
+                                setApproverSearch("");
+                              }}
+                              className="ml-1 hover:text-purple-900"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
+                  {/* Người liên quan - Search/Autocomplete với nút + */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Người liên quan</label>
-                    <div className="flex flex-wrap gap-2">
-                      {MOCK_USERS_LIST.map((u) => (
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Người liên quan</label>
+                    <div className="relative" ref={relatedUserDropdownRef}>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <input
+                            type="text"
+                            value={relatedUserSearch}
+                            onChange={(e) => {
+                              setRelatedUserSearch(e.target.value);
+                              setShowRelatedUserDropdown(true);
+                            }}
+                            onFocus={() => setShowRelatedUserDropdown(true)}
+                            placeholder="Gõ để tìm kiếm..."
+                            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-500"
+                          />
+                        </div>
                         <button
-                          key={u.id}
                           type="button"
                           onClick={() => {
-                            const current = calibrationForm.relatedUsers || [];
-                            const newList = current.includes(u.fullName)
-                              ? current.filter((name) => name !== u.fullName)
-                              : [...current, u.fullName];
-                            setCalibrationForm({ ...calibrationForm, relatedUsers: newList });
+                            if (relatedUserSearch.trim()) {
+                              handleAddRelatedUser(relatedUserSearch.trim());
+                            }
                           }}
-                          className={`px-3 py-1 rounded-full text-sm transition-all ${
-                            (calibrationForm.relatedUsers || []).includes(u.fullName)
-                              ? "bg-blue-500 text-white"
-                              : "bg-white border border-slate-300 text-slate-700 hover:bg-blue-50"
-                          }`}
+                          disabled={!relatedUserSearch.trim()}
+                          className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                         >
-                          {u.fullName}
+                          <Plus size={16} /> Thêm
                         </button>
-                      ))}
+                      </div>
+                      
+                      {showRelatedUserDropdown && filteredRelatedUsers.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {filteredRelatedUsers.map((u) => (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => handleAddRelatedUser(u.fullName)}
+                              className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm text-slate-700"
+                            >
+                              {u.fullName}
+                              <span className="text-xs text-slate-400 ml-2">- {u.role}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                    
+                    {/* Selected related users */}
+                    {(calibrationForm.relatedUsers || []).length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {calibrationForm.relatedUsers.map((userName) => (
+                          <span
+                            key={userName}
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                          >
+                            {userName}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveRelatedUser(userName)}
+                              className="ml-1 hover:text-blue-900"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* File attachments */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Đính kèm tài liệu</label>
+                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors">
+                      <input
+                        type="file"
+                        id="calibration-attachments"
+                        multiple
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <label htmlFor="calibration-attachments" className="cursor-pointer">
+                        <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+                        <p className="text-sm text-slate-600">Click để tải lên hoặc kéo thả file</p>
+                        <p className="text-xs text-slate-400 mt-1">PDF, Word, Images (max 10MB)</p>
+                      </label>
+                    </div>
+                    
+                    {/* Attached files list */}
+                    {(calibrationForm.attachments || []).length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {calibrationForm.attachments.map((att) => (
+                          <div
+                            key={att.id}
+                            className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg border border-slate-200"
+                          >
+                            <div className="flex items-center gap-2">
+                              <File size={16} className="text-slate-500" />
+                              <span className="text-sm text-slate-700">{att.name}</span>
+                              <span className="text-xs text-slate-400">({formatFileSize(att.size)})</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => window.open(att.url, "_blank")}
+                                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                title="Xem file"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <a
+                                href={att.url}
+                                download={att.name}
+                                className="p-1 text-green-600 hover:bg-green-50 rounded"
+                                title="Tải xuống"
+                              >
+                                <Download size={14} />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveAttachment(att.id)}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                title="Xóa file"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex justify-between pt-4 border-t border-slate-200">
@@ -600,117 +849,6 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
                   </table>
                 </div>
               )}
-
-              {showScheduleForm && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowScheduleForm(false)}>
-                  <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                    <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-800">Lên lịch hiệu chuẩn</h3>
-                        <p className="text-sm text-slate-500">BM.08.QL.TC.018</p>
-                      </div>
-                      <button onClick={() => setShowScheduleForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                        <X size={20} />
-                      </button>
-                    </div>
-
-                    <div className="p-6 space-y-4">
-                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                        <h4 className="font-semibold text-purple-800">{device.name}</h4>
-                        <p className="text-sm text-purple-600">{device.code} - {device.serial}</p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Ngày hiệu chuẩn</label>
-                          <input
-                            type="date"
-                            value={scheduleForm.scheduledDate}
-                            onChange={(e) => setScheduleForm({ ...scheduleForm, scheduledDate: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Giờ hiệu chuẩn</label>
-                          <input
-                            type="time"
-                            value={scheduleForm.scheduledTime}
-                            onChange={(e) => setScheduleForm({ ...scheduleForm, scheduledTime: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Nhắc lịch trước</label>
-                        <select
-                          value={scheduleForm.reminderDays}
-                          onChange={(e) => setScheduleForm({ ...scheduleForm, reminderDays: parseInt(e.target.value, 10) })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                        >
-                          <option value={1}>1 ngày</option>
-                          <option value={3}>3 ngày</option>
-                          <option value={5}>5 ngày</option>
-                          <option value={7}>7 ngày</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung</label>
-                        <textarea
-                          value={scheduleForm.content}
-                          onChange={(e) => setScheduleForm({ ...scheduleForm, content: e.target.value })}
-                          rows={2}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                          placeholder="Nội dung hiệu chuẩn..."
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Người liên quan</label>
-                        <div className="flex flex-wrap gap-2">
-                          {MOCK_USERS_LIST.map((u) => (
-                            <button
-                              key={u.id}
-                              type="button"
-                              onClick={() => {
-                                const current = scheduleForm.relatedUsers || [];
-                                const newList = current.includes(u.fullName)
-                                  ? current.filter((name) => name !== u.fullName)
-                                  : [...current, u.fullName];
-                                setScheduleForm({ ...scheduleForm, relatedUsers: newList });
-                              }}
-                              className={`px-3 py-1 rounded-full text-sm transition-all ${
-                                (scheduleForm.relatedUsers || []).includes(u.fullName)
-                                  ? "bg-purple-500 text-white"
-                                  : "bg-white border border-slate-300 text-slate-700 hover:bg-purple-50"
-                              }`}
-                            >
-                              {u.fullName}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                        <button
-                          onClick={() => setShowScheduleForm(false)}
-                          className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                        >
-                          Hủy
-                        </button>
-                        <button
-                          onClick={handleAddSchedule}
-                          disabled={!scheduleForm.scheduledDate}
-                          className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50"
-                        >
-                          Lưu
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -719,33 +857,32 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800">Xem xét kết quả hiệu chuẩn - BM.09.QL.TC.018</h3>
+                  <h3 className="font-semibold text-slate-800">Kết quả hiệu chuẩn - BM.09.QL.TC.018</h3>
                   <p className="text-sm text-slate-500">{device.name} - {device.code}</p>
                 </div>
                 <button
                   onClick={() => setShowResultForm(true)}
-                  className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 flex items-center gap-1"
+                  className="px-3 py-1.5 bg-purple-500 text-white text-sm rounded-lg hover:bg-purple-600 flex items-center gap-1"
                 >
-                  <Plus size={16} /> Xem xét kết quả
+                  <Plus size={16} /> Thêm kết quả
                 </button>
               </div>
 
               {calibrationResults.filter((r) => r.deviceId === device.id).length === 0 ? (
                 <div className="text-center py-8 text-slate-500">
-                  <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                  <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                   <p>Chưa có kết quả hiệu chuẩn nào</p>
-                  <p className="text-sm text-slate-400 mt-1">Kết quả hiệu chuẩn sẽ hiển thị sau khi hoàn thành</p>
+                  <p className="text-sm text-slate-400 mt-1">Kết quả hiệu chuẩn sẽ hiển thị sau khi thực hiện hiệu chuẩn</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50">
                       <tr>
+                        <th className="px-4 py-3 text-left font-semibold text-slate-700">STT</th>
                         <th className="px-4 py-3 text-left font-semibold text-slate-700">Tên thiết bị</th>
-                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã TB</th>
-                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Serial</th>
+                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Mã thiết bị</th>
                         <th className="px-4 py-3 text-left font-semibold text-slate-700">Ngày thực hiện</th>
-                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Kết quả</th>
                         <th className="px-4 py-3 text-left font-semibold text-slate-700">Kết luận</th>
                         <th className="px-4 py-3 text-center font-semibold text-slate-700">Thao tác</th>
                       </tr>
@@ -753,13 +890,12 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
                     <tbody className="divide-y divide-slate-100">
                       {calibrationResults
                         .filter((r) => r.deviceId === device.id)
-                        .map((r) => (
+                        .map((r, idx) => (
                           <tr key={r.id} className="hover:bg-slate-50">
+                            <td className="px-4 py-3">{idx + 1}</td>
                             <td className="px-4 py-3">{r.deviceName}</td>
                             <td className="px-4 py-3 font-mono">{r.deviceCode}</td>
-                            <td className="px-4 py-3">{r.serialNumber}</td>
                             <td className="px-4 py-3">{r.executionDate}</td>
-                            <td className="px-4 py-3">{r.result}</td>
                             <td className="px-4 py-3">
                               <span
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -778,148 +914,6 @@ export default function CalibrationModal({ show, device, onClose }: CalibrationM
                         ))}
                     </tbody>
                   </table>
-                </div>
-              )}
-
-              {showResultForm && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowResultForm(false)}>
-                  <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                    <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-800">Phiếu đánh giá kết quả hiệu chuẩn</h3>
-                        <p className="text-sm text-slate-500">BM.09.QL.TC.018</p>
-                      </div>
-                      <button onClick={() => setShowResultForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                        <X size={20} />
-                      </button>
-                    </div>
-
-                    <div className="p-6 space-y-4">
-                      <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                        <h4 className="font-semibold text-green-800">{device.name}</h4>
-                        <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-green-700">
-                          <div>Mã: {device.code}</div>
-                          <div>Serial: {device.serial}</div>
-                          <div>Hãng: {device.manufacturer}</div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Ngày thực hiện</label>
-                        <input
-                          type="date"
-                          value={resultForm.executionDate}
-                          onChange={(e) => setResultForm({ ...resultForm, executionDate: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung thực hiện</label>
-                        <textarea
-                          value={resultForm.content}
-                          onChange={(e) => setResultForm({ ...resultForm, content: e.target.value })}
-                          rows={2}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
-                          placeholder="Nội dung hiệu chuẩn đã thực hiện..."
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Đơn vị thực hiện</label>
-                          <input
-                            type="text"
-                            value={resultForm.unit}
-                            onChange={(e) => setResultForm({ ...resultForm, unit: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                            placeholder="Tên đơn vị..."
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Kết quả hiệu chuẩn</label>
-                          <input
-                            type="text"
-                            value={resultForm.result}
-                            onChange={(e) => setResultForm({ ...resultForm, result: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                            placeholder="Kết quả..."
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Tiêu chuẩn</label>
-                        <input
-                          type="text"
-                          value={resultForm.standard}
-                          onChange={(e) => setResultForm({ ...resultForm, standard: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
-                          placeholder="Tiêu chuẩn áp dụng..."
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Kết luận</label>
-                        <div className="flex gap-4">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name="conclusion"
-                              checked={resultForm.conclusion === "Đạt"}
-                              onChange={() => setResultForm({ ...resultForm, conclusion: "Đạt" })}
-                              className="w-4 h-4 text-green-600"
-                            />
-                            <span className="text-sm text-slate-700">Đạt</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name="conclusion"
-                              checked={resultForm.conclusion === "Không đạt"}
-                              onChange={() => setResultForm({ ...resultForm, conclusion: "Không đạt" })}
-                              className="w-4 h-4 text-red-600"
-                            />
-                            <span className="text-sm text-slate-700">Không đạt</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Đính kèm file hiệu chuẩn có dấu</label>
-                        <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 text-center">
-                          <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
-                          <p className="text-sm text-slate-500">Kéo thả file hoặc click để tải lên</p>
-                          <p className="text-xs text-slate-400 mt-1">File PDF có dấu đỏ</p>
-                        </div>
-                      </div>
-
-                      {resultForm.conclusion === "Không đạt" && (
-                        <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                          <p className="text-sm text-red-700 mb-3">Thiết bị không đạt, bạn có muốn báo cáo sự cố không?</p>
-                          <button className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2">
-                            <AlertTriangle size={18} /> Báo cáo sự cố
-                          </button>
-                        </div>
-                      )}
-
-                      <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                        <button
-                          onClick={() => setShowResultForm(false)}
-                          className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                        >
-                          Hủy
-                        </button>
-                        <button
-                          onClick={handleAddResult}
-                          disabled={!resultForm.executionDate || !resultForm.conclusion}
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
-                        >
-                          Hoàn tất
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
