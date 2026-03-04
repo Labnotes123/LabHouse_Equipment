@@ -1396,6 +1396,15 @@ export default function IncidentReportModal({
                                       ctx.lineWidth = 2;
                                       ctx.lineCap = "round";
                                       
+                                      // Draw existing signature if available
+                                      if (engineerSignature && engineerSignature.startsWith('data:')) {
+                                        const img = new Image();
+                                        img.onload = () => {
+                                          ctx.drawImage(img, 0, 0);
+                                        };
+                                        img.src = engineerSignature;
+                                      }
+                                      
                                       let isDrawing = false;
                                       let lastX = 0;
                                       let lastY = 0;
