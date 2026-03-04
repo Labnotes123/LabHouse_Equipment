@@ -6,6 +6,8 @@ import type {
   NewDeviceProposal,
   IncidentReport,
   CalibrationSchedule,
+  CalibrationRequest,
+  CalibrationResult,
   HistoryLog,
 } from "@/lib/mockData";
 
@@ -15,6 +17,8 @@ interface DataContextValue {
   proposals: NewDeviceProposal[];
   incidents: IncidentReport[];
   schedules: CalibrationSchedule[];
+  calibrationRequests: CalibrationRequest[];
+  calibrationResults: CalibrationResult[];
   history: HistoryLog[];
 
   // Loading states
@@ -23,6 +27,8 @@ interface DataContextValue {
   proposalsLoading: boolean;
   incidentsLoading: boolean;
   schedulesLoading: boolean;
+  calibrationRequestsLoading: boolean;
+  calibrationResultsLoading: boolean;
   historyLoading: boolean;
 
   // Refresh
@@ -48,6 +54,16 @@ interface DataContextValue {
   updateSchedule: (id: string, updates: Partial<CalibrationSchedule>) => Promise<CalibrationSchedule>;
   deleteSchedule: (id: string) => Promise<void>;
 
+  // Calibration Request mutations
+  addCalibrationRequest: (request: Omit<CalibrationRequest, "id">) => Promise<CalibrationRequest>;
+  updateCalibrationRequest: (id: string, updates: Partial<CalibrationRequest>) => Promise<CalibrationRequest>;
+  deleteCalibrationRequest: (id: string) => Promise<void>;
+
+  // Calibration Result mutations
+  addCalibrationResult: (result: Omit<CalibrationResult, "id">) => Promise<CalibrationResult>;
+  updateCalibrationResult: (id: string, updates: Partial<CalibrationResult>) => Promise<CalibrationResult>;
+  deleteCalibrationResult: (id: string) => Promise<void>;
+
   // History mutations
   addHistory: (log: Omit<HistoryLog, "id">) => Promise<HistoryLog>;
 }
@@ -68,12 +84,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [proposals, setProposals] = useState<NewDeviceProposal[]>([]);
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [schedules, setSchedules] = useState<CalibrationSchedule[]>([]);
+  const [calibrationRequests, setCalibrationRequests] = useState<CalibrationRequest[]>([]);
+  const [calibrationResults, setCalibrationResults] = useState<CalibrationResult[]>([]);
   const [history, setHistory] = useState<HistoryLog[]>([]);
 
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [proposalsLoading, setProposalsLoading] = useState(true);
   const [incidentsLoading, setIncidentsLoading] = useState(true);
   const [schedulesLoading, setSchedulesLoading] = useState(true);
+  const [calibrationRequestsLoading, setCalibrationRequestsLoading] = useState(true);
+  const [calibrationResultsLoading, setCalibrationResultsLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(true);
 
   const fetchDevices = useCallback(async () => {
@@ -124,6 +144,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const fetchCalibrationRequests = useCallback(async () => {
+    setCalibrationRequestsLoading(true);
+    try {
+      const data = await apiFetch<CalibrationRequest[]>("/api/calibration-requests");
+      setCalibrationRequests(data);
+    } catch (e) {
+      console.error("Failed to fetch calibration requests", e);
+    } finally {
+      setCalibrationRequestsLoading(false);
+    }
+  }, []);
+
+  const fetchCalibrationResults = useCallback(async () => {
+    setCalibrationResultsLoading(true);
+    try {
+      const data = await apiFetch<CalibrationResult[]>("/api/calibration-results");
+      setCalibrationResults(data);
+    } catch (e) {
+      console.error("Failed to fetch calibration results", e);
+    } finally {
+      setCalibrationResultsLoading(false);
+    }
+  }, []);
+
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
@@ -142,16 +186,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       fetchProposals(),
       fetchIncidents(),
       fetchSchedules(),
+      fetchCalibrationRequests(),
+      fetchCalibrationResults(),
       fetchHistory(),
     ]);
-  }, [fetchDevices, fetchProposals, fetchIncidents, fetchSchedules, fetchHistory]);
+  }, [fetchDevices, fetchProposals, fetchIncidents, fetchSchedules, fetchCalibrationRequests, fetchCalibrationResults, fetchHistory]);
 
   useEffect(() => {
     refreshData();
   }, [refreshData]);
 
   const loading =
-    devicesLoading || proposalsLoading || incidentsLoading || schedulesLoading || historyLoading;
+    devicesLoading || proposalsLoading || incidentsLoading || schedulesLoading || 
+    calibrationRequestsLoading || calibrationResultsLoading || historyLoading;
 
   // Device mutations
   const addDevice = useCallback(async (device: Omit<Device, "id">) => {
@@ -257,6 +304,58 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSchedules((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
+  // Calibration Request mutations
+  const addCalibrationRequest = useCallback(async (request: Omit<CalibrationRequest, "id">) => {
+    const created = await apiFetch<CalibrationRequest>("/api/calibration-requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    setCalibrationRequests((prev) => [created, ...prev]);
+    return created;
+  }, []);
+
+  const updateCalibrationRequest = useCallback(async (id: string, updates: Partial<CalibrationRequest>) => {
+    const updated = await apiFetch<CalibrationRequest>(`/api/calibration-requests/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    setCalibrationRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    return updated;
+  }, []);
+
+  const deleteCalibrationRequest = useCallback(async (id: string) => {
+    await apiFetch(`/api/calibration-requests/${id}`, { method: "DELETE" });
+    setCalibrationRequests((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  // Calibration Result mutations
+  const addCalibrationResult = useCallback(async (result: Omit<CalibrationResult, "id">) => {
+    const created = await apiFetch<CalibrationResult>("/api/calibration-results", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(result),
+    });
+    setCalibrationResults((prev) => [created, ...prev]);
+    return created;
+  }, []);
+
+  const updateCalibrationResult = useCallback(async (id: string, updates: Partial<CalibrationResult>) => {
+    const updated = await apiFetch<CalibrationResult>(`/api/calibration-results/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    setCalibrationResults((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    return updated;
+  }, []);
+
+  const deleteCalibrationResult = useCallback(async (id: string) => {
+    await apiFetch(`/api/calibration-results/${id}`, { method: "DELETE" });
+    setCalibrationResults((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
   // History mutations
   const addHistory = useCallback(async (log: Omit<HistoryLog, "id">) => {
     const created = await apiFetch<HistoryLog>("/api/history", {
@@ -275,12 +374,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         proposals,
         incidents,
         schedules,
+        calibrationRequests,
+        calibrationResults,
         history,
         loading,
         devicesLoading,
         proposalsLoading,
         incidentsLoading,
         schedulesLoading,
+        calibrationRequestsLoading,
+        calibrationResultsLoading,
         historyLoading,
         refreshData,
         addDevice,
@@ -295,6 +398,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         addSchedule,
         updateSchedule,
         deleteSchedule,
+        addCalibrationRequest,
+        updateCalibrationRequest,
+        deleteCalibrationRequest,
+        addCalibrationResult,
+        updateCalibrationResult,
+        deleteCalibrationResult,
         addHistory,
       }}
     >
