@@ -50,7 +50,16 @@ export function SmartTable<T>({
       const saved = localStorage.getItem(`table_settings_${settingsKey}`);
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const savedConfig = JSON.parse(saved) as { key: string; visible: boolean; order: number }[];
+          // Merge saved config with current columns to ensure all columns are present
+          const savedKeys = new Set(savedConfig.map(c => c.key));
+          const mergedConfig = [...savedConfig];
+          columns.forEach((col, idx) => {
+            if (!savedKeys.has(String(col.key))) {
+              mergedConfig.push({ key: String(col.key), visible: true, order: idx });
+            }
+          });
+          return mergedConfig;
         } catch {
           // ignore
         }
